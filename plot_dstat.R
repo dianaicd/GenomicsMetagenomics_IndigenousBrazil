@@ -3,7 +3,8 @@
 plot_dstat <- function(directory = "~/Projects/Botocudos/Files/Dstat/fromFlorian/",
                        fileName = "ABBAresult.Observed.txt",
                        h3 = "Log02WithError",
-                       h2 =  "French", start = 0, end = 0.1, pval = 0.05){
+                       h2 =  "French", start = 0, end = 0.1, pval = 0.05,
+                       x1 = -1, x2 = 1){
 
 setwd(directory)
 abba <- read.table(fileName, header = T,
@@ -47,7 +48,9 @@ p <- ggplot(abba, aes(x = JK.D, y = H1,
   labs(x = "Dstat", y = "H1", title = title) +
   scale_color_gradient2(low = low, high = high,
                        limits = limits, breaks = breaks, mid = "white",
-                       midpoint = pval)
+                       midpoint = pval) +
+  scale_x_continuous(limits = c(x1, x2)) +
+  geom_vline(xintercept = 0, lty = "dashed", col = "gray")
 
 return(p)
 
