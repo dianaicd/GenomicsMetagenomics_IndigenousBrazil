@@ -1,0 +1,391 @@
+---
+title: "Report_July_23"
+author: "Cruz-Dávalos, Diana I."
+date: "7/23/2018"
+output: 
+  html_document:
+    theme: "lumen"
+    highlight: "tango"
+    df_print: paged
+
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r sources, echo = F, message=F, warning=F}
+source("~/Projects/Botocudos/Scripts/translate_ids.R")
+source("~/Projects/Botocudos/Scripts/length_distribution_plot.R")
+source("~/Projects/Botocudos/Scripts/preseq_only_plots.R")
+source("~/Projects/Botocudos/Scripts/ry_plot.R")
+source("~/Projects/Botocudos/Scripts/engoenous_plot.R")
+source("~/Projects/Botocudos/Scripts/mapDamage_plot.R")
+source("~/Projects/Botocudos/Scripts/reads_summaries_plots.R")
+source("~/Projects/Botocudos/Scripts/order_endo.R")
+library(cowplot)
+library(ggplot2)
+#library(shiny)
+```
+
+```{r create boto}
+d <- "~/Projects/Botocudos/Files/Summaries/2018_07_23/"
+boto <- data.frame()
+for(f in list.files(path=d, pattern=".summary")){
+  tmp <- read.table(paste(d, f, sep = ""), header = T, stringsAsFactors = F, 
+                    sep = "\t")
+  boto <- rbind(tmp, boto)
+}
+colnames(boto) <- gsub("_endogenous", ".endogenous.", colnames(boto))
+colnames(boto) <- gsub("_mitochondrial", ".mitochondrial.", colnames(boto))
+colnames(boto) <- gsub("_nuclear", ".nuclear.", colnames(boto))
+
+boto$Library <- gsub("_Human", "", boto$Library)
+boto$Target <- gsub("_Human", "", boto$Target)
+boto$Sample <- gsub("_Human", "", boto$Sample)
+boto$Library <-  unlist(lapply(boto$Library, function(x) ma2mn(x)))
+boto <- boto[order(boto$hits_unique_frac.endogenous.),]
+boto$Library <- factor(boto$Library, levels = boto$Library, ordered = T)
+```
+
+
+## Samples
+
+We analyzed a total of 23 individuals: one labeled as "Native American" (~600 years old\*) from Minas Gerais, one identified as "Shell mound" (~4,000 years old\*) from Santa Catarina, and twenty-one "Botocudos". From this last group, eight skulls come from Espírito Santo, six from Minas Gerais, one from Bahía, and the 6 remaining have unassigned procedence (probably Minas Gerais or Espírito Santo).
+
+\*according to the Museum's Excell file. We are currently dating the 23 samples.
+
+```{r, fig.align="left", echo = F, warning=F, message=F}
+library(knitr)
+include_graphics("Brazil_map_points.png")
+```
+*Red: Minas Gerais
+
+*Green: Espírito Santo
+
+*Yellow: Bahía
+
+*Pink: Santa Catarina
+
+```{r boto table, rows.print=10, rownames.print = T}
+boto
+```
+
+## Summary of sequenced reads
+
+```{r summary plot, echo = F, fig.align='center'}
+
+summary_reads_plot(boto)
+
+```
+
+Zoom up to the reads aligned to the Human genome: 
+
+```{r aligning to hg, echo =F, fig.align='center'}
+
+hg_mapping_plot(boto)
+
+```
+
+```{r endogenous, echo = F, fig.align='center'}
+good <- sum(unique(boto$hits_unique_frac.endogenous.[boto$Library != "*"]) >0.01)
+
+ggendogenous(boto)
+
+```
+
+
+> Samples with endogenous content above 1%: `r good`
+
+
+```{r, echo = F, fig.align='center'}
+
+ggplot(boto[boto$Library != "*",], 
+       aes(x = Library, y = hits_length.nuclear.)) +
+  geom_bar(stat = "identity", fill = "orangered2") +
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(y = "Average length (bp)", title = "Length", x = NULL)
+
+
+ggplot(boto[boto$Library != "*",], 
+       aes(x = Library, y = hits_clonality.nuclear.)) +
+  geom_bar(stat = "identity", fill = "purple3") +
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(y = "Clonality (fraction)", title = "Clonality", x = NULL)
+
+```
+
+## Length distribution
+
+```{r length nuc, echo = F, fig.height = 14, fig.width = 14, eval = F}
+plots_nuc <- lapply(as.vector(boto$Library[boto$Library != "*"]), 
+                    function(ind) gglength(ind, type = c("nuc")))
+
+plot_grid(plotlist = plots_nuc, ncol = 5)
+
+```
+
+```{r length addapterremoval, fig.width=12, fig.height=12}
+
+trim <- "~/Projects/Botocudos/Files/AdapterRemoval/2018_07_23/"
+
+seq <- "~/Projects/Botocudos/Files/Length/2018_07_23/"
+
+par(mfrow = c(5,5))
+for(i in boto$Target[boto$Target!= "Quack"]){
+trimmed <- read.table(paste(trim, i, "_Human.settings", sep = ""),
+                      header = T, skip = 38)
+# min30 <- sum(trimmed$All[trimmed$Length < 30])
+# print(min30/sum(trimmed$All))
+# print(boto$seq_trash_se_frac[boto$Target == i])
+x <- cumsum(trimmed$All) >= max(cumsum(trimmed$All))/2
+x <- trimmed$Length[x][1]
+index <- trimmed$Length <80
+trash <-  sum(trimmed$All[trimmed$Length < 30])/max(cumsum(trimmed$All))
+
+plot(trimmed$Length[index], trimmed$All[index],
+     bty = "l", xlab = "Length", ylab = "Number of reads",
+     main = ma2mn(i), lty = 1, type = "b")
+abline(v = 30)
+abline(v = x, lty = 2, col = "red")
+text(x = 10, y = trimmed$All[25], 
+     label = prettyNum(trash, digits = 2),
+     col = ifelse(trash >0.2, "red", "black"))
+}
+
+par(mfrow=c(5,5))
+for(i in boto$Target[boto$Target!= "Quack"]){
+trimmed <- read.table(paste(trim, i, "_Human.settings", sep = ""),
+                      header = T, skip = 38)
+
+x <- cumsum(trimmed$All) >= max(cumsum(trimmed$All))/2
+x <- trimmed$Length[x][1]
+trash <-  sum(trimmed$All[trimmed$Length < 30])/max(cumsum(trimmed$All))
+plot(trimmed$Length, cumsum(trimmed$All),
+     bty = "l", xlab = "Length", ylab = "Number of reads",
+     main = ma2mn(i), lty = 1, type = "b")
+abline(v = 30)
+abline(v = x, lty = 2, col = "red")
+text(x = 10, y = 0.8*max(cumsum(trimmed$All)), 
+     label = prettyNum(trash, digits = 2))
+}
+
+
+par(mfrow = c(5,5))
+for(i in boto$Target[boto$Target!= "Quack"]){
+
+sequenced <- read.table(paste(seq, i, "_length.txt", sep = ""),
+                        header = T)
+
+plot(x = sequenced$Length, y = sequenced$N, col = "red", type = "b",
+     bty = "l", xlab = "Length", ylab = "Number of reads",
+     main = ma2mn(i), lty = 1)
+}
+
+```
+
+# Coverage
+
+```{r bases covered, echo = F, fig.align="center", fig.width = 18}
+
+#plot_bases_covered()
+
+
+#plot_depth_cov()
+
+ggplot(boto, aes(x = Library, y = hits_coverage.nuclear.)) +
+  geom_bar(stat = "identity") + 
+  labs(x = NULL, y = "Depth of coverage") +
+  theme(axis.text.x = element_text(angle = 90)) +
+  annotate("text", x = seq(1,24), y = boto$hits_coverage.nuclear.+0.1,
+           label = prettyNum(boto$hits_coverage.nuclear., digits = 2))
+
+```
+
+
+### Mitochondrial
+```{r length mito, echo = F, fig.height = 14, fig.width = 14, eval = F}
+plots_mito <- lapply(as.vector(boto$Library[boto$Library != "*"]), 
+                     function(ind) gglength(ind, type = c("mito")))
+
+plot_grid(plotlist = plots_mito, ncol = 5)
+
+```
+
+## Contamination
+
+```{sh, eval = F, echo = F}
+# Get counts
+~/install/angsd/angsd -i MA2398.hg19_nuc.realigned.bam -r chrM: -doCounts 1  -iCounts 1 -minMapQ 30 -minQ 20
+
+
+
+# Estimate contamination
+Rscript ~/install/angsd/R/contamination.R mapFile="~/install/angsd/RES/map100.chrX.gz" hapFile="/home/ubelix/iee/dcruz/install/angsd/RES/hapMapCeuXlift.map.gz" countFile="angsdput.icnts.gz" mc.cores=24
+
+Rscript ~/install/angsd/R/contamination.R mapFile="~/install/angsd/RES/chrX.unique.gz" hapFile="/home/ubelix/iee/dcruz/install/angsd/RES/HapMapChrX.gz" countFile="angsdput.icnts.gz" mc.cores=24
+
+~/install/angsd/misc/contamination -a angsdput.icnts.gz -h ~/install/angsd/RES/HapMapChrX.gz
+```
+
+## Sex determination
+
+```{r, echo = F, eval = F}
+  sex <- build_sex(boto)
+
+sex
+
+```
+
+
+
+```{r sex, echo=F, fig.height=6, fig.align="center", eval = F}
+
+ggsex(boto)
+
+```
+
+
+## Preseq output
+
+### Complexity curves
+
+Note: MN01701 was not deep enough sequenced or it had too little duplicates:
+
+12,397 unique reads
+
+12,420 raw reads
+
+0.00185185185185 fraction of clonal reads
+
+```{r preseq expreads, echo = F, fig.height=14, fig.width=14, eval = T}
+load("~/Projects/Botocudos/Files/PreSeq/output_preseq_Jan31_all.Rda")
+plots <- lapply(as.vector(boto$Target[boto$Target!="Quack"]), 
+                    function(ind) plot_expreads_preseq(ind, ylim = 7e7, xlim =1.5e9, useboto = T, verify = T))
+#plot_grid(plotlist = plots, ncol = 5)
+formatter25 <- function(x){ 
+    x/(2.5e8)
+}
+
+formattergc <- function(x){
+  x*60/(3.2e9)
+}
+```
+
+### 1% - 5%
+```{r preseq expreads2, echo = F, fig.height=8, fig.width=12, fig.align="center"}
+# 1 - 5%
+
+ind <- order_endo(Min = 0.01, Max = 0.05, boto)
+ind$Library <- sapply(ind$Library, function(x) mn2ma(as.character(x)))
+plots <- vector("list", dim(ind)[1])
+j <- 1
+for(i in ind$Library){
+  ylim <-  7e+7
+  xlim <- 10e8
+  p <- plot_expreads_preseq(i, ylim = ylim, verify = T, xlim = xlim, useboto = T)
+  p <-  p + annotate("text", y = 0.1*ylim, x = 0.9*xlim,
+                     label = prettyNum(boto$hits_coverage.endogenous.[boto$Sample == i],
+                                       digits = 2), 
+                     color = "red")
+  p <- p + scale_x_continuous(label=formatter25, name = "Lanes")+
+    scale_y_continuous(label = formattergc, name = "Genome coverage")
+  plots[[j]] <- p
+  j <- j + 1
+}
+plot_grid(plotlist = plots, ncol = 3)
+
+
+```
+
+### 5% - 10%
+```{r preseq expreads3, echo = F, fig.height=8, fig.width=12, fig.align="center"}
+# 6 - 10%
+ind <- order_endo(Min = 0.05, Max = 0.11, boto)
+plots <- vector("list", dim(ind)[1])
+ind$Library <- sapply(ind$Library, function(x) mn2ma(as.character(x)))
+
+j <- 1
+for(i in ind$Library){
+  ylim <- 7e7
+  xlim <- 10e8
+  p <- plot_expreads_preseq(i, ylim = ylim, verify = T, xlim = xlim, useboto = T)
+  p <-  p + annotate("text", y = 0.1*ylim, x = 0.9*xlim,
+                     label = prettyNum(boto$hits_coverage.endogenous.[boto$Sample == i],
+                                       digits = 2), 
+                     color = "red")
+  p <- p + scale_x_continuous(label=formatter25, name = "Lanes") +
+    scale_y_continuous(label = formattergc, name = "Genome coverage")
+  plots[[j]] <- p
+  j <- j + 1
+}
+plot_grid(plotlist = plots, ncol = 3)
+
+```
+
+### 17% - 18%
+```{r preseq expreads4, echo = F, fig.height=4, fig.width=8, fig.align="center"}
+# 17-18%
+ind <- order_endo(Min = 0.11, Max = 0.2, boto)
+plots <- vector("list", dim(ind)[1])
+ind$Library <- sapply(ind$Library, function(x) mn2ma(as.character(x)))
+
+j <- 1
+for(i in ind$Library){
+  ylim <- 15e7
+  xlim <- 10e8
+  p <- plot_expreads_preseq(i, ylim = ylim, verify = T, xlim = xlim, useboto = T)
+  p <-  p + annotate("text", y = 0.1*ylim, x = 0.9*xlim,
+                     label = prettyNum(boto$hits_coverage.endogenous.[boto$Sample == i],
+                                       digits = 2), 
+                     color = "red")
+  p <- p + scale_x_continuous(label=formatter25, name = "Lanes") +
+    scale_y_continuous(label = formattergc, name = "Genome coverage")
+  plots[[j]] <- p
+  j <- j + 1
+}
+
+plot_grid(plotlist = plots, ncol = 2)
+```
+
+
+### 35% (now 28%)
+```{r preseq expreads5, echo = F, fig.height=4, fig.width=4, fig.align="center"}
+
+# 35%
+ind <- order_endo(Min = 0.2, Max = 0.4, boto)
+ind$Library <- sapply(ind$Library, function(x) mn2ma(as.character(x)))
+
+plots <- vector("list", dim(ind)[1])
+j <- 1
+for(i in ind$Library){
+  ylim <- 15e7
+  xlim <- 10e8
+  p <- plot_expreads_preseq(i, ylim = ylim, verify = T, xlim = xlim, useboto = T)
+  p <-  p + annotate("text", y = 0.1*ylim, x = 0.9*xlim,
+                     label = prettyNum(boto$hits_coverage.endogenous.[boto$Sample == i],
+                                       digits = 2), 
+                     color = "red")
+  p <- p + scale_x_continuous(label=formatter25, name = "Lanes") +
+    scale_y_continuous(label = formattergc, name = "Genome coverage")
+  plots[[j]] <- p
+  j <- j + 1
+}
+
+print(plots)
+```
+
+
+## Molecular damage
+
+
+```{r damage nuclear, echo = F, fig.height=28, fig.width=18}
+
+par(mfrow=c(12,4))
+
+for( ind in order_endo(boto=boto)$Library[boto$Target!="Quack"]){
+  damage_plot(ind, "nuc")
+} 
+
+
+```
+

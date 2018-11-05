@@ -1,0 +1,194 @@
+---
+title: "make_pca"
+author: "Cruz-Dávalos, Diana I."
+date: "10/18/2017"
+output: html_document
+---
+Trying to get the PCA of Botocudos + Simons
+
+
+The second part of this report corresponds to the script of María and Viridiana.
+
+
+### Transform the VCF files to plink files format
+
+Once I downloaded and extracted the annotated variants from the SGDP, I merge them into a single VCF and then I do a "simple" conversion via plink:
+
+```
+ls *gz > vcf_list.txt
+bcftools merge --file-list vcf_list.txt --use-header new_header.txt -Oz -o subset_merged.vcf.gz
+plink --vcf subset_merged.vcf.gz --recode --out subset_merged
+```
+
+```
+samtools mpileup -v -q 30 -Q 20 MA2382.hg19_nuc.realigned.bam | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' | bcftools view -m2 -M2 -v snps -o MA2382.vcf
+
+```
+
+```
+# Create .ped
+plink -recode -vcf subset_merged_id.vcf -out subset_merged_id
+
+plink --file subset_merged_id --make-bed --out subset_merged_id
+
+cut -f 1,4 subset_merged_id.map | sed 's/^/chr/' | sed 's/chr23/X/' | sed 's/chr24/Y/' > subset_merged_id.pos
+```
+
+```
+mybam=MA2382.hg19_nuc.realigned.bam
+mypanel=subset_merged_id
+ref=/home/ubelix/iee/dcruz/data/References/Human/hg19/chromosomes_1-22_XY_Un.fasta
+
+./make_evec_per_sample_Diana_vDiana.sh $mybam $mypanel $ref
+
+```
+
+# MAKE PCA plot based on bam file and reference panel
+> November 2012
+maricugh@gmail.com
+Update:
+This pipeline was optimized July 2013 by Maria to
+only filter out possible triallelic sites (most likely caused by sequence error)
+and ignore the possibility of damage
+ideally the bam files processed by this pipeline should have the base qualities
+recalibrated by mapDamage2 which reduces the quality of mismatches likely caused by damages
+
+>  ****Modified Dec 2016 by Maria for Viridiana
+  added module loading, program names and few parsing commands
+
+
+> Adapted to LIIGH cluster
+
+```{sh, eval=F}
+#Your job name
+#$ -N make_evec
+#Use current working directory
+#$ -cwd
+
+#Join stdout and stderr
+#$ -j y
+# Run job through bash shell
+#$ -S /bin/bash
+
+#Send an email after the job has finished
+##$ -m e
+##$ -M villa.islas.vi@gmail.com
+
+#If modules are needed, source modules environment (Do not delete the next line):
+##. /etc/profile.d/modules.sh
+
+### Arguments are 
+### $1=bam file
+### $2=plink file basename
+### $3=path to reference genome. IMPORTANT - this reference has to be in order, i.e. chr1 chr2 chr3 etc
+
+file=$1
+
+##module load plink/1.07  
+##module load samtools/1.2
+module add UHTS/Analysis/samtools/1.3
+module add UHTS/Analysis/plink/1.90
+
+samtools index $file  
+base=`basename $file .bam`
+```
+
+##Skip triallelic sites
+
+```
+awk '{printf $1" "$2" "$3" "$4" "$5" "$6; for (i=7; i<=NF; i=i+2){x=int(.5 + rand()); printf (" "$(i+x)" "$(i+x));} print "" }' $2.ped > $2.rand.ped
+cp $2.map $2.rand.map
+
+#For bam file generates an mpileup file with the chr positions indicated in $2.pos and takes one allele randomly for each of the positions.
+
+samtools mpileup -f $3  -l $2.pos $file | get_random_allele_30.pl > $base.Q20.rand.mpileup
+```
+
+##Make tfam, tped and map files for sample
+
+```
+#tped file is generated with the chr and position coordinates followed by the homozygous allele.
+overlap_mpileup_tped.pl  $2.rand.map $base.Q20.rand.mpileup > $base.$2.tped
+
+```
+
+Failing here:
+```
+###Prints a map file with only the coordinates of the overlapping positions in the mpileup file.
+overlap_mpileup_map.pl $2.rand.map $base.Q20.rand.mpileup  > $base.$2.map
+```
+Do not know why, but running the command from the terminal works
+
+```
+###Generates a fam file for the sample
+echo "$base $base 0 0 3 1" > $base.$2.tfam
+
+ 
+##Generates file tped.ids with the SNPs ids to be extracted from the reference
+cut -f2 $base.$2.tped > $base.$2.tped.ids
+```
+
+Fails here:
+
+```
+###Extracts only the information for the SNPs indicated in tped.ids
+plink --bfile $2 --extract $base.$2.tped.ids --make-bed --out $base.preFilt_sites --allow-no-sex
+
+```
+Error: No variants remaining after --extract.
+
+
+```
+# SKIP TRIALLELIC SITES
+###Generates a map file for the sites extracted using only the coordinates for homozygous
+paste $base.preFilt_sites.bim $base.$2.tped | nice awk '{if ((($5 ~ /[A]/ || $6 ~ /[A]/) && $11 ~ /[A]/) || ( ($5 ~ /[C]/ || $6 ~ /[C]/) && $11 ~ /C/) || (($5 ~ /[G]/ || $6 ~ /[G]/) && $11 ~ /G/ ) || (($5 ~ /[T]/ || $6 ~ /[T]/) && $11 ~ /[T]/)) print $1,$2,$3,$4}' > $base.filt_sites.map 
+
+
+
+##Generates a file with the SNPs for the extraction of the overlapping positions in the reference panel and in the sample
+cut -f2 -d ' ' $base.filt_sites.map > $base.filt_sites.map.ids
+ 
+###Extracts only the overlapping positions in the sample tfile	
+plink --tfile $base.$2 --extract $base.filt_sites.map.ids --recode --out $base.$2.filt_sites
+
+
+###Extracts only the overlapping positions in the reference file
+plink --file $2.rand --extract $base.filt_sites.map.ids --recode --out $base\_extract
+
+
+##Merge the information of the sample and reference plink files that contain only the overlapping sites 
+plink --file $base.$2.filt_sites --merge $base\_extract.ped $base\_extract.map --recode --out $base.filtSites\_MERGED --allow-no-sex --geno 0 
+```
+
+
+# BUILD PARFILES and run pca file
+
+```
+##module load eigensoft/6.0.1.1
+module add EcologyEvolution/eigensoft/6.1.4
+
+mapfile=$base.filtSites\_MERGED.map
+mapbase=`basename $mapfile .map`
+sed -i 's/ -9 / 1 /g' $mapbase.ped
+samplename=`echo $base |cut -f1 -d '.'|cut -f1 -d'_'` ###This depends on the name of your bam file. 
+sed -i 's/'$base'/'$samplename'/g' $mapbase.ped ###This also depends on the name of your bam file and your sample.
+
+
+  ###Generates a text file (.par) that indicates the file names where the information are contained:
+  echo -e  genotypename: $mapbase.ped"\n"snpname: $mapfile"\n"indivname: $mapbase.ped"\n"evecoutname: $mapbase.evec"\n"evaloutname: $mapbase.eval"\n"numoutlieriter: 0 > $mapbase.par
+
+
+##Prints the following line to keep track of the files processed
+echo "smartpca -p $mapbase.par > $mapbase.out"
+
+##Call smpartpca program, input file is .par generated in the command above. This command generates the files: .evec, .eval and .out. 
+
+smartpca -p $mapbase.par > $mapbase.out
+
+###To make the plot of the PCA you will need the .evec and .eval files generated
+
+
+
+exit;
+``
+

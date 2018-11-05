@@ -1,0 +1,215 @@
+---
+title: "MDS_July"
+author: "Cruz-Dávalos, Diana I."
+date: "7/16/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r sources, echo = F, message=F, warning=F, cache = F}
+source("~/Projects/Botocudos/Scripts/translate_ids.R")
+source("~/Projects/Botocudos/Scripts/length_distribution_plot.R")
+source("~/Projects/Botocudos/Scripts/preseq_only_plots.R")
+source("~/Projects/Botocudos/Scripts/ry_plot.R")
+source("~/Projects/Botocudos/Scripts/engoenous_plot.R")
+source("~/Projects/Botocudos/Scripts/mapDamage_plot.R")
+source("~/Projects/Botocudos/Scripts/reads_summaries_plots.R")
+source("~/Projects/Botocudos/Scripts/order_endo.R")
+source("~/Projects/Botocudos/Scripts/plots_coverage.R")
+source("~/Projects/Botocudos/Scripts/pca_plot.R")
+source("~/Projects/Botocudos/Scripts/pct_var_pc.R")
+source("~/Projects/Botocudos/Scripts/plot_bammds.R")
+```
+
+```{r, echo = F}
+library(cowplot)
+library(ggplot2)
+library(adegenet)
+library(plyr)
+library(scales)
+#library(shiny)
+boto <- read.table("~/Projects/Botocudos/Files/Summaries/Botocudos_summary_2017_09_18.table", header = T)
+new_boto <- read.table("~/Projects/Botocudos/Files/Summaries/Botocudos_summary_2017_12_06.table", header = T)
+
+boto$Library <- factor(boto$Library, levels = 
+                         c("*",as.vector(order_endo( 0, 0.5, boto)$Library))
+                       ) 
+new_boto$Library <- factor(boto$Library, levels = 
+                         c("*",as.vector(order_endo( 0, 0.5, new_boto)$Library))
+                       ) 
+boto$seq_round <- "First stage"
+new_boto$seq_round <- "Second stage"
+panel <- read.table("~/Projects/Botocudos/Files/PCA/2017_09_15/panel_botos.txt", header = T)
+```
+
+## MDS with Wollstein panel
+
+```{r, echo = F}
+d <- "~/Projects/Botocudos/Files/MDS/2018_06_26/"
+#23
+ind <- "23_Jorde_Wollstein_hg19_final_noseconddegree_geno01"
+panel<-"~/Projects/Botocudos/Files/MDS/2017_12_06/Wollstein/panel_Jorde_Wollstein.txt"
+
+
+colors <- c("#ED8F47", "#9471B4", "#79C360", 
+            #"#B15928",  "#B15928",
+            "black",
+            "#E52829", "#E52829", 
+            "#3F8EAA", "#79C360", "#79C360", "#79C360")
+  
+  #c("darkorange1", "darkmagenta", "palegreen4", "black", "black", "black", "firebrick1", "lightpink1", "deepskyblue2", "palegreen4", "mediumaquamarine", "palegreen4")
+
+overlap <- c(639125, 30443, 91610, 12255, 839, 86241, 5723, 30681, 199, 766349, 69253, 87075, 119681, 19691, 2658, 463445, 475889, 98343, 25748, 167566, 293, 2885, 1260)
+
+names(overlap) <- c("MA2382", "MA2383", "MA2384", "MA2385", "MA2386", "MA2387", "MA2388", "MA2389", "MA2391",
+                    "MA2392", "MA2393", "MA2394", "MA2395", "MA2396", "MA2397", "MA2398", "MA2399",
+                    "MA2400", "MA2401", "MA2402", "MA2403", "MA2404", "MA2381")
+  
+label <- F; title <- F; cx <-1;cy <- 2; colorby = "region";switch = F; divisions = c("Botocudos", "America", "Oceania"); substitute <- T; addlabel <- F
+```
+
+```{r, fig.width=20, fig.height=20}
+
+label <- F; title <- F; cx <-1;cy <- 2; colorby = "region";switch = F; divisions = c("Botocudos", "America", "Oceania"); substitute <- T; addlabel <- F
+pl <- list(numeric(23))
+j <- 1
+for(i in unique(boto$Target)){
+  ind <- paste(i, "_Jorde_Wollstein_hg19_final_noseconddegree_geno01", sep = "")
+  p <- plot_bammds(d = d, ind = ind, colors = colors, label = label, title = F, cx = cx, cy = cy, divisions = divisions, switch = F,
+            substitute = substitute, colorby = colorby, panel = panel, addlabel = T)
+  pl[[j]] <- p[[1]] + labs(title = paste(i, " (sites:", overlap[i], ")", sep = ""))
+  j <- j+1
+}
+
+plot_grid(plotlist = pl, ncol = 5)
+```
+
+<!-- MA2391, MA2386, MA2381 is worse than Quack -->
+<!-- MA2388 is very similar to Quack -->
+
+```{r, fig.width=20, fig.height=20}
+
+label <- F; title <- F; cx <-2;cy <- 3; colorby = "region";switch = T; divisions = c("Botocudos", "America", "Oceania"); substitute <- T; addlabel <- F
+pl <- list(numeric(23))
+j <- 1
+for(i in unique(boto$Target)){
+  ind <- paste(i, "_Jorde_Wollstein_hg19_final_noseconddegree_geno01", sep = "")
+  p <- plot_bammds(d = d, ind = ind, colors = colors, label = label, title = F, 
+                   cx = cx, cy = cy, divisions = divisions, switch = T,
+            substitute = substitute, colorby = colorby, panel = panel, addlabel = T)
+  pl[[j]] <- p[[1]] + labs(title = paste(i, " (sites:", overlap[i], ")", sep = ""))
+  j <- j+1
+}
+
+plot_grid(plotlist = pl, ncol = 5)
+```
+
+## MDS with Maanasa panel
+
+```{r}
+label <- F; title <- F; cx <-1;cy <- 2; colorby = "region";
+switch = F; substitute <- T; addlabel <- F; colors <- F;
+division_type <- "region"
+
+divisions <- c("Botocudos","Andean","Boto15","Boto17",
+               "CentralAmerind","ChibchanPaezan","Clovis","EcuatorialTucanoan",
+               "Eskimo","EskimoAleut","Ge-PanoCaribean","Mexican",
+               "NaDene","NorthernAmerind","Saqqaq")
+
+colors <- c("black", "grey", funky(5))
+
+d <- "~/Projects/Botocudos/Files/MDS/2018_08_04/"
+ind <- "23_Maanasa_Aug13.americas_reheaded_filtered"
+panel <- "~/Projects/Botocudos/Files/MDS/2018_08_04/Maanasa_Aug13.panel"
+division_type <- "region"
+
+p <- plot_bammds(d = d, ind = ind,  label = label, title = F, 
+                   cx = cx, cy = cy, divisions = divisions, switch = switch,
+            substitute = substitute, colorby = "region", 
+            panel = panel, addlabel = addlabel, colors = colors,
+            division_type = division_type)
+
+p[[1]] <- p[[1]] + 
+  labs(title = "Comparison within the Americas")
+
+png("~/Projects/Botocudos/Plots/MDS/Maanasa_16ind.png",
+    bg = NA, width = 10, height = 11, units = "in",
+    res = 300)
+# png("~/Projects/Botocudos/Plots/MDS/Maanasa_SNA_label.png",
+#     bg = NA, width = 10, height = 7, units = "in",
+#     res = 300)
+plot_grid(plotlist = p, ncol=2, rel_widths = c(5,2))
+ dev.off()
+
+```
+
+
+```{r}
+label <- F; title <- F; cx <-2;cy <- 3; colorby = "region";switch = T; substitute <- T; addlabel <- t; colors <- F
+divisions <- c("Botocudos","Andean","Boto15","Boto17",
+"CentralAmerind","ChibchanPaezan","Clovis","EcuatorialTucanoan",
+"Eskimo","EskimoAleut","Ge-PanoCaribean","Mexican",
+"NaDene","NorthernAmerind","Saqqaq")
+
+d <- "~/Projects/Botocudos/Files/MDS/2018_08_04/"
+ind <- "23_Maanasa_AndCloEcuGe.americas_reheaded_filtered"
+panel <- "~/Projects/Botocudos/Files/MDS/2018_08_04/Maanasa_Aug13.panel"
+
+p <- plot_bammds(d = d, ind = ind,  label = label, title = F, 
+                   cx = cx, cy = cy, divisions = divisions,
+                 switch = T, substitute = substitute, 
+                 colorby = "region", panel = panel, 
+                 addlabel = T, colors = F,
+                 division_type = division_type)
+
+plot_grid(plotlist = p, ncol=2, rel_widths = c(3,2))
+
+```
+
+### Quack
+
+```{r, fig.width=20, fig.height=20}
+colors <- c("#ED8F47", "#9471B4", "#79C360", 
+            #"#B15928",  "#B15928",
+            
+            "#E52829", "#E52829",
+            "#3F8EAA", "#79C360", "#79C360",  "#79C360", "black")
+
+d <- "~/Projects/Botocudos/Files/Quack/"
+#23
+ind <- "Quack_Wollstein"
+panel<-"~/Projects/Botocudos/Files/MDS/2017_12_06/Wollstein/panel_Jorde_Wollstein.txt"
+
+label <- F; title <- F; cx <-1;cy <- 2; colorby = "region";switch = F; divisions = c("Botocudos", "America", "Oceania"); substitute <- T; addlabel <- F
+
+  p1 <- plot_bammds(d = d, ind = ind, colors = colors, label = label, title = F, 
+                   cx = cx, cy = cy, divisions = divisions, switch = T,
+            substitute = substitute, colorby = colorby, panel = panel, addlabel = T)
+
+
+```
+
+```{r, fig.width=20, fig.height=20}
+colors <- c("#ED8F47", "#9471B4", "#79C360", 
+            #"#B15928",  "#B15928",
+            
+            "#E52829", "#E52829",
+            "#3F8EAA", "#79C360", "#79C360",  "#79C360", "black")
+
+d <- "~/Projects/Botocudos/Files/Quack/"
+#23
+ind <- "Quack_Wollstein"
+panel<-"~/Projects/Botocudos/Files/MDS/2017_12_06/Wollstein/panel_Jorde_Wollstein.txt"
+
+label <- F; title <- F; cx <-2;cy <- 3; colorby = "region";switch = T; divisions = c("Botocudos", "America", "Oceania"); substitute <- T; addlabel <- F
+
+
+  p2 <- plot_bammds(d = d, ind = ind, colors = colors, label = label, title = F, 
+                   cx = cx, cy = cy, divisions = divisions, switch = T,
+            substitute = substitute, colorby = colorby, panel = panel, addlabel = T)
+
+
+```

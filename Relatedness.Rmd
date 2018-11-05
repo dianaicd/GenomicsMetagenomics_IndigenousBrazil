@@ -1,0 +1,241 @@
+---
+title: "Relatedness"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+library(ggplot2)
+library(cowplot)
+source("~/Projects/Botocudos/Scripts/translate_ids.R")
+```
+
+```{r}
+
+relat <- read.table("~/Projects/Botocudos/Files/Relatedness/2018_08_17/results_Q35", header = T)
+bam <- read.table("~/Projects/Botocudos/Files/Relatedness/2018_08_17/10boto.bam.list")
+bam$V1 <- gsub(".*/", "", bam$V1)
+bam$V1 <- gsub("_.*", "", bam$V1)
+bam$V1 <- sapply(bam$V1, function(x) ma2mn(x))
+
+# s1 = 1/16 offspring of sib-matings
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = s1)) +
+  geom_tile(aes(x = b, y = a, fill = s1)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,22), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[0])) +
+  scale_y_discrete(limits = seq(0,22), labels = bam$V1) 
+
+# s2 = 1/32; offspring of sib matings
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = s2)) +
+  geom_tile(aes(x = b, y = a, fill = s2)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,22), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[0])) +
+  scale_y_discrete(limits = seq(0,22), labels = bam$V1) 
+
+# s3 = 1/8; offspring of sib matings
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = s3)) +
+  geom_tile(aes(x = b, y = a, fill = s3)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,22), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[0])) +
+  scale_y_discrete(limits = seq(0,22), labels = bam$V1) 
+
+# s7 = 1; self or monozygotic twins
+# 0.25 ; full sibs/ dizygotic twins, 
+# 1/16 ; double first cousins
+# 7/32 offsrping of sib matings
+# 
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = s7)) +
+  geom_tile(aes(x = b, y = a, fill = s7)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,22), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[0])) +
+  scale_y_discrete(limits = seq(0,22), labels = bam$V1) 
+
+# s8 = 1; parent offspring
+# s8 = 0.5 ; half sibs or full sibs/dizygotic twins or uncle-nephew
+# s8 = 0.25 ; first cousins
+# s8 = 6/16 ; double first cousins
+# s8 = 5/16 ; offspring of sib-matings
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = s8)) +
+  geom_tile(aes(x = b, y = a, fill = s8)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,22), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[0])) +
+  scale_y_discrete(limits = seq(0,22), labels = bam$V1) 
+
+# 
+# s9 = 0.5 ; half sibs or uncle-nephew
+# s9 = 0.25; full sibs/dizygotic twins or 
+# s9 = 0.75 ; first cousins
+# s9 = 9/16 ; double first cousins
+# s9 = 15/16 ; second cousins
+# s9 = 1/16 ; offspring of sib-matings
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = s9)) +
+  geom_tile(aes(x = b, y = a, fill = s9)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,22), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[0])) +
+  scale_y_discrete(limits = seq(0,22), labels = bam$V1) 
+
+# 
+# KING
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = KING)) +
+  geom_tile(aes(x = b, y = a, fill = KING)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,22), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[0])) +
+  scale_y_discrete(limits = seq(0,22), labels = bam$V1) 
+
+# identity
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = identity)) +
+  geom_tile(aes(x = b, y = a, fill = identity)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,22), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[0])) +
+  scale_y_discrete(limits = seq(0,22), labels = bam$V1) 
+
+# fraternity
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = fraternity)) +
+  geom_tile(aes(x = b, y = a, fill = fraternity)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,22), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[0])) +
+  scale_y_discrete(limits = seq(0,22), labels = bam$V1) 
+
+# zygosity
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = zygosity)) +
+  geom_tile(aes(x = b, y = a, fill = zygosity)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,22), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[0])) +
+  scale_y_discrete(limits = seq(0,22), labels = bam$V1) 
+
+# R0
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = R0)) +
+  geom_tile(aes(x = b, y = a, fill = R0)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,22), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[0])) +
+  scale_y_discrete(limits = seq(0,22), labels = bam$V1) 
+
+#R1
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = R1)) +
+  geom_tile(aes(x = b, y = a, fill = R1)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,22), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[0])) +
+  scale_y_discrete(limits = seq(0,22), labels = bam$V1) 
+
+#inbred_relatedness_1_2
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = inbred_relatedness_1_2)) +
+  geom_tile(aes(x = b, y = a, fill = inbred_relatedness_1_2)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,22), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[0])) +
+  scale_y_discrete(limits = seq(0,22), labels = bam$V1) 
+
+
+# inbred_relatedness_2_1
+
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = inbred_relatedness_2_1)) +
+  geom_tile(aes(x = b, y = a, fill = inbred_relatedness_2_1)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,9), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[0])) +
+  scale_y_discrete(limits = seq(0,9), labels = bam$V1) 
+
+#theta
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = theta)) +
+  geom_tile(aes(x = b, y = a, fill = theta)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,10), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[0])) +
+  scale_y_discrete(limits = seq(0,10), labels = bam$V1) 
+
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = k1)) +
+  geom_tile(aes(x = b, y = a, fill = k1)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,22), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[1])) +
+  scale_y_discrete(limits = seq(0,22), labels = bam$V1) 
+
+ggplot(relat, aes(x = a, y = b)) +
+  geom_tile(aes(fill = k2))  +
+  geom_tile(aes(x = b, y = a, fill = k2)) +
+  scale_fill_gradient2(low="white", high="darkred", guide="colorbar") +
+  scale_x_discrete(limits = seq(0,22), labels = bam$V1) +
+  theme(axis.text.x = element_text(angle = 270)) +
+  labs(x = NULL, y = NULL, title = expression(k[2])) +
+  scale_y_discrete(limits = seq(0,22), labels = bam$V1) 
+
+```
+
+
+## 2D SFS
+
+```{r}
+i <- 1
+for(i in 1:10){
+  x <- as.numeric(unlist(strsplit(as.character(relat$X2dsfs[i]), ","))); x
+  C <- x[3]
+  E <- x[5]
+  G <- x[7]
+  print(as.character(bam$V1[i]))
+  r <- E/(C+G)
+  print(r)
+  if(r > 10){
+    print("Full siblings")
+  }else if(r >4){
+    print("Half siblings")
+  }else if(r >8/3){
+    print("First cousins")
+  }else{
+    print("Probably unrelated")
+  }
+}
+
+plot(x = x[1:2], y = c(5,5), type = "l", xlim = c(0,1), ylim = c(0,6))
+segments(x0 = x[3], x1 = x[4], y0 = 4)
+segments(x0 = x[5], x1 = x[6], y0 = 3)
+segments(x0 = x[7], x1 = x[8], y0 = 2)
+segments(x0 = x[9], x1 = x[10], y0 = 1)
+
+```

@@ -1,0 +1,234 @@
+---
+title: "Botocudos project"
+author: "Cruz-Dávalos, Diana I."
+date: "11/21/2017"
+output: 
+  html_document:
+    toc: True
+    toc_float:
+      collapsed: False
+      smooth_scroll: True
+    number_sections: False
+    theme: "lumen"
+    highlight: "tango"
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = F, messages = F, warning = F)
+
+```
+
+```{r, warning=FALSE}
+library(ggplot2)
+library(cowplot)
+library(plyr)
+library(adegenet)
+library(RColorBrewer)
+```
+
+```{r, cache = F}
+source("~/Projects/Botocudos/Scripts/pca_plot.R")
+source("~/Projects/Botocudos/Scripts/pct_var_pc.R")
+source("~/Projects/Botocudos/Scripts/mds_plot.R")
+source("~/Projects/Botocudos/Scripts/plot_bammds.R")
+source("~/Projects/Y-Capture/Scripts/")
+source("~/Projects/Botocudos/Scripts/order_pop.R")
+```
+
+## Population structure
+
+### Multidimensional scaling
+
+One approach to look at the structure of the populations is to reduce the dimensionality of the genetic dataset and then project it in a few dimensions.
+
+- In this section, I took the best 9 Botocudo samples (current coverage > 0.01$\times$).
+
+- The reference panel was kindly provided by Stefano. It includes individuals from the Simons Genome Diversity Project, the 1000 Genomes Project and the Human Genome Diversity Project. It contains 592,524 variants.
+
+I use the tool bammds from Malaspinas et al. (2014) to produce a multidimensional scaling of the samples and the reference panel. By default, the tool sets the following quality thresholds:
+
+- base quality: 20
+
+- mapping quality: 30
+
+It then samples a random allele from the reference panel. 
+
+From the sites that are present in the panel, it samples a random base from every one of our samples. If the base is not a major or minor allele in the reference panel, then this site is considered as missing in the sample.
+
+Finally, the program computes the pairwise Euclidean distance between all the individuals and applies a classical multidimensional scaling.
+
+
+All populations:
+
+```{r, fig.height=6, fig.width=13, echo = F}
+d <- ("~/Projects/Botocudos/Files/MDS/2017_09_15/")
+ind <- "all_pops"
+
+plots_12 <- plot_bammds(ind = ind, d = d, cx = 1, cy = 2, 
+            title = "All populations", colorby = "region")
+
+plots_23 <- plot_bammds(ind = ind, d = d, cx = 2, cy = 3, 
+            switch = T, title = "All populations", colorby = "region")
+
+plots <- list(plots_12[[1]], plots_23[[1]], plots_23[[2]])
+
+png("~/Projects/Botocudos/Plots/mds_all_pops.png",
+    width = 12, height = 6, units = "in", res = 200)
+plot_grid(plotlist = plots, ncol = 3, rel_widths = c(2,2,1))
+dev.off()
+```
+
+
+Only American and Oceanic populations:
+
+```{r, fig.height=6, fig.width=13, echo = F}
+ind <- "mds"
+plots_12 <- plot_bammds(ind = ind, d = d, cx = 1, cy = 2,
+            title = "America and Oceania")
+
+plots_23 <- plot_bammds(ind = ind, d = d, cx = 2, cy = 3, switch = T, 
+            title = "America and Oceania")
+
+plots <- list(plots_12[[1]], plots_23[[1]], plots_23[[2]])
+png("~/Projects/Botocudos/Plots/mds_America_Oceania.png",
+    width = 12, height = 6, units = "in", res = 200)
+plot_grid(plotlist = plots, ncol = 3, rel_widths = c(2,2,1))
+dev.off()
+```
+
+After removing Australians and Papuans from the Oceanic populations:
+
+```{r, fig.height=6, fig.width=13, echo = F}
+ind <- "nopapus"
+plots_12 <- plot_bammds(ind = ind, d = d, cx = 1, cy = 2, title = "America and Oceania")
+
+plots_23 <- plot_bammds(ind = ind, d = d, cx = 2, cy = 3, switch = T, 
+            title = "America and Oceania")
+
+plots <- list(plots_12[[1]], plots_23[[1]], plots_23[[2]])
+png("~/Projects/Botocudos/Plots/mds_America_Oceania_nopapus_noaus.png",
+    width = 12, height = 6, units = "in", res = 200)
+plot_grid(plotlist = plots, ncol = 3, rel_widths = c(2,2,1))
+dev.off()
+```
+
+
+Only American individuals:
+
+```{r, fig.height=6, fig.width=13, echo = F}
+ind <- "america"
+plots_12 <- plot_bammds(ind = ind, d = d, cx = 1, cy = 2, title = "America")
+
+plots_23 <- plot_bammds(ind = ind, d = d, cx = 2, cy = 3, switch = T, title = "America")
+
+plots <- list(plots_12[[1]], plots_23[[1]], plots_23[[2]])
+png("~/Projects/Botocudos/Plots/mds_America.png",
+    width = 12, height = 6, units = "in", res = 200)
+plot_grid(plotlist = plots, ncol = 3, rel_widths = c(2,2,1))
+dev.off()
+```
+
+
+### Ancestry estimates
+
+```{r, echo = F, fig.width=20}
+load("~/Projects/Botocudos/Files/PCA/2017_09_15/FromStefano/America_Oceania/merged_AmOc_project_k_10_rep_10")
+
+inds <- read.table("~/Projects/Botocudos/Files/PCA/2017_09_15/FromStefano/America_Oceania/merged_AmOc.fam")
+popinfo <- read.table("~/Projects/Botocudos/Files/PCA/2017_09_15/panel_botos.txt", header = T)
+inds[, 3:6] <- NULL
+colnames(inds) <- c("Region", "indID")
+inds$indID <- sub(".hg.*", "", inds$indID)
+inds$Region <- sub("MA2.*", "Botocudo", inds$Region)
+inds$indID <- sub("-", "_", inds$indID)
+inds <- join(inds, popinfo, by = "indID")
+
+
+
+
+# plot cross-entropy criterion for all runs in the snmf project
+plot(project, col = "blue", pch = 19, cex = 1.2)
+
+for(k in 2:10){
+  my.colors <- brewer.pal(k, "Paired")
+  best = which.min(cross.entropy(project, K = k))
+  barplot(t(Q(project, K = k, run = best)),
+           border = NA, space = 0,
+           col = my.colors,
+           xlab = "Individuals",
+           ylab = "Ancestry proportions",
+           main = "Ancestry matrix", horiz = F, beside = F)# -> bp
+  axis(1, at = 1:length(inds$indID),
+       labels = inds$population, las=2,
+       cex.axis = .8)
+  
+  
+}
+
+
+
+for(k in 2:10){
+  my.colors <- brewer.pal(k, "Paired")
+  best = which.min(cross.entropy(project, K = k))
+  index <- order_pop(
+                     pops = c("Botocudo", "SouthAmerica", "NorthAmerica", "Oceania"),
+                     inds = inds)
+  
+  barplot(t(Q(project, K = k, run = best))[,index],
+           border = NA, space = 0,
+           col = my.colors,
+           xlab = "Individuals",
+           ylab = "Ancestry proportions",
+           main = "Ancestry matrix", horiz = F, beside = F)# -> bp
+  axis(1, at = 1:length(inds$indID),
+       labels = inds$population[index], las=2,
+       cex.axis = .8)
+  
+  
+}
+
+
+```
+
+### NGSadmix
+
+```{r, echo = F, fig.width=14}
+setwd("~/Projects/Botocudos/Files/ADMIX/2017_09_15/")
+k <- 2
+name <- paste("amoc_9botocudos_k", k, ".qopt", sep = "")
+admix<-t(as.matrix(read.table(name)))
+colors<- funky(k)
+barplot(admix, space=0,border=NA,xlab="Individuals",ylab="admixture",
+        col = colors)
+panel_names <- "America_Oceania.popinfo"
+
+pop<-read.table(panel_names, as.is=T)
+pop_order <- factor(pop[,1], levels=c("Botocudos", "Karitiana", "Surui", "Chane", "Peruvian",
+                         "Quechua", "Colombians", "Mayan", "Mixe", "Mixtec", 
+                         "Zapotec", "MXL", "Pima", "Maori", "Igorot", "Australian", 
+                         "NAN_Melanesian", "Bougainville", "Dusun", "Hawaiian", "Papuan"))
+
+for(k in seq(3,10)){
+  name <- paste("amoc_9botocudos_nodamage_k", k, ".qopt", sep = "")
+  colors<- funky(k)
+  admix<-t(as.matrix(read.table(name)))
+  #admix<-admix[,order(pop[,1])]
+  admix <- admix[, order(pop_order)]
+  pop<-read.table(panel_names, as.is=T)
+  #pop<-pop[order(pop[,1]),]
+  pop <- pop[order(pop_order),]
+  h<-barplot(admix,col=colors,space=0,border=NA,xlab=NULL,ylab="admixture", main = paste("k =", k))
+  pop_names <- tapply(1:nrow(pop),pop[,1],mean)
+  text(pop_names,-0.15, names(pop_names),xpd=T,cex = 0.5, srt=90)
+   
+  #NGSadmixEx2.png 
+  
+}
+
+likeli <-read.table("America_Oceania_likelihoods.txt", stringsAsFactors = F)
+likeli$V1 <- gsub("k", "", likeli$V1)
+plot(x = likeli$V1, y = -2*likeli$V2 + 2*as.numeric(likeli$V1)*(135+116125), bty = "l",
+     xlab = "K", ylab = "AIC score")
+
+```

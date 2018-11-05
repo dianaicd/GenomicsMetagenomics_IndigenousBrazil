@@ -1,0 +1,436 @@
+---
+title: "Maanasa"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(adegenet)
+```
+
+### Maanasa, just Maanasa
+```{r, echo = F}
+setwd("~/Projects/Botocudos/Files/ADMIX/2018_08_13/Maanasa/")
+k <- "2"
+nind<-0
+sufix <- "Maanasa_Aug21_k"
+name <- paste(sufix, k, ".qopt", sep = "")
+admix<-t(as.matrix(read.table(name)))
+colors<- funky(gsub("_*", "",k))
+panel_names <- "Maanasa_mask1_flip.americas_reheaded_filtered.names"
+panel <- read.table("~/Projects/Botocudos/Files/ADMIX/2018_08_13/Maanasa/Maanasa_mask1_flip.americas_reheaded_filtered.panel.txt", header = T)
+other_dir <- "~/Projects/Botocudos/Files/ADMIX/2018_08_13/Maanasa/"
+pop<-read.table(paste(other_dir,panel_names,
+                      sep = ""), as.is=T, header = F)
+
+pop <- data.frame(region = sub("_.*","", pop[,1]), indID=gsub(".*_", "", pop[,1]))
+pop$indID <- gsub("-", "_", pop$indID)
+panel$indID <- gsub("-", "_", panel$indID)
+index <- match(pop$indID, panel$indID)
+pop$population <- as.character(panel$population[index])
+# pop <- rbind(pop, data.frame(region = rep("Botocudos", nind), 
+#                              indID = rep("Botocudos", nind),
+#                         population = rep("Botocudos", nind)))
+pop_order <- factor(pop[,3], levels=c('Eskimo',
+                                      'East-Greenlanders', 'Alaskan-Inuit',
+                                      'Chipewyan', 'Northern-Athabascans-1',
+                                      'Northern-Athabascans-2', 'Northern-Athabascans-3',
+                                      'Southern-Athabascans-1','Tlingit',
+                                      'CanAmerindian-1', 'Algonquin', 
+                                      'Coastal-Tsimshian',
+                                      'InteriorTsimshian',
+                                      'Cree','Nisgaa','Ojibwa','USAmerindian',
+                                    'Lumbee','USAmerindian-1','Cochimi','Cucupa',
+                                    'Maya','Maya1',
+                                    'Maya2','Mixe','Kaqchikel',
+                                      'USAmerindian-2',
+                                    'USAmerindian-3','USAmerindian-4','Pima',
+                                    'Huichol','Mixtec','Tepehuano','Yaqui',
+                                    'Zapotec1','Zapotec2','Chorotega',
+                                    'Bribri', 'Cabecar',
+                                      'Maleku', 'Guaymi', 
+                                      'Teribe', 'Waunana', 'Kogi',
+                                      'Embera',
+                                    'Guahibo','Piapoco','Wayuu',
+                                    'Jamamadi',
+                                    'Karitiana','Palikur','Parakana',
+                                    'Surui','Ticuna','Guarani',
+                                    'Chane','Arara','Kaingang',
+                                     'Toba','Wichi','Inga',
+                                    'Quechua',
+                                    'Aymara',
+                                      'Chilote','Chono',
+                                      'Diaguita',
+                                      'Huilliche','Yaghan','Mexican','Clovis',
+                                      'Botocudos' ))
+pop <- pop[order(pop_order),]
+pop$population <- factor(pop$population, levels = levels(pop_order))
+
+
+colors<- funky(10)
+
+Colors <- list("2" = c("#ED8F47", "#9471B4"),
+               "3" = c("#ED8F47", "#79C360", "#9471B4"),
+               "4" = c("#ED8F47", "#3F8EAA","#79C360", "#9471B4"),
+               "5" = c("#ED8F47",  "#3F8EAA","#79C360",
+                          "#E52829", "#9471B4"),
+               "6" = c("#ED8F47", "#3F8EAA",
+                          "#79C360", "#E52829", "#9471B4", "#FDB762"), 
+               "7" =  c("#ED8F47", "#3F8EAA", "#79C360", 
+                           "#E52829",  "#9471B4", "#FDB762", "#A6CEE3"), 
+               "8" = c("#ED8F47",  "#3F8EAA", "#79C360", "#E52829",
+                          "#9471B4", "#FDB762", "#DDD399", "#A6CEE3"),
+               "9" = c("#ED8F47",  "#3F8EAA", "#79C360", "#E52829",
+                          "#9471B4", "#FDB762", "#DDD399", "#B89B74",
+                          "#A6CEE3"),
+               "10" = c("#ED8F47", "#3F8EAA", "#79C360", "#E52829",
+                           "#9471B4", "#FDB762", "#DDD399", "#B89B74",
+                           "#A6CEE3", "#B15928")
+)
+# png("~/Projects/Botocudos/Plots/ngsAdmix_SIB18.png", width = 12, height = 19,
+#     res = 200, units = "in")
+
+par(mfrow = c(1, 20))
+for(k in seq(2, 20 )){
+  par(mar = c(7, 0.5, 3, 2))
+  name <- paste(sufix, k, ".qopt", sep = "")
+  
+  admix<-as.matrix(read.table(name))
+  admix <- admix[order(pop_order),]
+  admix <- t(admix)
+  indexes <- col2pop(colors, pop, 315+nind, k = 20)
+  Colors[[k]] <- funky(sub("_.*", "", k))
+  barplot(admix,#[indexes[1:dim(admix)[1]],],
+          col=Colors[[k]],space=0,border=NA,
+          ylab=NULL,
+          #xlab="Admixture\n proportion",
+          main = paste("k =", sub("_.*", "",k)), horiz = T, cex.main = 3,
+          cex.lab = 2)
+  #title(xlab = "Admixture\nproportion", cex.lab = 2,
+  #      line = 4.5)
+  
+  pop_names <- tapply(1:nrow(pop),pop[,3],mean)
+  abline(h =  tapply(1:nrow(pop),pop[,3],max))
+
+  
+}
+text(1.8, pop_names, names(pop_names),xpd=NA,cex = 2)
+
+#dev.off()
+```
+
+### Maanasa, whole panel
+
+```{r}
+setwd("~/Projects/Botocudos/Files/ADMIX/2018_09_11/test/")
+k <- "2_3"
+nind <- 0
+sufix <- "Maanasa_mask1_flip_whole_reheaded_filtered_k"
+name <- paste(sufix, k, ".qopt", sep = "")
+admix<-t(as.matrix(read.table(name)))
+colors<- funky(gsub("_*", "",k))
+panel_names <- "Maanasa_mask1_flip_whole_reheaded_filtered.names"
+panel <- read.table("~/Projects/Botocudos/Files/ADMIX/2018_09_11/test/Maanasa_whole.panel", header = T)
+other_dir <- "~/Projects/Botocudos/Files/ADMIX/2018_09_11/test/"
+pop<-read.table(paste(other_dir,panel_names,
+                      sep = ""), as.is=T, header = F) ; head(pop)
+
+pop <- data.frame(population = sub("_.*","", pop[,1]),
+                  indID=gsub(".*_", "", pop[,1])) ; head(pop)
+pop$indID <- gsub("-", "_", pop$indID) ; head(pop)
+panel$indID <- gsub("-", "_", panel$indID) ; head(pop)
+index <- match(pop$indID, panel$indID) ; head(pop)
+pop$region <- as.character(panel$region[index]) ; head(pop)
+
+new_lev <-  levels(pop$population)[c(101,15,68,12,65,131,127,75,14,89,29,
+                                     87,36,37,102,82,119,47,121,99,33,25,10,1,61,
+                                     122,43,51,95,18,11,16,62,106,41,83,63,91,
+                                     100,2,3,13,69,92,93,9,54,21,26,60,70,77,
+                                     104,130,117,42,116,126,27,44,88,73,74,50,
+                                     19,120,28,55,103,57,78,118,80,79,6,5,110,
+                                     105,56,132,81,34,35,59,24,32,76,129,30,4,
+                                     23,84,85,86,107,114,108,66,67,71,52,97,45,
+                                     72,111,133,134,17,20,64,40,112,123,31,58,
+                                     38,96,124,49,53,90,94,109,113,39,22,7,115,
+                                     125,48,98,8,46,128)]
+
+pop_order <- factor(pop$population, levels = new_lev) ; head(pop_order)
+
+
+pop <- pop[order(pop_order),]; head(pop)
+
+# pop_order <- factor(pop$region, levels = c("Africa", "NearEast", "Europe",
+#                                           "SouthAsia", "SEAsia_Oceania",
+#                                           "EastAsia", "Siberia", "EskimoAleut",
+#                                           "NaDene", "NorthernAmerind", "CentralAmerind",
+#                                           "ChibchanPaezan", "EcuatorialTucanoan",
+#                                           "Ge-PanoCaribean", "Andean")) ; head(pop_order)
+# 
+# pop$region <- factor(pop$region, levels = levels(pop_order)) ; head(pop)
+
+colors <- c("deeppink4", "mediumpurple4", "chocolate1",
+            "darkseagreen2", "lightgoldenrodyellow", "gold")
+par(mfrow = c(1, 19))
+#for#(k in paste(seq(2, 6 ), c( 3,19,65,6,88)#,11,77,83,90,8,89,39,13,20,85,93,32,37,1 )
+for(k in paste(seq(2, 20 ), c( 3,19,65,6,88,11,171,360,421,8,89,393,340,229,223,93,464,169,400 ), sep = '_')){
+               #, sep = '_')){
+#  par(mar = c(7, 0.5, 3, 2))
+  name <- paste(sufix, k, ".qopt", sep = "")
+  
+  admix<-as.matrix(read.table(name))
+  admix <- admix[order(pop_order),]
+  admix <- t(admix)
+  #indexes <- col2pop(colors, pop, 315+nind, k = 20)
+  #Colors[[k]] <- funky(sub("_.*", "", k))
+  barplot(admix,#[indexes[1:dim(admix)[1]],],
+          #col=Colors[[k]],
+          col=colors,
+          space=0,border=NA,
+          ylab=NULL,
+          #xlab="Admixture\n proportion",
+          #main = paste("k =", sub("_.*", "",k)),
+          horiz = F, #cex.main = 3,
+          cex.lab = 1)
+  #title(xlab = "Admixture\nproportion", cex.lab = 2,
+  #      line = 4.5)
+  
+  pop_names <- tapply(1:nrow(pop),pop[,3],mean)
+  abline(v =  tapply(1:nrow(pop),pop[,3],max))
+
+  
+}
+text(pop_names,-1,  names(pop_names),xpd=NA,cex = 2)
+
+
+k <- "15_20"
+  name <- paste(sufix, k, ".qopt", sep = "")
+  
+  admix<-as.matrix(read.table(name))
+  admix <- admix[order(pop_order),]
+  admix <- t(admix)
+  #indexes <- col2pop(colors, pop, 315+nind, k = 20)
+  #Colors[[k]] <- funky(sub("_.*", "", k))
+  barplot(admix,#[indexes[1:dim(admix)[1]],],
+          #col=Colors[[k]],
+          col=funky(15),
+          space=0,border=NA,
+          ylab=NULL,
+          #xlab="Admixture\n proportion",
+          #main = paste("k =", sub("_.*", "",k)),
+          horiz = F, #cex.main = 3,
+          cex.lab = 2)
+  #title(xlab = "Admixture\nproportion", cex.lab = 2,
+  #      line = 4.5)
+  
+  pop_names <- tapply(1:nrow(pop),pop[,3],mean)
+  abline(v =  tapply(1:nrow(pop),pop[,3],max))
+
+text(pop_names,1.8,  names(pop_names),xpd=NA,cex = 2)
+
+
+```
+
+### Maanasa, just Maanasa (Admixture)
+
+```{r}
+setwd("~/Projects/Botocudos/Files/ADMIX/2018_09_11/test/")
+k <- 2
+nind <- 0
+sufix <- "Maanasa_mask1_flip_whole_reheaded_filtered_"
+name <- paste(sufix, k, ".Q", sep = "")
+admix<-t(as.matrix(read.table(name)))
+colors<- funky(gsub("_*", "",k))
+panel_names <- "Maanasa_mask1_flip_whole_reheaded_filtered.names"
+panel <- read.table("~/Projects/Botocudos/Files/ADMIX/2018_09_11/test/Maanasa_whole.panel", header = T)
+other_dir <- "~/Projects/Botocudos/Files/ADMIX/2018_09_11/test/"
+pop<-read.table(paste(other_dir,panel_names,
+                      sep = ""), as.is=T, header = F) ; head(pop)
+
+pop <- data.frame(population = sub("_.*","", pop[,1]),
+                  indID=gsub(".*_", "", pop[,1])) ; head(pop)
+pop$indID <- gsub("-", "_", pop$indID) ; head(pop)
+panel$indID <- gsub("-", "_", panel$indID) ; head(pop)
+index <- match(pop$indID, panel$indID) ; head(pop)
+pop$region <- as.character(panel$region[index]) ; head(pop)
+
+new_lev <-  levels(pop$population)[c(101,15,68,12,65,131,127,75,14,89,29,
+                                     87,36,37,102,82,119,47,121,99,33,25,10,1,61,
+                                     122,43,51,95,18,11,16,62,106,41,83,63,91,
+                                     100,2,3,13,69,92,93,9,54,21,26,60,70,77,
+                                     104,130,117,42,116,126,27,44,88,73,74,50,
+                                     19,120,28,55,103,57,78,118,80,79,6,5,110,
+                                     105,56,132,81,34,35,59,24,32,76,129,30,4,
+                                     23,84,85,86,107,114,108,66,67,71,52,97,45,
+                                     72,111,133,134,17,20,64,40,112,123,31,58,
+                                     38,96,124,49,53,90,94,109,113,39,22,7,115,
+                                     125,48,98,8,46,128)]
+
+pop_order <- factor(pop$population, levels = new_lev) ; head(pop_order)
+
+
+pop <- pop[order(pop_order),]; head(pop)
+
+# pop_order <- factor(pop$region, levels = c("Africa", "NearEast", "Europe",
+#                                           "SouthAsia", "SEAsia_Oceania",
+#                                           "EastAsia", "Siberia", "EskimoAleut",
+#                                           "NaDene", "NorthernAmerind", "CentralAmerind",
+#                                           "ChibchanPaezan", "EcuatorialTucanoan",
+#                                           "Ge-PanoCaribean", "Andean")) ; head(pop_order)
+# 
+# pop$region <- factor(pop$region, levels = levels(pop_order)) ; head(pop)
+
+colors <- c("deeppink4", "mediumpurple4", "chocolate1",
+            "darkseagreen2", "lightgoldenrodyellow", "gold")
+#colors <- funky(9)
+par(mfrow = c(8, 1))
+#for#(k in paste(seq(2, 6 ), c( 3,19,65,6,88)#,11,77,83,90,8,89,39,13,20,85,93,32,37,1 )
+#for(k in paste(seq(2, 20 ), c( 3,19,65,6,88,11,171,360,421,8,89,393,340,229,223,93,464,169,400 ), sep = '_')){
+               #, sep = '_')){
+#  par(mar = c(7, 0.5, 3, 2))
+for(k in paste(c( 1,90,1,1,1 ), seq(2, 6 ), sep = '.')){
+  name <- paste(sufix, k, ".Q", sep = "")
+  
+  admix<-as.matrix(read.table(name))
+  admix <- admix[order(pop_order),]
+  admix <- t(admix)
+  indexes <- col2pop(colors, pop, 2137+nind, k = 6)
+  #Colors[[k]] <- funky(sub("_.*", "", k))
+  barplot(admix,#[indexes[1:dim(admix)[1]],],
+          #col=Colors[[k]],
+          col=colors,
+          space=0,border=NA,
+          ylab=NULL,
+          #xlab="Admixture\n proportion",
+          #main = paste("k =", sub("_.*", "",k)),
+          horiz = F, #cex.main = 3,
+          cex.lab = 1)
+  #title(xlab = "Admixture\nproportion", cex.lab = 2,
+  #      line = 4.5)
+  
+  pop_names <- tapply(1:nrow(pop),pop[,3],mean)
+  abline(v =  tapply(1:nrow(pop),pop[,3],max))
+
+  
+}
+text(pop_names,-1,  names(pop_names),xpd=NA,cex = 2)
+
+
+k <- "15_20"
+  name <- paste(sufix, k, ".qopt", sep = "")
+  
+  admix<-as.matrix(read.table(name))
+  admix <- admix[order(pop_order),]
+  admix <- t(admix)
+  #indexes <- col2pop(colors, pop, 315+nind, k = 20)
+  #Colors[[k]] <- funky(sub("_.*", "", k))
+  barplot(admix,#[indexes[1:dim(admix)[1]],],
+          #col=Colors[[k]],
+          col=funky(15),
+          space=0,border=NA,
+          ylab=NULL,
+          #xlab="Admixture\n proportion",
+          #main = paste("k =", sub("_.*", "",k)),
+          horiz = F, #cex.main = 3,
+          cex.lab = 2)
+  #title(xlab = "Admixture\nproportion", cex.lab = 2,
+  #      line = 4.5)
+  
+  pop_names <- tapply(1:nrow(pop),pop[,3],mean)
+  abline(v =  tapply(1:nrow(pop),pop[,3],max))
+
+text(pop_names,1.8,  names(pop_names),xpd=NA,cex = 2)
+
+
+
+
+```
+### 90ind, just that
+
+```{r, echo = F}
+setwd("~/Projects/Botocudos/Files/ADMIX/2018_08_13/")
+k <- "2_91"
+nind<-0
+sufix <- "90ind_nodamage_k"
+name <- paste(sufix, k, ".qopt", sep = "")
+admix<-t(as.matrix(read.table(name)))
+colors<- funky(gsub("_*", "",k))
+panel_names <- "90ind_thesis.txt"
+panel <- read.table("~/Projects/Botocudos/Files/PCA/2017_09_15/panel_botos.txt", header = T)
+other_dir <- "~/Projects/Botocudos/Files/ADMIX/2017_12_06/"
+pop<-read.table(paste(other_dir,panel_names,
+                      sep = ""), as.is=T)
+
+pop <- data.frame(region = gsub("_.*","", pop$V1), indID=gsub(".*_", "", pop$V1))
+pop$indID <- sub("-", "_", pop$indID)
+index <- match(pop$indID, panel$indID)
+pop$population <- as.character(panel$population[index])
+pop <- rbind( data.frame(region = rep("Botocudos", nind), 
+                             indID = rep("Botocudos", nind),
+                        population = rep("Botocudos", nind)),
+              pop)
+pop_order <- factor(pop[,3], levels=c("Yoruba", "Spanish", "Hawaiian",
+                                      "Maori", "Han",
+                                      "Papuan",
+                                      "Pima", "Karitiana",
+                                      "Surui", "Colombians",
+                                      "Botocudos" ))
+pop <- pop[order(pop_order),]
+pop$population <- factor(pop$population, levels = levels(pop_order))
+
+
+colors<- funky(10)
+
+Colors <- list("2_391" = c("#ED8F47", "#9471B4"),
+               "3_303" = c("#ED8F47", "#79C360", "#9471B4"),
+               "4_438" = c("#ED8F47", "#3F8EAA","#79C360", "#9471B4"),
+               "5_290" = c("#ED8F47",  "#3F8EAA","#79C360",
+                          "#E52829", "#9471B4"),
+               "6_48" = c("#ED8F47", "#3F8EAA",
+                          "#79C360", "#E52829", "#9471B4", "#FDB762"), 
+               "7_409" =  c("#ED8F47", "#3F8EAA", "#79C360", 
+                           "#E52829",  "#9471B4", "#A6CEE3", "#FDB762"), 
+               "8_272" = c("#ED8F47",  "#3F8EAA", "#79C360", "#E52829",
+                          "#9471B4", "#A6CEE3", "#DDD399", "#FDB762"),
+               "9_338" = c("#ED8F47",  "#3F8EAA", "#79C360", "#E52829",
+                          "#9471B4","#A6CEE3", 
+                           "#DDD399","#B89B74", "#FDB762"),
+               "10_351" = c("#ED8F47", "#3F8EAA", "#79C360", "#E52829",
+                           "#9471B4", "#FDB762", "#DDD399", "#B89B74",
+                           "#A6CEE3", "#B15928")
+)
+
+# png("~/Projects/Botocudos/Plots/ngsadmix/6boto_90ind_nodamage_CIG.png",
+#     width = 12, height = 9,
+#       res = 300, units = "in", bg = NA)
+
+par(mfrow = c(1, 10))
+  #for(k in paste(seq(2, 10 ), c( 201,1,252,115,168,257,179,227,56 ), sep = '_')){
+for(k in seq(2, 10 )){
+  par(mar = c(7, 0.5, 3, 2))
+  name <- paste(sufix, k, ".qopt", sep = "")
+  
+  admix<-as.matrix(read.table(name))
+  admix <- admix[order(pop_order),]
+  admix <- t(admix)
+  indexes <- col2pop(colors, pop, 90+nind)
+  barplot(admix,#[indexes[1:dim(admix)[1]],],col=Colors[[k]],
+          space=0,border=NA,
+          ylab=NULL,
+          #xlab="Admixture\n proportion",
+          main = paste("k =", sub("_.*", "",k)), horiz = T, cex.main = 3,
+          cex.lab = 2)
+  #title(xlab = "Admixture\nproportion", cex.lab = 2,
+  #      line = 4.5)
+  
+  pop_names <- tapply(1:nrow(pop),pop[,3],mean)
+  abline(h =  tapply(1:nrow(pop),pop[,3],max))
+
+  
+}
+text(1.8, pop_names, names(pop_names),xpd=NA,cex = 2)
+# dev.off()
+
+```

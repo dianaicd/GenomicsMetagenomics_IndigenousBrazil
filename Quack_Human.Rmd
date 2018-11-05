@@ -1,0 +1,1035 @@
+---
+title: "Quack"
+author: "Cruz Dávalos, Diana I."
+date: "30.10.2018"
+geometry: legalpaper,landscape,margin=1in
+output:
+  pdf_document: 
+    fig_height: 5
+    fig_width: 10
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, warning = F, message = F, knitr.table.format = "latex", fig.align = "center")
+
+library(dplyr)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(cowplot)
+library(adegenet)
+library(plyr)
+
+source("~/Projects/Botocudos/Scripts/mapDamage_plot.R")
+source("~/Projects/Botocudos/Scripts/ry_plot.R")
+source("~/Projects/Botocudos/Scripts/translate_ids.R")
+source("~/Projects/Botocudos/Scripts/order_endo.R")
+source("~/Projects/Botocudos/Scripts/col2pop.R")
+source("~/Projects/Botocudos/Scripts/plot_bammds.R")
+source("~/Projects/Botocudos/Scripts/length_distribution_plot.R")
+```
+
+## Summary of sequencing statistics
+
+
+
+```{r}
+require(scales)
+```
+
+DNA was extracted from one  tooth and built into two libraries.
+These libraries will be referred to as MA2776 and MA2777.
+
+```{r}
+quack <- read.table("~/Projects/Botocudos/Files/Quack/2018_10_23/Quack_libs.summary",
+                    header = T, stringsAsFactors = F) 
+quack$hits_clonality_endogenous <- c(12565394, 4376777, 12565394+4376777)/c(13106581, 6786673, 13106581+6786673)
+boto <- quack
+
+names <- c("Library", "seq_reads_se", 
+           "seq_trash_se_frac", "seq_retained_reads",
+           "seq_retained_length", 
+           "hits_clonality_endogenous", "hits_unique_endogenous", "hits_unique_frac_endogenous",  
+           "hits_unique_nuclear", "hits_coverage_endogenous",
+           "hits_length_nuclear",
+            "hits_unique_mitochondrial","hits_coverage_mitochondrial", "hits_length_mitochondrial")
+quack <- quack[,names]
+
+quack$hits_clonality_endogenous <- percent(quack$hits_clonality_endogenous)
+quack$seq_trash_se_frac <- percent(quack$seq_trash_se_frac)
+#quack <- quack[,c(3,5,7,8,10,13,14,15,24,26,27,14,16,34)]
+colnames(quack) <- c("Library", "Sequenced reads",
+                     "Trashed reads after trimmming (percentage)", 
+                     "Retained reads after trimming",
+                     "Length retained reads",
+                     "Duplicate reads",
+                     "Unique endogenous reads",
+                     "Unique endogenous (fraction)",
+                     "Unique nuclear reads",
+                     "Genome coverage",
+                     "Length unique nuclear reads",
+                      "Unique MT reads",
+                     "MT coverage",
+                     "Length unique MT reads")
+#quack[,12] <- quack[12] - quack[9]
+quack[,2:14] <- sapply(2:14, function(x) prettyNum(quack[,x], digits = 3, big.mark = ","))
+quack$Library <- c("MA2777", "MA2776", "Quack")
+
+quack <- quack[c(2,1,3),]
+rownames(quack ) <- c(1:3)
+
+kable(quack#, escape = F
+      ) %>%
+  kable_styling(font_size = 11, full_width = T, position = "left",
+                bootstrap_options = c("condensed", "responsive"))
+
+```
+
+## Reads mapping to HBV
+
+A total of 142 reads mapped to the strain C of Hepatitis B virus (nomenclature from Mühlemann et al. 2018).
+All the mapped reads had a mapping quality of 37.
+
+```{r}
+hbv <- read.table(text ="Strain: ID\tAverage read depth\tSum of reads length\tChromosome length\tAverage read length
+C: AB117758.1\t2.405\t7731\t3215\t54.4", header = T, sep = "\t")
+
+colnames(hbv) <- gsub(".", " ", colnames(hbv), fixed = T)
+kable(hbv#, escape = F
+      ) %>%
+  kable_styling(font_size = 12, full_width = T, position = "left",
+                bootstrap_options = c("condensed", "responsive"))
+
+```
+
+## Mitochondrial DNA analyses
+
+The coverage on the mitochondrial chromosome is **`r round(boto$hits_coverage_mitochondrial[3], 1)`****x** (total = `r prettyNum(boto$hits_unique_mitochondrial[3], big.mark = ",")` unique reads).
+We called the consensus sequence using ANGSD and calling the most frequent 
+base among the reads mapping to a given position.
+This consensus sequence was later used to estimate contamination and
+recover the mitochondrial haplogroup.
+
+#### Haplogroup
+
+We uploaded the consensus sequence of the mitochondrial DNA to James Lick's website
+and to Haplogrep2. Both resources assigned the same haplogroup to the individual.
+
+According to James Lick's website, the sequence of the merged dataset matches 23 out of 30 defining
+markers for the haplogroup **G3a1'2**. The remaining positions included 4 mismatches
+and 3 sites without calls.
+
+```{r}
+mism <- data.frame("Position" = c(1438, 4769, 8701, 11719, 16362),
+                   "Defining marker" = c("G", "G", "G", "A", "C"),
+                   "Consensus in Quack" = c("G", "A", "A", "G", "T"),
+                   "Consensus in MA2776" = c("G", "A", "A", "G", "T"),
+                   "Consensus in MA2777" = c("A", "A", "A", "A", "T"))
+colnames(mism) <- gsub(".", " ", colnames(mism), fixed = T)
+
+kable(mism#, escape = F
+      ) %>%
+  kable_styling(font_size = 12, full_width = T, position = "left",
+                bootstrap_options = c( "responsive"))
+
+#------------------------------------------------------------------------------
+# Table with details
+lightblue <- rgb(166,206,227, maxColorValue = 255)
+blue <- rgb(31,120,180, maxColorValue = 255)
+lightgreen <- rgb(178,223,138, maxColorValue = 255)
+green <- rgb(51,160,44, maxColorValue = 255)
+
+return_color <- function(base){
+  if(base == "G"){
+    return(lightblue)
+  }else if(base == "C"){
+    return(blue)
+  }else if(base == "A"){
+    return(lightgreen)
+  }else if(base == "T"){
+    return(green)
+  }else{
+    return("black")
+  }
+}
+
+# mism %>% 
+#   mutate_if(is.factor, function(x){ 
+#     cell_spec(x, color = sapply(x, function(y) return_color(y)))}
+#   ) %>%
+#   kable(format = "latex") %>%
+#   kable_styling(font_size = 12, full_width = T, position = "left",
+#                 bootstrap_options = c( "responsive"))
+
+```
+
+##### About haplogroup G
+
+> Information extracted from Wikipedia
+It is an **East Asian haplogroup**. Today, haplogroup G is found at its highest frequency in indigenous populations of the lands surrounding the Sea of Okhotsk. Haplogroup G is one of the most common mtDNA haplogroups among modern Ainu, Japanese, Mongol, and Tibetan people (as well as among people of the prehistoric Jōmon culture in Hokkaidō). It is also found at a lower frequency among many other populations of East Asia, Central Asia, Bangladesh, Sri Lanka and Nepal. However, unlike other mitochondrial DNA haplogroups typical of populations of northeastern Asia, such as haplogroup A, haplogroup C, and haplogroup D, **haplogroup G has not been found among indigenous peoples of the Americas**.
+
+## Molecular damage
+
+We used mapDamage2 to estimate the deamination rates across the reads mapping to the human genome. 
+We also plotted the read length distribution of the mapped reads.
+The molecular damage patterns and short read lengths suggest that we recovered ancient DNA fragments.
+
+
+```{r, fig.width=12, fig.height=4}
+par(mfrow=c(1,2))
+damage_plot("Quack", type = "nevermind", d ="~/Projects/Botocudos/Files/Quack/2018_10_03/",
+                        asis = T, sufix = "_results_mapDamage")
+```
+
+```{r, fig.width=14, fig.height=5}
+
+quack <- gglength(ind = "Quack", d = "~/Projects/Botocudos/Files/Quack/2018_10_23/", type = "nuc")
+ma2776 <- gglength(ind = "MA2776", d = "~/Projects/Botocudos/Files/Quack/2018_10_23/", type = "nuc")
+ma2777 <- gglength(ind = "MA2777", d = "~/Projects/Botocudos/Files/Quack/2018_10_23/", type = "nuc")
+
+quack <- quack + labs(title = "Quack") + geom_bar(stat = "identity", fill = "skyblue3")
+ma2776 <- ma2776 + labs(title = "MA2776") +geom_bar(stat = "identity", fill = "skyblue3")
+ma2777 <- ma2777 + labs(title = "MA2777")+geom_bar(stat = "identity", fill = "skyblue3")
+plot_grid(quack, ma2776, ma2777, ncol = 3)
+
+```
+
+## Contamination estimates
+
+We estimated the contamination levels per library using the method introduced in Fu et al. (2013).
+The results suggest that the libraries have contamination levels of 
+7.2% (2.5th percentile = 4.6%; 97.5th percentile = 10.5%) for MA2776,
+and 5.5% (2.5th percentile = 3.1%; 97.5th percentile = 9.7%) for MA2777.
+
+```{r, eval = F}
+The contamination varies depending on whether we ignore the transitions in the
+estimation. We present the results for both cases, considering the whole dataset 
+and using only the reads without transitions.
+
+If we filter out the transitions, the contamination estimates are <1% for both libraries.
+The table below shows the number of polymorphisms (in the 311 humans dataset) relative to the Quack's consensus sequence.
+About 25% correspond to transitions.
+
+
+
+mism <- read.table("~/Projects/Botocudos/Files/Quack/2018_10_03/mismatches_quack.txt",
+                   sep = "\t", skip = 1)
+
+colnames(mism) <- c("Base in Quack", "Polymorphism", 
+                    "#Times the polymorphism is found in the database (311 humans)",
+                    "#Times found in the database/sum(all polymorphisms)")
+mism[,4] <- round(mism[,4], digits = 4)
+colnames(mism) <- gsub(".", " ", colnames(mism), fixed = T)
+
+
+kable( mism #, escape = F
+       )  %>%
+
+  kable_styling(font_size = 12, full_width = T, position = "left",
+                bootstrap_options = c( "responsive"))
+
+```
+
+```{r, eval = F}
+Notably, ~7.5% of the reads contain transitions that correspond to polymorphic sites
+found in the dataset.
+```
+
+```{r, eval = F, echo=F}
+The figure below shows the frequency of those transitions among the positions on the reads.
+
+The C to T substitutions are shown by the orange line and the G to A substitutions by the purple line.
+```
+
+```{r, fig.width=15, fig.height=6, eval = F}
+
+GA <- read.table("~/Projects/Botocudos/Files/Quack/2018_10_03/g_to_a.txt", header = T)
+GA <- GA[order(GA$Position, decreasing = F),]
+
+CT <- read.table("~/Projects/Botocudos/Files/Quack/2018_10_03/c_to_t.txt", header = T)
+CT <- CT[order(CT$Position, decreasing = F),]
+
+left_ga <- GA$Position > 0
+left_ct <- CT$Position > 0
+right_ga <- GA$Position < 0
+right_ct <- CT$Position < 0
+
+max_x <- max(c(CT$Position, GA$Position))
+min_x <- min(c(CT$Position, GA$Position))
+max_y <- max(c(CT$Frequency, GA$Frequency))
+
+par(mfrow=c(1,2))
+  par(mar = c(4, 3, 3, 1))
+  plot(x = GA$Position[left_ga], 
+       y = GA$Frequency[left_ga], type = "l", xlim = c(1,max_x), ylim = c(0, max_y), 
+       col = NA, lwd = 3, axes = F, ylab = "Frequency", xlab = "", main = "Mismatches relative to consensus")
+  axis(side = 1, at = seq(1, max_x), las = 2)
+  axis(side = 2, las =2)
+  lines(x = CT$Position[left_ct], 
+        y = CT$Frequency[left_ct], xlim = c(0, max_x), ylim = c(0, max_y), 
+        col = "chocolate1", bty = "n", lwd = 3)
+  lines(x = GA$Position[left_ga], 
+        y = GA$Frequency[left_ga], type = "l", xlim = c(1,max_x), ylim = c(0, max_y), 
+        col = "blueviolet", lwd = 3)
+  
+  par(mar = c(4,1,3,3))
+  plot(x = GA$Position[right_ct], 
+       y = GA$Frequency[right_ct], type = "l", xlim = c(min_x, 0), ylim = c(0, max_y), 
+       col = "blueviolet", bty = "c", lwd = 3, ylab = "", xlab = "",
+       axes = F, main = "")
+  axis(side = 1, at = seq(min_x, -1), las = 2)
+  axis(side = 4, las =2)
+  lines(x = CT$Position[right_ct], 
+        y = CT$Frequency[right_ct], type = "l", xlim = c(min_x, 0), ylim = c(0, max_y), 
+        col = "chocolate1", bty = "n", lwd = 3)
+
+```
+
+
+### Quack
+
+Contamination: ~5% (2.5%, 7.0%)
+
+Coverage on MT: 47x
+
+```
+Crude contamination upper bound: 995 out of 12701 reads (7.8%) match another
+genome better than the consensus (error rate is 0.02).
+
+quantiles from n = 99829 samples (after discarding burnin of 171)
+     2.5%     97.5% 
+0.9305844 0.9743480 
+MAP authentic: 0.9559791 
+Potential scale reduction factors:
+
+     Point est. Upper C.I.
+[1,]          1          1
+```
+
+### MA2776
+
+Contamination: ~7% (4.7%, 10.4%)
+
+Coverage on MT: 29x
+
+```
+Crude contamination upper bound: 628 out of 7771 reads (8.1%) match another
+genome better than the consensus (error rate is 0.0199).
+
+quantiles from n = 99805 samples (after discarding burnin of 195)
+     2.5%     97.5% 
+0.8957751 0.9530261 
+MAP authentic: 0.9284921 
+Potential scale reduction factors:
+
+     Point est. Upper C.I.
+[1,]          1          1
+```
+
+### MA2777
+
+Contamination: ~5% (3.1%, 9.7%)
+
+Coverage on MT: 18x
+
+```
+Crude contamination upper bound: 382 out of 4929 reads (7.8%) match another
+genome better than the consensus (error rate is 0.02).
+
+quantiles from n = 99867 samples (after discarding burnin of 133)
+     2.5%     97.5% 
+0.9030789 0.9696461 
+MAP authentic: 0.9441228 
+Potential scale reduction factors:
+
+     Point est. Upper C.I.
+[1,]          1          1
+
+```
+
+
+
+
+## Sex assignment
+
+We determined the sex of the individual using the method presented in Skoglund et al. (2013).
+The ratio of reads mappping to the Y chromosome vs. those mapping to both sexual chromosomes
+is 0.0016 (95% CI = 0.0014 - 0.0018). The value is consistent with a **XY** 
+karyotype for the MA2777 library and the sex is not determined for MA2776 library, 
+according to the thresholds defined in Skoglund et al. (2013) and shown in the figure below.
+
+
+
+```{r, fig.width=9,fig.height=4}
+
+sex <- data.frame()
+for(ind in c( "MA2776", "MA2777", "Quack")){
+  tmp <- read.table(paste("~/Projects/Botocudos/Files/Quack/2018_10_23/", ind, ".sex.table", sep = ""),
+                    header = T, sep = "\t")
+  tmp$Library <- ind
+  sex <- rbind(sex, tmp)
+}
+sex <- sex[,c(8, 1:7)]
+colnames(sex) <- c("Library", "Total reads", "Reads (X + Y)", "Reads (Y)", 
+                   "R_y", "SE", "95% CI", "Assignment")
+colnames(sex) <- gsub(".", " ", colnames(sex), fixed = T)
+
+colnames(sex) <- gsub(".", " ", colnames(sex), fixed = T)
+kable(sex#, escape = F
+      ) %>%
+    kable_styling(font_size = 12, full_width = T, position = "left",
+                bootstrap_options = c("responsive"))
+
+boto <- data.frame(hits_unique_frac.endogenous. = c(0.01, 0.02, 0.1),
+                   Library = c("MA2776", "MA2777", "Quack"))
+p <- ggsex(d = "~/Projects/Botocudos/Files/Quack/2018_10_23/", boto = boto)
+
+print(p)
+
+```
+
+## MDS
+
+We performed a multidimensional scale analysis to visualize the genetic affinities of Quack.
+For this purpose, we used bammds (Malaspinas et al. 2014) and a panel with worldwide populations (Wollstein et al. 2010).
+We observe that Quack is not grouping with Native American populations, but with Central-South or East Asian populations in the panel.
+
+Quack:
+40,144 out of 823,541 markers
+ 
+MA2776:
+34,022 out of 823,586
+
+MA2777:
+6,384 out of 823,760
+
+```{r, fig.width=14, fig.height=6}
+d <- "~/Projects/Botocudos/Files/Quack/2018_10_23/"
+ind <- "Quack_90ind_nodamage"
+
+#plot_bammds(d = d, ind = ind)
+
+
+d <- "~/Projects/Botocudos/Files/Quack/2018_10_23/"
+ind <- "Quack_mapped_Jorde_Wollstein_hg19_reheaded"
+panel_path <- "~/Projects/Botocudos/Files/Quack/2018_10_03/Wollstein_panel_20181005.txt"
+
+substitute <- F
+divisions = c("Africa","America","Borneo",
+              "CSAsia","EAsia","Europe","Fiji","NewGuineaH","Polynesia", "Quack")
+colors <- c("slategray3", "thistle2", "seagreen1",
+            "turquoise2", "slateblue", "slategray", "seagreen2", "seagreen3", "seagreen4", "black")
+switch = F
+colorby = "region"
+panel = "~/Projects/Botocudos/Files/PCA/2017_09_15/panel_botos.txt"
+addlabel=F
+division_type=colorby
+
+plots1 <- plot_bammds(d = d, ind = ind, panel_path = panel_path, substitute = F, 
+            divisions = divisions, addlabel = T, title = "Quack (dimensions 1 and 2)",
+            colorby = "region", colors = colors)
+
+#plot_grid(plotlist = plots, ncol = 2, rel_widths = c(3,1))
+
+plots2 <- plot_bammds(d = d, ind = ind, panel_path = panel_path, substitute = F, 
+            divisions = divisions, cx = 2, cy = 3, switch = T, addlabel = T,
+            title = "Quack (dimensions 2 and 3)", colorby = "region", colors = colors)
+
+plot_grid(plots1[[1]], plots2[[1]], plots2[[2]], ncol = 3, rel_widths = c(3,3,1))
+
+
+```
+
+```{r, fig.width=14, fig.height=6}
+d <- "~/Projects/Botocudos/Files/Quack/2018_10_23/"
+ind <- "PRI_MPYN_MA2776_mapped_Jorde_Wollstein_hg19_reheaded"
+panel_path <- "~/Projects/Botocudos/Files/Quack/2018_10_03/Wollstein_panel_20181005.txt"
+
+substitute <- F
+divisions = c("Africa","America","Borneo",
+              "CSAsia","EAsia","Europe","Fiji","NewGuineaH","Polynesia", "Quack")
+colors <- colors <- c("slategray3", "thistle2", "seagreen1",
+            "turquoise2", "slateblue", "slategray", "seagreen2", "seagreen3", "seagreen4", "black")
+switch = F
+colorby = "region"
+panel = "~/Projects/Botocudos/Files/PCA/2017_09_15/panel_botos.txt"
+addlabel=F
+division_type=colorby
+
+plots1 <- plot_bammds(d = d, ind = ind, panel_path = panel_path, substitute = F, 
+            divisions = divisions, addlabel = T, title = "MA2776 (dimensions 1 and 2)",
+            colorby = "region", colors = colors)
+
+#plot_grid(plotlist = plots, ncol = 2, rel_widths = c(3,1))
+
+plots2 <- plot_bammds(d = d, ind = ind, panel_path = panel_path, substitute = F, 
+            divisions = divisions, cx = 2, cy = 3, switch = T, addlabel = T,
+            title = "MA2776 (dimensions 2 and 3)", colorby = "region",
+            colors = colors)
+
+plot_grid(plots1[[1]], plots2[[1]], plots2[[2]], ncol = 3, rel_widths = c(3,3,1))
+
+```
+
+```{r, fig.width=14, fig.height=6}
+d <- "~/Projects/Botocudos/Files/Quack/2018_10_23/"
+ind <- "PRI_44A7_MA2777_mapped_Jorde_Wollstein_hg19_reheaded"
+panel_path <- "~/Projects/Botocudos/Files/Quack/2018_10_03/Wollstein_panel_20181005.txt"
+
+substitute <- F
+divisions = c("Africa","America","Borneo",
+              "CSAsia","EAsia","Europe","Fiji","NewGuineaH","Polynesia", "Quack")
+colors <- colors <- c("slategray3", "thistle2", "seagreen1",
+            "turquoise2", "slateblue", "slategray", "seagreen2", "seagreen3", "seagreen4", "black")
+switch = F
+colorby = "region"
+panel = "~/Projects/Botocudos/Files/PCA/2017_09_15/panel_botos.txt"
+addlabel=F
+division_type=colorby
+
+plots1 <- plot_bammds(d = d, ind = ind, panel_path = panel_path, substitute = F, 
+            divisions = divisions, addlabel = T, title = "MA2777 (dimensions 1 and 2)",
+            colorby = "region", colors = colors)
+
+#plot_grid(plotlist = plots, ncol = 2, rel_widths = c(3,1))
+
+plots2 <- plot_bammds(d = d, ind = ind, panel_path = panel_path, substitute = F, 
+            divisions = divisions, cx = 2, cy = 3, switch = T, addlabel = T,
+            title = "MA2777 (dimensions 2 and 3)", colorby = "region",
+            colors = colors)
+
+plot_grid(plots1[[1]], plots2[[1]], plots2[[2]], ncol = 3, rel_widths = c(3,3,1))
+
+```
+
+## Ancestry estimates
+
+We used NGSAdmix to estimate the ancestry proportions for Quack.
+The comparison was made using the panel from Wollstein et al. (2010),
+used in Malaspinas et al. (2014). The panel comprises 583 individuals grouped in 20 worldwide populations/regions.
+Among these dataset, we have two Native American (Totonac and Bolivian),
+and several Remote Oceania (Polynesia, including various islands, and Fiji) populations.
+
+
+The data from the combined (MA2776 and MA2777) libraries 
+as well as that of Bot15 and Bot17 (Malaspinas et al. 2014) were merged to the panel
+on at most 31,373 sites.
+
+We assumed 2 to 6 ancestral populations. The analysis reveals that 
+Quack's ancestry corresponds mostly to that of the **Asian** (~60%, in green)
+and **European** (~30%, in purple)  clusters or his ancestry could
+also correspond to that of an unsampled population.
+
+```{r, fig.width = 12, fig.height=20, eval = F} 
+
+setwd("~/Projects/Botocudos/Files/ADMIX/2018_09_26/")
+k <- "2_90"
+
+sufix <- "90ind_nodamage_Quack_k"
+n <- 1
+N <- 90
+
+name <- paste(sufix, k, ".qopt", sep = "")
+admix<-t(as.matrix(read.table(name)))
+colors<- funky(gsub("_*", "",k))
+panel_names <- "90ind_thesis.txt"
+panel <- read.table("~/Projects/Botocudos/Files/PCA/2017_09_15/panel_botos.txt",
+                    header = T)
+other_dir <- "~/Projects/Botocudos/Files/ADMIX/2017_12_06/"
+pop<-read.table(paste(other_dir,panel_names,
+                      sep = ""), as.is=T)
+
+pop <- data.frame(region = gsub("_.*","", pop$V1), indID=gsub(".*_", "", pop$V1))
+pop$indID <- sub("-", "_", pop$indID)
+index <- match(pop$indID, panel$indID)
+pop$population <- as.character(panel$population[index])
+pop <- rbind(data.frame(region = rep("Quack", n), 
+                        indID = rep("Quack", n),
+                        population = rep("Quack", n)),
+             pop)
+pop_order <- factor(pop[,3], levels=c("Yoruba", "Spanish", 
+                                      "Hawaiian",
+                                      "Maori", 
+                                      "Han",
+                                      "Papuan",
+                                      "Pima", "Karitiana",
+                                      "Surui", "Colombians",
+                                      "Quack" ))
+pop <- pop[order(pop_order),]
+pop$population <- factor(pop$population, levels = levels(pop_order))
+
+
+colors<- funky(10)
+
+Colors <- list("2_90" = c("#ED8F47", "#9471B4"), #orange,purple
+               "3_1" = c("#ED8F47", "#9471B4", "#79C360"),
+               #orange,purple,green
+               "4_90" = c("#ED8F47", "#3F8EAA","#79C360", "#9471B4"),
+               #orange,blue,green,purple
+               "5_63" = c("#ED8F47",  "#3F8EAA","#E52829","#79C360",
+                           "#9471B4"),
+               #orange,blue,red,green,purple
+               "6_1" = c("#ED8F47", "#3F8EAA",
+                            "#FDB762", "#E52829", "#79C360","#9471B4"),
+               #orange,blue,purple,red,green,melon
+               "7_96" =  c("#ED8F47", "#3F8EAA", "#79C360", 
+                            "#E52829",  "#9471B4", "#FDB762",
+                            "#A6CEE3"), 
+               #orange,blue,green,red,purple,melon,lightblue
+               "8_14" = c("#ED8F47",  "#3F8EAA", "#79C360",
+                           "#E52829",
+                           "#9471B4", "#FDB762", "#A6CEE3", "#DDD399"),
+               #orange,blue,green,red,purple,melon,lightblue,beige
+               "9_2" = c("#ED8F47",  "#3F8EAA", 
+                           "#9471B4","#79C360","#E52829","#FDB762",
+                           "#A6CEE3", "#DDD399", "#B89B74"),
+               #orange,blue,purple,green,red,melon,lightblue,beige,farkbeige
+               "10_21" = c("#ED8F47", "#3F8EAA", 
+                           "#E52829","#79C360",
+                           "#9471B4","#FDB762", "#A6CEE3","#DDD399",
+                           "#B89B74", "#B15928")
+               
+)
+
+
+
+par(mfrow = c(10, 1))
+for(k in paste(seq(2, 8 ), c( 90,1,90,63,1,96,14 ), sep = '_')){
+  par(mar = c(2, 0.5, 3, 2))
+  name <- paste(sufix, k, ".qopt", sep = "")
+  
+  admix <- as.matrix(read.table(name))
+  admix <- admix[order(pop_order),]
+  admix <- t(admix)
+  indexes <- col2pop(colors, pop, N+n, 10)
+  
+  barplot(admix[indexes[1:dim(admix)[1]],],
+          col=Colors[[k]],
+          space=0,border=NA,
+          ylab=NULL,
+          width = c(rep(.1,N),0.3),
+          main = paste("k =", sub("_.*", "",k)), horiz = F, cex.main = 3,
+          cex.lab = 2)
+  
+  pop_names <- tapply(1:nrow(pop),pop[,3],mean)
+  abline(v =  tapply(1:nrow(pop),pop[,3],max))
+  
+  pop_names <- 0.1*tapply(1:nrow(pop),pop[,3],mean)
+  pop_names[11] <- pop_names[11] + 0.1
+  abline(v = c(0.1*tapply(2:nrow(pop)-1,pop[2:nrow(pop)-1,3],max)), col = "white")
+}
+text(pop_names, -1, names(pop_names),xpd=NA,cex = 2, srt = 90)
+
+```
+
+
+```{r, fig.width = 14, fig.height=8, eval = F}
+
+setwd("~/Projects/Botocudos/Files/Quack/2018_10_23/")
+k <- "2_5"
+
+sufix <- "Jorde_Wollstein_hg19_reheaded_Quack_k"
+n <- 1
+N <- 583
+
+name <- paste(sufix, k, ".qopt", sep = "")
+admix<-t(as.matrix(read.table(name)))
+colors<- funky(gsub("_*", "",k))
+#panel_names <- "90ind_thesis.txt"
+ panel <- read.table("~/Projects/Botocudos/Files/MDS/2017_12_06/Wollstein/panel_Jorde_Wollstein.txt",
+                     header = T)
+
+pop <- panel[27:dim(panel)[1], c("region", "indID", "population")]
+ pop <- rbind(data.frame(region = rep("Quack", n), 
+                        indID = rep("Quack", n),
+                        population = rep("Quack", n)),
+             pop)
+pop_order <- factor(pop[,3], levels=c("Bambaran", "Dogon", 
+                                      "YRI",
+                                      "CEU", 
+                                      "Slovenian",
+                                      "Iraqi",
+                                      "Pakistanis", "Kyrgyzstan",
+                                      "Mongolian", "JPT",
+                                      "CHB", "BOR",
+                                      "Tongan_Samoan", "POL", "FIJ",
+                                      "Totonac", "Bolivian", "NGH", "Nepalese",
+                                      "Thai",
+                                      "Quack"))
+pop <- pop[order(pop_order),]
+pop$population <- factor(pop$population, levels = levels(pop_order))
+
+
+
+colors<- funky(7)
+
+Colors <- list("2_90" = c("#ED8F47", "#9471B4"), #orange,purple
+               "3_1" = c("#ED8F47", "#9471B4", "#79C360"),
+               #orange,purple,green
+               "4_90" = c("#ED8F47", "#3F8EAA","#79C360", "#9471B4"),
+               #orange,blue,green,purple
+               "5_63" = c("#ED8F47",  "#3F8EAA","#E52829","#79C360",
+                           "#9471B4"),
+               #orange,blue,red,green,purple
+               "6_1" = c("#ED8F47", "#3F8EAA",
+                            "#FDB762", "#E52829", "#79C360","#9471B4"),
+               #orange,blue,purple,red,green,melon
+               "7_96" =  c("#ED8F47", "#3F8EAA", "#79C360", 
+                            "#E52829",  "#9471B4", "#FDB762",
+                            "#A6CEE3"), 
+               #orange,blue,green,red,purple,melon,lightblue
+               "8_14" = c("#ED8F47",  "#3F8EAA", "#79C360",
+                           "#E52829",
+                           "#9471B4", "#FDB762", "#A6CEE3", "#DDD399"),
+               #orange,blue,green,red,purple,melon,lightblue,beige
+               "9_2" = c("#ED8F47",  "#3F8EAA", 
+                           "#9471B4","#79C360","#E52829","#FDB762",
+                           "#A6CEE3", "#DDD399", "#B89B74"),
+               #orange,blue,purple,green,red,melon,lightblue,beige,farkbeige
+               "10_21" = c("#ED8F47", "#3F8EAA", 
+                           "#E52829","#79C360",
+                           "#9471B4","#FDB762", "#A6CEE3","#DDD399",
+                           "#B89B74", "#B15928")
+               
+)
+
+
+
+par(mfrow = c(2,1))
+for(k in paste(seq(2, 6 ), c( 5,1,4,5,1 ), sep = '_')){
+#for(k in paste(7, 59, sep = '_')){
+  par(mar = c(7, 0.5, 3, 2))
+  name <- paste(sufix, k, ".qopt", sep = "")
+  
+  admix<-as.matrix(read.table(name))
+  admix <- admix[order(pop_order),]
+  admix <- t(admix)
+  indexes <- col2pop(colors, pop, N+n, 10)
+  barplot(admix[indexes[1:dim(admix)[1]],],
+          width = c(rep(.1,N),3),
+          col=funky(7),space=0,border=NA,
+          ylab=NULL,
+          main = paste("k =", sub("_.*", "",k)), horiz = F, cex.main = 3,
+          cex.lab = 2)
+  
+  pop_names <- 0.1*tapply(1:nrow(pop),pop[,3],mean)
+  pop_names[21] <- pop_names[21] + 2
+  abline(v = c(0.1*tapply(2:nrow(pop)-1,pop[2:nrow(pop)-1,3],max)), col = "white")
+  
+  
+}
+text(pop_names, -0.5,names(pop_names),xpd=NA,cex = 2, srt = 90)
+
+
+```
+
+
+```{r, fig.width=12, fig.height=14,eval=F}
+setwd("~/Projects/Botocudos/Files/Quack/2018_10_23/")
+k <- "2_10"
+selected <- c("Quack", "MA2776", "MA2777")#, "Bot15", "Bot17")
+sufix <- "Jorde_Wollstein_hg19_reheaded_Quack_Bot15_Bot17_k"
+n <- 3
+N <- 583
+
+name <- paste(sufix, k, ".qopt", sep = "")
+admix<-t(as.matrix(read.table(name)))
+colors<- funky(gsub("_*", "",k))
+#panel_names <- "90ind_thesis.txt"
+ panel <- read.table("~/Projects/Botocudos/Files/MDS/2017_12_06/Wollstein/panel_Jorde_Wollstein.txt",
+                     header = T)
+
+pop <- panel[27:dim(panel)[1], c("region", "indID", "population")]
+ pop <- rbind(data.frame(region = selected, 
+                        indID = selected,
+                        population = selected),
+             pop)
+pop_order <- factor(pop[,3], levels=c("Bambaran", "Dogon", 
+                                      "YRI",
+                                      "CEU", 
+                                      "Slovenian",
+                                      "Iraqi",
+                                      "Pakistanis", "Kyrgyzstan",
+                                      "Mongolian", "JPT",
+                                      "CHB", "BOR",
+                                      "Tongan_Samoan", "POL", "FIJ",
+                                      "Totonac", "Bolivian", "NGH", "Nepalese",
+                                      "Thai",
+                                      selected))
+pop <- pop[order(pop_order),]
+pop$population <- factor(pop$population, levels = levels(pop_order))
+
+
+
+colors<- funky(7)
+
+Colors <- list("2_90" = c("#ED8F47", "#9471B4"), #orange,purple
+               "3_1" = c("#ED8F47", "#9471B4", "#79C360"),
+               #orange,purple,green
+               "4_90" = c("#ED8F47", "#3F8EAA","#79C360", "#9471B4"),
+               #orange,blue,green,purple
+               "5_63" = c("#ED8F47",  "#3F8EAA","#E52829","#79C360",
+                           "#9471B4"),
+               #orange,blue,red,green,purple
+               "6_1" = c("#ED8F47", "#3F8EAA",
+                            "#FDB762", "#E52829", "#79C360","#9471B4"),
+               #orange,blue,purple,red,green,melon
+               "7_96" =  c("#ED8F47", "#3F8EAA", "#79C360", 
+                            "#E52829",  "#9471B4", "#FDB762",
+                            "#A6CEE3"), 
+               #orange,blue,green,red,purple,melon,lightblue
+               "8_14" = c("#ED8F47",  "#3F8EAA", "#79C360",
+                           "#E52829",
+                           "#9471B4", "#FDB762", "#A6CEE3", "#DDD399"),
+               #orange,blue,green,red,purple,melon,lightblue,beige
+               "9_2" = c("#ED8F47",  "#3F8EAA", 
+                           "#9471B4","#79C360","#E52829","#FDB762",
+                           "#A6CEE3", "#DDD399", "#B89B74"),
+               #orange,blue,purple,green,red,melon,lightblue,beige,farkbeige
+               "10_21" = c("#ED8F47", "#3F8EAA", 
+                           "#E52829","#79C360",
+                           "#9471B4","#FDB762", "#A6CEE3","#DDD399",
+                           "#B89B74", "#B15928")
+               
+)
+
+
+
+par(mfrow = c(2,1))
+for(k in paste(seq(2, 6 ), c( 5,1,4,5,1 ), sep = '_')){
+#for(k in paste(7, 77, sep = '_')){
+  par(mar = c(7, 0.5, 3, 2))
+  name <- paste(sufix, k, ".qopt", sep = "")
+  
+  admix<-as.matrix(read.table(name))
+  admix <- admix[order(pop_order),]
+  admix <- t(admix)
+  indexes <- col2pop(colors, pop, N+n, 10)
+  barplot(admix[indexes[1:dim(admix)[1]],],
+          width = c(rep(.1,N),rep(3,n)),
+          col=funky(7),space=0,border=NA,
+          ylab=NULL,
+          main = paste("k =", sub("_.*", "",k)), horiz = F, cex.main = 3,
+          cex.lab = 2)
+  
+  pop_names <- 0.1*tapply(1:nrow(pop),pop[,3],mean)
+
+  abline(v = 0.1*tapply(2:(nrow(pop)-n),pop[2:(nrow(pop)-n),3],max),
+         col = "white")
+  abline(v = 3*seq(1,n)+N*0.1, col = "white")
+  
+  
+}
+pop_names[match(tail(pop_names, n), pop_names)] <- tail(pop_names, n) + 2.5*(seq(1,n))
+text(pop_names, -0.5,names(pop_names),xpd=NA,cex = 2, srt = 90)
+
+```
+
+
+```{r}
+setwd("~/Projects/Botocudos/Files/Quack/2018_10_23/")
+k <- "2_5"
+selected <- c("Bot15", "Bot17", "Quack")#, "MA2776", "MA2777")
+sufix <- "Jorde_Wollstein_hg19_reheaded_Quack_Bot15_Bot17_k"
+n <- 3
+N <- 583
+
+name <- paste(sufix, k, ".qopt", sep = "")
+admix<-t(as.matrix(read.table(name)))
+colors<- funky(gsub("_*", "",k))
+#panel_names <- "90ind_thesis.txt"
+ panel <- read.table("~/Projects/Botocudos/Files/MDS/2017_12_06/Wollstein/panel_Jorde_Wollstein.txt",
+                     header = T)
+
+pop <- panel[27:dim(panel)[1], c("region", "indID", "population")]
+ pop <- rbind(data.frame(region = selected, 
+                        indID = selected,
+                        population = selected),
+             pop)
+pop_order <- factor(pop[,3], levels=c("Bambaran", "Dogon", 
+                                      "YRI",
+                                      "CEU", 
+                                      "Slovenian",
+                                      "Iraqi",
+                                      "Pakistanis", "Kyrgyzstan",
+                                      "Mongolian", "JPT",
+                                      "CHB", "BOR",
+                                      "Tongan_Samoan", "POL", "FIJ","NGH", "Nepalese",
+                                      "Thai",
+                                      "Totonac", "Bolivian", 
+                                      selected))
+pop <- pop[order(pop_order),]
+pop$population <- factor(pop$population, levels = levels(pop_order))
+
+
+
+colors<- funky(7)
+
+Colors <- list("2_5" = c("#ED8F47", "#9471B4"), #orange,purple
+               "3_1" = c("#ED8F47", "#9471B4", "#79C360"),
+               #orange,purple,green
+               "4_4" = c("#ED8F47", "#9471B4","#79C360", "#3F8EAA"),
+               #orange,purple,green,blue
+               "5_5" = c("#ED8F47", "#9471B4","#79C360","#3F8EAA",
+                         "#E52829"
+                            ),
+               #orange,purple,greee,blue,red
+               "6_1" = c("#ED8F47","#9471B4","#79C360",  "#FDB762", "#3F8EAA",
+                            "#E52829"),
+               #orange,purple,green,melon,blue,red
+               "7_1" =  c("#ED8F47","#9471B4","#A6CEE3","#79C360", "#FDB762",
+                            "#3F8EAA",
+                            "#E52829"), 
+               #orange,purple,lightblue,green,blue,blue,red
+               "8_14" = c("#ED8F47",  "#3F8EAA", "#79C360",
+                           "#E52829",
+                           "#9471B4", "#FDB762", "#A6CEE3", "#DDD399"),
+               #orange,blue,green,red,purple,melon,lightblue,beige
+               "9_2" = c("#ED8F47",  "#3F8EAA", 
+                           "#9471B4","#79C360","#E52829","#FDB762",
+                           "#A6CEE3", "#DDD399", "#B89B74"),
+               #orange,blue,purple,green,red,melon,lightblue,beige,farkbeige
+               "10_21" = c("#ED8F47", "#3F8EAA", 
+                           "#E52829","#79C360",
+                           "#9471B4","#FDB762", "#A6CEE3","#DDD399",
+                           "#B89B74", "#B15928")
+               
+)
+
+
+
+par(mfrow = c(7,1))
+for(k in paste(seq(2, 6 ), c( 5,1,4,5,1 ), sep = '_')){
+#for(k in paste(seq(2, 6 ), c( 2,2,2,2, 1), sep = '_')){
+  par(mar = c(1, 0.5, 2, 1))
+  name <- paste(sufix, k, ".qopt", sep = "")
+  
+  admix<-as.matrix(read.table(name))
+  admix <- admix[order(pop_order),]
+  admix <- t(admix)
+  indexes <- col2pop(colors, pop, N+n, 10)
+  barplot(admix[indexes[1:dim(admix)[1]],],
+          width = c(rep(.1,N),rep(1,n)),
+          col=Colors[[k]],#funky(7),
+          space=0,border=NA,
+          ylab=NULL,
+          main = paste("k =", sub("_.*", "",k)), horiz = F, cex.main = 1,
+          cex.lab = 1)
+  
+  pop_names <- 0.1*tapply(1:nrow(pop),pop[,3],mean)
+
+  abline(v = 0.1*tapply(2:(nrow(pop)-n),pop[2:(nrow(pop)-n),3],max),
+         col = "white")
+  abline(v = 1*seq(1,n)+N*0.1, col = "white")
+  
+  
+}
+pop_names[match(tail(pop_names, n), pop_names)] <- tail(pop_names, n) + 0.75*(seq(1,n))
+text(pop_names, -1.5,names(pop_names),xpd=NA,cex = 0.8, srt = 90)
+
+```
+
+We repeated the analysis using only a subset of the populations from the Wollstein panel, and a total of 9,701 sites.
+
+```{r}
+setwd("~/Projects/Botocudos/Files/Quack/2018_10_23/")
+k <- "2_7"
+selected <- c("Bot15", "Bot17", "Quack")#, "MA2776", "MA2777")
+sufix <- "compareQuack_20181024_Quack_Bot15_Bot17_k"
+n <- 3
+N <- 241
+
+name <- paste(sufix, k, ".qopt", sep = "")
+admix<-t(as.matrix(read.table(name)))
+colors<- funky(gsub("_*", "",k))
+#panel_names <- "90ind_thesis.txt"
+ panel <- read.table("~/Projects/Botocudos/Files/Quack/2018_10_23/panel_compareQuack.txt",
+                     header = T)
+
+
+pop <- panel[, c("region", "indID", "population")]
+
+ pop <- rbind(data.frame(region = selected, 
+                        indID = selected,
+                        population = selected),
+             pop)
+pop_order <- factor(pop[,3], levels=c(
+                                      "CEU", "JPT", "Bolivian","POL", 
+                                      "Thai", "Nepalese",
+                                      "Kyrgyzstan",
+                                      "Mongolian", 
+                                      
+                                        
+                                      selected))
+pop <- pop[order(pop_order),]
+pop$population <- factor(pop$population, levels = levels(pop_order))
+
+
+
+colors<- funky(7)
+
+Colors <- list("2_5" = c("#ED8F47", "#9471B4"), #orange,purple
+               "3_1" = c("#ED8F47", "#9471B4", "#79C360"),
+               #orange,purple,green
+               "4_4" = c("#ED8F47", "#9471B4","#79C360", "#3F8EAA"),
+               #orange,purple,green,blue
+               "5_5" = c("#ED8F47", "#9471B4","#79C360","#3F8EAA",
+                         "#E52829"
+                            ),
+               #orange,purple,greee,blue,red
+               "6_1" = c("#ED8F47","#9471B4","#79C360",  "#FDB762", "#3F8EAA",
+                            "#E52829"),
+               #orange,purple,green,melon,blue,red
+               "7_1" =  c("#ED8F47","#9471B4","#A6CEE3","#79C360", "#FDB762",
+                            "#3F8EAA",
+                            "#E52829"), 
+               #orange,purple,lightblue,green,blue,blue,red
+               "8_14" = c("#ED8F47",  "#3F8EAA", "#79C360",
+                           "#E52829",
+                           "#9471B4", "#FDB762", "#A6CEE3", "#DDD399"),
+               #orange,blue,green,red,purple,melon,lightblue,beige
+               "9_2" = c("#ED8F47",  "#3F8EAA", 
+                           "#9471B4","#79C360","#E52829","#FDB762",
+                           "#A6CEE3", "#DDD399", "#B89B74"),
+               #orange,blue,purple,green,red,melon,lightblue,beige,farkbeige
+               "10_21" = c("#ED8F47", "#3F8EAA", 
+                           "#E52829","#79C360",
+                           "#9471B4","#FDB762", "#A6CEE3","#DDD399",
+                           "#B89B74", "#B15928")
+               
+)
+
+colors <- c("azure4", "darkolivegreen3", "azure3", "burlywood3", "gold3", 
+            "cadetblue3", "darkorchid3", "chocolate3", "coral3", "darkgoldenrod3")
+colors <- funky(9)
+par(mfrow = c(6,1))
+#for(k in paste(seq(2, 10 ), c( 7,8,7,7,3,7,3,3,1 ), sep = '_'))
+for(k in paste(seq(2, 6 ), c( 7,8,7,7,3 ), sep = '_')){
+  par(mar = c(1, 0.5, 2, 1))
+  name <- paste(sufix, k, ".qopt", sep = "")
+  
+  admix<-as.matrix(read.table(name))
+  admix <- admix[order(pop_order),]
+  admix <- t(admix)
+  indexes <- col2pop(colors, pop, N+n, 10)
+  barplot(admix[indexes[1:dim(admix)[1]],],
+          width = c(rep(.1,N),rep(1,n)),
+          col=colors,#Colors[[k]],#
+          space=0,border=NA,
+          ylab=NULL,
+          main = paste("k =", sub("_.*", "",k)), horiz = F, cex.main = 1,
+          cex.lab = 1)
+  
+  pop_names <- 0.1*tapply(1:nrow(pop),pop[,3],mean)
+
+  abline(v = 0.1*tapply(2:(nrow(pop)-n),pop[2:(nrow(pop)-n),3],max),
+         col = "white")
+  abline(v = 1*seq(1,n)+N*0.1, col = NA)
+  
+  
+}
+pop_names[match(tail(pop_names, n), pop_names)] <- tail(pop_names, n) + .75*(seq(1,n))
+text(pop_names, -1.5,names(pop_names),xpd=NA,cex = 0.8, srt = 90)
+
+```

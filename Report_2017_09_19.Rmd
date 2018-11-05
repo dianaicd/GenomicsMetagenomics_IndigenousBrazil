@@ -1,0 +1,391 @@
+---
+title: "Botocudos project"
+author: "Cruz-Dávalos, Diana I."
+date: "9/19/2017"
+output: 
+  html_document:
+    toc: True
+    toc_float:
+      collapsed: False
+      smooth_scroll: True
+    number_sections: False
+    theme: "lumen"
+    highlight: "tango"
+    df_print: paged
+
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = T)
+```
+
+```{r sources, echo = F, message=F, warning=F, cache =F}
+source("~/Projects/Botocudos/Scripts/translate_ids.R")
+source("~/Projects/Botocudos/Scripts/length_distribution_plot.R")
+source("~/Projects/Botocudos/Scripts/preseq_only_plots.R")
+source("~/Projects/Botocudos/Scripts/ry_plot.R")
+source("~/Projects/Botocudos/Scripts/engoenous_plot.R")
+source("~/Projects/Botocudos/Scripts/mapDamage_plot.R")
+source("~/Projects/Botocudos/Scripts/reads_summaries_plots.R")
+source("~/Projects/Botocudos/Scripts/order_endo.R")
+source("~/Projects/Botocudos/Scripts/plots_coverage.R")
+library(cowplot)
+library(ggplot2)
+#library(shiny)
+boto <- read.table("~/Projects/Botocudos/Files/Summaries/Botocudos_summary_2017_09_18.table", header = T)
+boto$Library <- factor(boto$Library, levels = 
+                         c("*",as.vector(order_endo( 0, 0.5, boto = boto)$Library))
+                       ) 
+```
+
+
+# Samples
+
+We analyzed a total of 23 individuals: one labeled as "Native American" (~600 years old\*) from Minas Gerais, one identified as "Shell mound" (~4,000 years old\*) from Santa Catarina, and twenty-one "Botocudos". From this last group, eight skulls come from Espírito Santo, six from Minas Gerais, one from Bahía, and the 6 remaining have unassigned procedence (probably Minas Gerais or Espírito Santo).
+
+\*according to the Museum's Excell file. We are currently dating the samples.
+
+```{r, fig.align="left", echo = F, warning=F, message=F}
+library(knitr)
+include_graphics("Brazil_map_points.png", dpi = 120)
+```
+*Red: Minas Gerais
+
+*Green: Espírito Santo
+
+*Yellow: Bahía
+
+*Pink: Santa Catarina
+
+```{r boto table, echo = F}
+library(DT)
+
+datatable(boto[boto$Library!="*",], 
+          filter = "bottom", 
+          selection = "multiple",
+          fillContainer = T, 
+          rownames = F,
+          extensions = 
+            'FixedColumns',
+          options = list(
+              dom = 't',
+              scrollX = TRUE,
+              scrollY  = TRUE,
+              fixedColumns = list(
+                leftColumns = 3, rightColumns = 0))
+          )
+           # options = list(
+           #   #oButtons = list(
+           #     dom = 'Bfrtip',
+           #     buttons = c('colvis','copy', 'csv', 
+           #                 'excel', 'pdf', 'print')
+           #  ))#,
+           #  # oFixedColumns = list(
+            #   dom = 't', 
+            #   scrollX = F,
+            #   scrollY  = F,
+            #   fixedColumns = list(leftColumns = 3, 
+            #                       rightColumns = 0)
+            # ),
+            # I("colvis")
+
+              
+
+```
+
+# Summary of sequenced reads
+
+```{r summary plot, echo = F, fig.align='center', fig.width = 11}
+
+summary_reads_plot(boto)
+
+```
+
+Reads aligned to the Human genome: 
+
+```{r aligning to hg, echo =F, fig.align='center', fig.width = 11}
+
+
+hg_mapping_plot(boto)
+
+
+```
+
+```{r endogenous, echo = F, fig.align='center', fig.width = 11}
+good <- sum(unique(boto$hits_unique_frac.endogenous.[boto$Library != "*"]) >0.01)
+
+
+ggendogenous()
+
+```
+
+# Coverage
+
+```{r bases covered, echo = F, fig.align="center", fig.width = 11}
+
+plot_bases_covered()
+
+
+plot_depth_cov()
+
+```
+
+
+```{r, echo = F, fig.align='center'}
+
+ggplot(boto[boto$Library != "*",], 
+       aes(x = Library, y = hits_length.nuclear.)) +
+  geom_bar(stat = "identity", fill = "orangered2") +
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(y = "Average length (bp)", title = "Length", x = NULL)
+
+
+
+ggplot(boto[boto$Library != "*",], 
+       aes(x = Library, y = hits_clonality.nuclear.)) +
+  geom_bar(stat = "identity", fill = "purple3") +
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(y = "Clonality (fraction)", title = "Clonality", x = NULL)
+
+```
+
+
+
+# Preseq output
+
+## Complexity curves
+
+Note: MN01701 was not deep enough sequenced or it had too little duplicates:
+
+12,397 unique reads
+
+12,420 raw reads
+
+0.00185185185185 fraction of clonal reads
+
+### <1%
+```{r preseq expreads1, echo = F, fig.height=12, fig.width=12, fig.align="center"}
+load("~/Projects/Botocudos/Files/PreSeq/output_preseq_Sep16_all.Rda")
+
+### Breaks
+# <1%
+ind <- order_endo(Min = 0, Max = 0.01)
+plots <- vector("list", dim(ind)[1])
+j <- 1
+for(i in ind$Library){
+  plots[[j]] <- plot_expreads_preseq(i, ylim = 2e+6)
+  j <- j+1
+}
+plot_grid(plotlist = plots, ncol = 3)
+```
+
+### 1% - 5%
+```{r preseq expreads2, echo = F, fig.height=8, fig.width=12, fig.align="center"}
+# 1 - 5%
+ind <- order_endo(Min = 0.01, Max = 0.05)
+plots <- vector("list", dim(ind)[1])
+j <- 1
+for(i in ind$Library){
+  plots[[j]] <- plot_expreads_preseq(i, ylim = 1e+7)
+  j <- j + 1
+}
+plot_grid(plotlist = plots, ncol = 3)
+```
+
+### 5% - 10%
+```{r preseq expreads3, echo = F, fig.height=12, fig.width=12, fig.align="center"}
+# 6 - 10%
+ind <- order_endo(Min = 0.05, Max = 0.11)
+plots <- vector("list", dim(ind)[1])
+j <- 1
+for(i in ind$Library){
+  plots[[j]] <- plot_expreads_preseq(i, ylim = 2e+7)
+  j <- j + 1
+}
+plot_grid(plotlist = plots, ncol = 3)
+```
+
+### 17% - 18%
+```{r preseq expreads4, echo = F, fig.height=4, fig.width=8, fig.align="center"}
+# 17-18%
+ind <- order_endo(Min = 0.11, Max = 0.3)
+plots <- vector("list", dim(ind)[1])
+j <- 1
+for(i in ind$Library){
+  plots[[j]] <- plot_expreads_preseq(i, ylim = 5e+7)
+  j <- j + 1
+}
+
+plot_grid(plotlist = plots, ncol = 2)
+```
+
+### 35%
+```{r preseq expreads5, echo = F, fig.height=4, fig.width=4, fig.align="center"}
+
+# 35%
+ind <- order_endo(Min = 0.3, Max = 0.4)
+plots <- vector("list", dim(ind)[1])
+j <- 1
+for(i in ind$Library){
+  plots[[j]] <- plot_expreads_preseq(i, ylim = 6e+7)
+  j <- j + 1
+}
+
+print(plots)
+```
+
+## Genome coverage
+
+Here we assume that the size of the Human genome is 2.7 Gb.
+
+### <1%
+```{r preseq gc1, echo = F, fig.height=12, fig.width=12, fig.align="center"}
+ind <- order_endo(Min = 0, Max = 0.01)
+plots <- vector("list", dim(ind)[1])
+j <- 1
+for(i in ind$Library){
+  plots[[j]] <- plot_gc_preseq(i, ylim = 0.1)
+  j <- j + 1
+}
+plot_grid(plotlist = plots, ncol = 3)
+```
+
+### 1% - 5%
+```{r preseq gc2, echo = F, fig.height=8, fig.width=12, fig.align="center"}
+# 1 - 5%
+ind <- order_endo(Min = 0.01, Max = 0.05)
+plots <- vector("list", dim(ind)[1])
+j <- 1
+for(i in ind$Library){
+  plots[[j]] <- plot_gc_preseq(i, ylim = 0.5)
+  j <- j + 1
+}
+plot_grid(plotlist = plots, ncol = 3)
+```
+
+### 5% - 10%
+```{r preseq gc3, echo = F, fig.height=8, fig.width=12, fig.align="center"}
+# 6 - 10%
+ind <- order_endo(Min = 0.05, Max = 0.1)
+plots <- vector("list", dim(ind)[1])
+j <- 1
+for(i in ind$Library){
+  plots[[j]] <- plot_gc_preseq(i, ylim = 1)
+  j <- j + 1
+}
+plot_grid(plotlist = plots, ncol = 3)
+```
+
+### 17% - 18%
+```{r preseq gc4, echo = F, fig.height=4, fig.width=8, fig.align="center"}
+# 17-18%
+ind <- order_endo(Min = 0.11, Max = 0.3)
+plots <- vector("list", dim(ind)[1])
+j <- 1
+for(i in ind$Library){
+  plots[[j]] <- plot_gc_preseq(i, ylim = 1.5)
+  j <- j + 1
+}
+plot_grid(plotlist = plots, ncol = 2)
+```
+
+#### 35%
+
+```{r preseq gc5, echo = F, fig.height=4, fig.width=4, fig.align="center"}
+# 35%
+ind <- order_endo(Min = 0.3, Max = 0.4)
+plots <- vector("list", dim(ind)[1])
+j <- 1
+for(i in ind$Library){
+  plots[[j]] <- plot_gc_preseq(i, ylim = 1.5)
+  j <- j +1
+}
+print(plots[[1]])
+
+rm(semi_final)
+```
+
+
+# Sex determination
+
+```{r, echo = F}
+  sex <- build_sex()
+sex
+```
+
+
+```{r sex, echo=F, fig.height=6, fig.align="center"}
+
+ggsex(boto = boto)
+
+```
+
+# Length distribution
+
+## Nuclear
+```{r length nuc, echo = F, fig.height = 14, fig.width = 14, fig.align="center"}
+plots_nuc <- vector("list", 23)
+i <- 1
+for(ind in levels(boto$Library)){
+  if(ind == "*"){next}
+  plots_nuc[[i]] <- gglength(ind, type = c("nuc"))
+  i <- i+1
+}
+
+
+plot_grid(plotlist = plots_nuc, ncol = 5)
+
+```
+
+
+## Mitochondrial
+```{r length mito, echo = F, fig.height = 14, fig.width = 14, fig.align="center"}
+plots_mito <- vector("list", 23)
+i <- 1
+for(ind in levels(boto$Library)){
+  if(ind == "*" | ind == "MN00019"){next}
+  plots_mito[[i]] <- gglength(ind, type = c("mito"))
+  i <- i+1
+}
+ 
+  
+plot_grid(plotlist = plots_mito, ncol = 5)
+
+```
+
+
+# Molecular damage
+
+## Nuclear
+
+```{r damage nuclear, echo = F, fig.height=28, fig.width=18}
+par(mfrow=c(12,4))
+
+for( ind in order_endo(boto=boto[boto$Library != "*",])$Library){
+  damage_plot(ind, "nuc")
+} 
+
+```
+
+## Mitochondrial
+
+```{r damage mito, echo = F, fig.height=28, fig.width=18}
+par(mfrow=c(12,4))
+
+for( ind in order_endo(boto=boto[boto$Library != "*",])$Library){
+  damage_plot(ind, "mito")
+} 
+
+
+```
+
+# Suggested pooling
+
+```{r, echo = F}
+
+new_df <- boto[boto$Library != "*", c("Target", "Sample", "Library", "hits_unique_frac.endogenous.")]
+colnames(new_df) <- c("MA", "CGG", "MN", "Endogenous content")
+new_df <- new_df[order(new_df$`Endogenous content`),]
+new_df$`Endogenous content` <- round(x = new_df$`Endogenous content`, 3)
+new_df$Lane <- c(rep("pool_1", 7), rep("pool_2", 6), rep("pool_3", 7), rep("pool_4", 3))
+DT::datatable(new_df)
+```

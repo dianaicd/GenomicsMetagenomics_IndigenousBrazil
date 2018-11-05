@@ -1,0 +1,716 @@
+---
+title: "Biology18"
+author: "Cruz-Dávalos, Diana I."
+date: "2/12/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r sources, echo = F, message=F, warning=F, cache = F}
+source("~/Projects/Botocudos/Scripts/translate_ids.R")
+source("~/Projects/Botocudos/Scripts/length_distribution_plot.R")
+source("~/Projects/Botocudos/Scripts/preseq_only_plots.R")
+source("~/Projects/Botocudos/Scripts/ry_plot.R")
+source("~/Projects/Botocudos/Scripts/engoenous_plot.R")
+source("~/Projects/Botocudos/Scripts/mapDamage_plot.R")
+source("~/Projects/Botocudos/Scripts/reads_summaries_plots.R")
+source("~/Projects/Botocudos/Scripts/order_endo.R")
+source("~/Projects/Botocudos/Scripts/plots_coverage.R")
+source("~/Projects/Botocudos/Scripts/pca_plot.R")
+source("~/Projects/Botocudos/Scripts/pct_var_pc.R")
+source("~/Projects/Botocudos/Scripts/plot_bammds.R")
+```
+
+```{r, echo = F}
+library(cowplot)
+library(ggplot2)
+library(adegenet)
+library(plyr)
+library(scales)
+#library(shiny)
+boto <- read.table("~/Projects/Botocudos/Files/Summaries/Botocudos_summary_2017_09_18.table", header = T)
+new_boto <- read.table("~/Projects/Botocudos/Files/Summaries/Botocudos_summary_2017_12_06.table", header = T)
+
+boto$Library <- factor(boto$Library, levels = 
+                         c("*",as.vector(order_endo( 0, 0.5, boto)$Library))
+                       ) 
+new_boto$Library <- factor(boto$Library, levels = 
+                         c("*",as.vector(order_endo( 0, 0.5, new_boto)$Library))
+                       ) 
+boto$seq_round <- "First stage"
+new_boto$seq_round <- "Second stage"
+panel <- read.table("~/Projects/Botocudos/Files/PCA/2017_09_15/panel_botos.txt", header = T)
+```
+
+## MDS with Wollstein panel
+
+```{r, echo = F}
+d <- "~/Projects/Botocudos/Files/MDS/2017_12_06/Wollstein/"
+ind <- "Jorde_Wollstein_hg19_final_noseconddegree_geno01_8_2"
+panel<-"~/Projects/Botocudos/Files/MDS/2017_12_06/Wollstein/panel_Jorde_Wollstein.txt"
+
+
+colors <- c("#ED8F47", "#9471B4", "#79C360", 
+            #"#B15928",  "#B15928",
+            "black",
+            "#E52829", "#E52829", 
+            "#3F8EAA", "#79C360", "#79C360", "#79C360")
+  
+  #c("darkorange1", "darkmagenta", "palegreen4", "black", "black", "black", "firebrick1", "lightpink1", "deepskyblue2", "palegreen4", "mediumaquamarine", "palegreen4")
+
+label <- F; title <- F; cx <-1;cy <- 2; colorby = "region";switch = F; divisions = c("Botocudos", "America", "Oceania"); substitute <- F
+```
+
+```{r, echo = F}
+panel <- read.table(panel,
+                      header = T)
+  
+  path <- paste(d, ind, "_d", cx, "_d", cy, ".csv", sep = "")
+  coord <- read.csv(path, header = T)
+  
+  if(substitute){
+    coord$Individual <- sub("S_", "S;", coord$Individual)
+    coord$Individual <- sub("B_", "B;", coord$Individual)
+    coord$Individual <- sub(".*_", "", coord$Individual)
+    coord$Individual <- gsub("-", "_", coord$Individual)
+    coord$Individual <- sub("S;", "S_", coord$Individual)
+    coord$Individual <- sub("B;", "B_", coord$Individual)
+    coord$Individual <- sub("_1", "-1", coord$Individual)
+    coord$Individual <- sub("_2", "-2", coord$Individual)
+    coord$Individual <- sub("_3", "-3", coord$Individual)
+    coord$Individual <- sub("_4", "-4", coord$Individual)
+  }else{
+    coord$Individual <- sub("_A$", "-A", coord$Individual)
+    coord$Individual <- sub("_B$", "-B", coord$Individual)
+    coord$Individual <- sub(".*_", "", coord$Individual)
+    coord$Individual <- sub("-A$", "_A", coord$Individual)
+    coord$Individual <- sub("-B$", "_B", coord$Individual)
+    
+    
+  }
+
+  coord$indID <- coord$Individual
+  coord <- join(coord, panel, by = "indID")
+    l <- levels(coord$population)
+  new_levels <- c()
+  for(i in divisions){
+    index <- grepl(i, coord$region)
+    new_levels <- c(new_levels, as.character(coord$population[index]))
+  }
+  index <- coord$population %in% new_levels
+  new_levels <- c(new_levels, as.character(coord$population[!index]))
+#  index <- grep("Boto", l)
+  coord$population <- factor(coord$population, levels =  unique(new_levels))
+  
+  if(!is.character(colors)){
+    if(colorby == "population"){
+      colors <- funky(length(unique(coord$population))-1)
+    }else{
+      colors <- funky(length(unique(coord[, colorby]))-1)
+    }
+    
+    #lab_col <- cbind(c(0,0,0), lab_col  - min(lab_col))
+    colors <- c("black", colors)
+    lab_col <- col2rgb(colors)
+    #names(colors) <- levels(coord$population)
+  }else{
+    lab_col <- col2rgb(colors)
+  }
+
+  lab_col[lab_col > 0] <- lab_col[lab_col > 0]  - min(lab_col[lab_col > 0])
+  lab_col <- rgb(t(lab_col)/255)
+  index <- levels(coord[,colorby]) %in% coord[, colorby]
+  lab_col <- data.frame(Color = lab_col, 
+                        colorby = levels(coord[, colorby])[index])
+  lab_col <- lab_col[order(lab_col$colorby),]
+  if(!is.character(title)){
+    title <- ind
+  }
+  
+  coord <- coord[order(coord$population, decreasing = T),]
+  # annotation
+  annotation <- data.frame()
+  for(pop in unique(coord[, colorby])){
+    L <- length(coord[, colorby])
+    index <- grepl(pop, coord[, colorby])
+    # Make sure that we are sampling
+    index <- sample(x = rep(seq(1, L)[index], 2), 1)
+    annotation <- rbind(annotation, coord[index, ])
+  }
+  annotation <- annotation[order(as.character(annotation[,colorby])),]
+  if(switch){
+    tmp <- cx
+    cx <- cy
+    cy <- tmp
+    rm(tmp)
+    colnames(coord) <- sub("mds_x", "tmp", colnames(coord))
+    colnames(coord) <- sub("mds_y", "mds_x", colnames(coord))
+    colnames(coord) <- sub("tmp", "mds_y", colnames(coord))
+    colnames(annotation) <- colnames(coord)
+  }
+  
+```
+
+```{r, echo = T}
+
+
+p1 <- ggplot(coord[(coord$population != "Boto15") & (coord$population != "Boto17"), ], 
+       aes(x = mds_x, y = mds_y, color = region)) +
+  geom_point(size=6, alpha=0.8, aes(shape = region)) +
+  scale_color_manual(values = colors, name = "Region", 
+                     breaks = c("Botocudos", 
+                                "Africa", "America", "CSAsia",  "Europe",
+                                "Borneo", "Fiji", "Polynesia", "NewGuineaH"),
+                     labels = c("Botocudos",  
+                                "Africa", "America", "Asia",  "Europe",
+                                "Borneo", "Fiji", "Polynesia", "New Guinea")) +
+  labs(x = paste("Dimension", cx), y = paste("Dimension", cy),
+       title = "Wollstein panel") + scale_shape_manual(
+         values = c(19, 19, 0, 19, 19, 19, 19, 1, 19,2), 
+         name = "Region", 
+         breaks = c("Botocudos", "Africa", 
+                    "America", "CSAsia",  "Europe", "Borneo", 
+                    "Fiji", "Polynesia",  "NewGuineaH"),
+         labels = c("Botocudos", 
+                                "Africa", "America", "Asia",  "Europe",
+                                "Borneo", "Fiji", "Polynesia", "New Guinea"))
+
+png("~/Projects/Botocudos/Plots/mds_wollstein_SIB18.png",
+    width = 7, height = 5, res = 300, units = "in")
+p1
+dev.off()
+
+```
+
+```{r, echo = F}
+label <- F; title <- F; cx <-2;cy <- 3; colorby = "region";switch = T; divisions = c("Botocudos", "America", "Oceania");
+panel <- read.table(panel,
+                      header = T)
+  
+  path <- paste(d, ind, "_d", cx, "_d", cy, ".csv", sep = "")
+  coord <- read.csv(path, header = T)
+  
+  if(substitute){
+    coord$Individual <- sub("S_", "S;", coord$Individual)
+    coord$Individual <- sub("B_", "B;", coord$Individual)
+    coord$Individual <- sub(".*_", "", coord$Individual)
+    coord$Individual <- gsub("-", "_", coord$Individual)
+    coord$Individual <- sub("S;", "S_", coord$Individual)
+    coord$Individual <- sub("B;", "B_", coord$Individual)
+    coord$Individual <- sub("_1", "-1", coord$Individual)
+    coord$Individual <- sub("_2", "-2", coord$Individual)
+    coord$Individual <- sub("_3", "-3", coord$Individual)
+    coord$Individual <- sub("_4", "-4", coord$Individual)
+  }else{
+    coord$Individual <- sub("_A$", "-A", coord$Individual)
+    coord$Individual <- sub("_B$", "-B", coord$Individual)
+    coord$Individual <- sub(".*_", "", coord$Individual)
+    coord$Individual <- sub("-A$", "_A", coord$Individual)
+    coord$Individual <- sub("-B$", "_B", coord$Individual)
+    
+    
+  }
+
+  coord$indID <- coord$Individual
+  coord <- join(coord, panel, by = "indID")
+    l <- levels(coord$population)
+  new_levels <- c()
+  for(i in divisions){
+    index <- grepl(i, coord$region)
+    new_levels <- c(new_levels, as.character(coord$population[index]))
+  }
+  index <- coord$population %in% new_levels
+  new_levels <- c(new_levels, as.character(coord$population[!index]))
+#  index <- grep("Boto", l)
+  coord$population <- factor(coord$population, levels =  unique(new_levels))
+  
+  if(!is.character(colors)){
+    if(colorby == "population"){
+      colors <- funky(length(unique(coord$population))-1)
+    }else{
+      colors <- funky(length(unique(coord[, colorby]))-1)
+    }
+    
+    #lab_col <- cbind(c(0,0,0), lab_col  - min(lab_col))
+    colors <- c("black", colors)
+    lab_col <- col2rgb(colors)
+    #names(colors) <- levels(coord$population)
+  }else{
+    lab_col <- col2rgb(colors)
+  }
+
+  lab_col[lab_col > 0] <- lab_col[lab_col > 0]  - min(lab_col[lab_col > 0])
+  lab_col <- rgb(t(lab_col)/255)
+  index <- levels(coord[,colorby]) %in% coord[, colorby]
+  lab_col <- data.frame(Color = lab_col, 
+                        colorby = levels(coord[, colorby])[index])
+  lab_col <- lab_col[order(lab_col$colorby),]
+  if(!is.character(title)){
+    title <- ind
+  }
+  
+  coord <- coord[order(coord$population, decreasing = T),]
+  # annotation
+  annotation <- data.frame()
+  for(pop in unique(coord[, colorby])){
+    L <- length(coord[, colorby])
+    index <- grepl(pop, coord[, colorby])
+    # Make sure that we are sampling
+    index <- sample(x = rep(seq(1, L)[index], 2), 1)
+    annotation <- rbind(annotation, coord[index, ])
+  }
+  annotation <- annotation[order(as.character(annotation[,colorby])),]
+  if(switch){
+    tmp <- cx
+    cx <- cy
+    cy <- tmp
+    rm(tmp)
+    colnames(coord) <- sub("mds_x", "tmp", colnames(coord))
+    colnames(coord) <- sub("mds_y", "mds_x", colnames(coord))
+    colnames(coord) <- sub("tmp", "mds_y", colnames(coord))
+    colnames(annotation) <- colnames(coord)
+  }
+  
+
+```
+
+```{r, echo = F}
+p2 <-  ggplot(coord, 
+       aes(x = mds_x, y = mds_y, color = coord[,colorby])) +
+  geom_point(size=6, alpha=0.8, aes(shape = region)) +
+  scale_color_manual(values = colors, name = "Region", 
+                     breaks = c("Botocudos","Boto15", "Boto17",  
+                                "Africa", "America", "CSAsia", "EAsia", "Europe",
+                                "Borneo", "Fiji", "Polynesia", "NewGuineaH")) +
+  labs(x = paste("Dimension", cx), y = paste("Dimension", cy),
+       title = "Wollstein panel") + scale_shape_manual(
+         values = c(19, 19, 0, 15, 18, 19, 19, 19, 19, 1, 19,2), 
+         name = "Region", 
+         breaks = c("Botocudos", "Boto15","Boto17","Africa", 
+                    "America", "CSAsia", "EAsia", "Europe", "Borneo", 
+                    "Fiji", "Polynesia",  "NewGuineaH"))
+  
+p1 <- p1 + theme(legend.position = "none")
+leyenda <- get_legend(p2)
+p2 <- p2 + theme(legend.position = "none")
+
+png("~/Projects/Botocudos/Plots/Wollstein_8boto_2poly_mds.png", width = 14, height = 6,
+    res = 200, units = "in")
+plot_grid(p1, p2, leyenda, ncol = 3, rel_widths = c(2,2,1))
+dev.off()
+```
+
+## MDS (Carlos' panel)
+
+
+```{r, echo = F, fig.width=18}
+#d <- "~/Projects/Botocudos/Files/MDS/2017_12_06/"
+#ind <- "merged_noduplicates_reheaded_nodamage_23"
+# For SIB PhD retreat:
+d <- "~/Projects/Botocudos/Files/MDS/2018_06_26//"
+ind <- "23_merged_noduplicates_reheaded_nodamage"
+
+panel <- "~/Projects/Botocudos/Files/PCA/2017_09_15/panel_botos.txt"
+colors <- funky(10)
+tmp <- colors[3]
+colors[3] <- colors[6]
+colors[6] <- tmp
+colors <- c(rep("black", 3), colors)
+```
+
+```{r}
+label <- F; title <- F; cx <-1;cy <- 2; colorby = "region";switch = F; divisions = c("Botocudos", "America", "Oceania"); substitute <- T
+
+panel <- read.table(panel,
+                      header = T)
+  
+  path <- paste(d, ind, "_d", cx, "_d", cy, ".csv", sep = "")
+  coord <- read.csv(path, header = T)
+  
+  if(substitute){
+    coord$Individual <- sub("S_", "S;", coord$Individual)
+    coord$Individual <- sub("B_", "B;", coord$Individual)
+    coord$Individual <- sub(".*_", "", coord$Individual)
+    coord$Individual <- gsub("-", "_", coord$Individual)
+    coord$Individual <- sub("S;", "S_", coord$Individual)
+    coord$Individual <- sub("B;", "B_", coord$Individual)
+    coord$Individual <- sub("_1", "-1", coord$Individual)
+    coord$Individual <- sub("_2", "-2", coord$Individual)
+    coord$Individual <- sub("_3", "-3", coord$Individual)
+    coord$Individual <- sub("_4", "-4", coord$Individual)
+  }else{
+    coord$Individual <- sub("_A$", "-A", coord$Individual)
+    coord$Individual <- sub("_B$", "-B", coord$Individual)
+    coord$Individual <- sub(".*_", "", coord$Individual)
+    coord$Individual <- sub("-A$", "_A", coord$Individual)
+    coord$Individual <- sub("-B$", "_B", coord$Individual)
+    
+    
+  }
+
+  coord$indID <- coord$Individual
+  coord <- join(coord, panel, by = "indID")
+    l <- levels(coord$population)
+  new_levels <- c()
+  for(i in divisions){
+    index <- grepl(i, coord$region)
+    new_levels <- c(new_levels, as.character(coord$population[index]))
+  }
+  index <- coord$population %in% new_levels
+  new_levels <- c(new_levels, as.character(coord$population[!index]))
+#  index <- grep("Boto", l)
+  coord$population <- factor(coord$population, levels =  unique(new_levels))
+  
+  if(!is.character(colors)){
+    if(colorby == "population"){
+      colors <- funky(length(unique(coord$population))-1)
+    }else{
+      colors <- funky(length(unique(coord[, colorby]))-1)
+    }
+    
+    #lab_col <- cbind(c(0,0,0), lab_col  - min(lab_col))
+    colors <- c("black", colors)
+    lab_col <- col2rgb(colors)
+    #names(colors) <- levels(coord$population)
+  }else{
+    lab_col <- col2rgb(colors)
+  }
+
+  lab_col[lab_col > 0] <- lab_col[lab_col > 0]  - min(lab_col[lab_col > 0])
+  lab_col <- rgb(t(lab_col)/255)
+  index <- levels(coord[,colorby]) %in% coord[, colorby]
+  lab_col <- data.frame(Color = lab_col, 
+                        colorby = levels(coord[, colorby])[index])
+  lab_col <- lab_col[order(lab_col$colorby),]
+  if(!is.character(title)){
+    title <- ind
+  }
+  
+  coord <- coord[order(coord$population, decreasing = T),]
+  # annotation
+  annotation <- data.frame()
+  for(pop in unique(coord[, colorby])){
+    L <- length(coord[, colorby])
+    index <- grepl(pop, coord[, colorby])
+    # Make sure that we are sampling
+    index <- sample(x = rep(seq(1, L)[index], 2), 1)
+    annotation <- rbind(annotation, coord[index, ])
+  }
+  annotation <- annotation[order(as.character(annotation[,colorby])),]
+  if(switch){
+    tmp <- cx
+    cx <- cy
+    cy <- tmp
+    rm(tmp)
+    colnames(coord) <- sub("mds_x", "tmp", colnames(coord))
+    colnames(coord) <- sub("mds_y", "mds_x", colnames(coord))
+    colnames(coord) <- sub("tmp", "mds_y", colnames(coord))
+    colnames(annotation) <- colnames(coord)
+  }
+
+```
+
+```{r}
+colors <- c("black",   "#E52829",
+             "#3F8EAA",  "#E52829", "#9471B4", "#E52829", "#79C360",
+             "#9471B4", "#E52829","#ED8F47", "#E52829")
+plot(seq(1,13), seq(1,13), pch = 16, col = colors)
+
+p1 <- ggplot(coord[(coord$region != "Boto15") & (coord$population != "Boto17"),], 
+       aes(x = mds_x, y = mds_y, color = region)) +
+  geom_point(size=4, alpha=0.8) +
+  scale_color_manual(values = colors, name = "Region", 
+                     breaks = c("Botocudos", 
+                                "SubSaharanAfrica",
+                                "Europe", "WestAsia", "Oceania",
+                                "SouthAmerica"),
+                     labels = c("Botocudos",
+                                "Africa",
+                                "Europe", "Asia", "Oceania", 
+                                "America")) +
+  labs(x = paste("Dimension", cx), y = paste("Dimension", cy),
+       title = "All populations") #+ 
+
+p2 <- ggplot(coord[(coord$region != "Boto15") & (coord$population != "Boto17"),], 
+       aes(x = mds_x, y = mds_y, color = region)) +
+  geom_point(size=4, alpha=0.8) +
+  scale_color_manual(values = colors, name = "Region", 
+                     breaks = c("Botocudos", 
+                                "SubSaharanAfrica",
+                                "Europe", "WestAsia", "Oceania",
+                                "SouthAmerica"),
+                     labels = c("Botocudos",
+                                "Africa",
+                                "Europe", "Asia", "Oceania", 
+                                "America")) +
+  labs(x = paste("Dimension", cx), y = paste("Dimension", cy),
+       title = "All populations") #+ 
+
+p1 <- p1 + theme(legend.position = "none")
+leyenda <- get_legend(p2) 
+p2 <- p2 + theme(legend.position = "none")
+
+png("~/Projects/Botocudos/Plots/mds_all_Biology18.png",
+    width = 12, height = 5, res = 300, units = "in")
+plot_grid(p1, p2, leyenda, ncol = 3, rel_widths = c(2,2,1))
+dev.off()
+
+```
+
+```{r}
+
+
+ind <- "America_nodamage_8"
+d <- "~/Projects/Botocudos/Files/MDS/2017_12_06/"
+
+colors <- c("black",   "#79C360", "#3F8EAA",
+             "#79C360",  "#9471B4","#E52829", "#79C360", "#79C360", "#79C360",
+              "#79C360","#79C360", "#79C360", "#79C360", "black")
+plot(seq(1,13), seq(1,13), pch = 16, col = colors)
+
+p1 <- ggplot(coord[(coord$region != "Boto15") & (coord$population != "Boto17"),], 
+       aes(x = mds_x, y = mds_y, color = population)) +
+  geom_point(size=6, alpha=0.8) +
+  scale_color_manual(values = colors, name = "Region", 
+                     breaks = c("Botocudos", 
+                                "Karitiana",
+                                "Surui", "Pima", "Colombians"),
+                     labels = c("Botocudos",
+                                "Karitiana (Brazil)",
+                                "Surui (Brazil)", "North America", 
+                                "Central America")) +
+  labs(x = paste("Dimension", cx), y = paste("Dimension", cy),
+       title = "American populations") #+ 
+
+
+png("~/Projects/Botocudos/Plots/mds_America_Biology18.png", res = 300,
+    units = "in", width = 6.5, height = 5)
+p1
+dev.off()
+
+
+
+```
+
+## NGSAdmix
+
+```{r, echo = F}
+col2pop <- function(colors, pop, n){
+  rownames(pop) <- seq(1,n)
+  indexes <- c()
+  for(p in unique(pop$population)){
+   # print(p)
+    index <- as.integer(rownames(pop[pop$population==p,]))
+    x <- max(admix[, index])
+    if(length(index)>1){
+      maxes <- apply(admix[,index],MARGIN = 1 ,  max)
+      i <- 1
+      col_i <- which(t(maxes) == x)
+      while(col_i[i] %in% indexes && i < length(col_i)){
+        i <- i + 1
+      }
+      if(!col_i[i] %in% indexes){
+        indexes <- c(indexes, col_i[i])
+      }
+      
+    }else{
+      if(!col_i[i] %in% indexes){
+      indexes <- c(indexes, x)
+      }
+    }
+  }
+  left <- !seq(1,10) %in% indexes
+  indexes <- c(indexes, seq(1, 10)[left])
+  return(indexes)
+}
+```
+
+```{r, echo = F}
+setwd("~/Projects/Botocudos/Files/ADMIX/2017_12_06/")
+k <- "2_1"
+
+sufix <- "90ind_nodamage_8botocudos_k"
+name <- paste(sufix, k, ".qopt", sep = "")
+admix<-t(as.matrix(read.table(name)))
+colors<- funky(gsub("_*", "",k))
+panel_names <- "90ind_thesis.txt"
+panel <- read.table("~/Projects/Botocudos/Files/PCA/2017_09_15/panel_botos.txt", header = T)
+other_dir <- "~/Projects/Botocudos/Files/ADMIX/2017_12_06/"
+pop<-read.table(paste(other_dir,panel_names,
+                      sep = ""), as.is=T)
+
+pop <- data.frame(region = gsub("_.*","", pop$V1), indID=gsub(".*_", "", pop$V1))
+pop$indID <- sub("-", "_", pop$indID)
+index <- match(pop$indID, panel$indID)
+pop$population <- as.character(panel$population[index])
+pop <- rbind(pop, data.frame(region = rep("Botocudos", 8), indID = rep("Botocudos", 8),
+                        population = rep("Botocudos", 8)))
+pop_order <- factor(pop[,3], levels=c("Yoruba", "Spanish", "Papuan",
+                                      "Maori", "Hawaiian", "Han", "Pima", "Karitiana", "Surui", "Colombians","Botocudos"
+                                      ))
+pop <- pop[order(pop_order),]
+pop$population <- factor(pop$population, levels = levels(pop_order))
+
+
+colors<- funky(10)
+Colors <- list("2_74" = c("#ED8F47", "#9471B4"),
+               "3_10" = c("#ED8F47", "#79C360", "#9471B4"),
+               "4_4" = c("#ED8F47", "#3F8EAA","#79C360", "#9471B4"),
+               "5_80" = c("#ED8F47",  "#3F8EAA","#79C360", "#E52829", "#9471B4"),
+               "6_65" = c("#ED8F47", "#3F8EAA", "#79C360", "#E52829", "#9471B4", "#FDB762"), 
+               "7_75" =  c("#ED8F47", "#3F8EAA", "#79C360", "#E52829",  "#9471B4", "#FDB762", "#A6CEE3"), 
+               "8_19" = c("#ED8F47",  "#3F8EAA", "#79C360", "#E52829", "#9471B4", "#FDB762", "#A6CEE3", "#DDD399")
+)
+Colors <- list("2_1" = c("#ED8F47", "#9471B4"),
+               "3_1" = c("#ED8F47", "#79C360", "#9471B4"),
+               "4_1" = c("#ED8F47", "#3F8EAA","#79C360", "#9471B4"),
+               "5_1" = c("#ED8F47",  "#3F8EAA","#79C360", "#E52829", "#9471B4"),
+               "6_1" = c("#ED8F47", "#3F8EAA", "#79C360", "#E52829", "#9471B4", "#FDB762"), 
+               "7_1" =  c("#ED8F47", "#3F8EAA", "#79C360", "#E52829",  "#9471B4", "#FDB762", "#A6CEE3"), 
+               "8_1" = c("#ED8F47",  "#3F8EAA", "#79C360", "#E52829", "#9471B4", "#FDB762", "#A6CEE3", "#DDD399")
+)
+#png("~/Projects/Botocudos/Plots/ngsAdmix_Biology18.png", width = 12, height = 19,
+#    res = 200, units = "in")
+
+par(mfrow = c(1, 8))
+#for(k in paste(seq(2,8), c(74, 10, 4, 80, 65, 75, 19), sep = "_")){
+  for(k in paste(seq(2,8), c(1,1,1,1,1,1,1), sep = "_")){
+  par(mar = c(7, 0.5, 3, 2))
+  name <- paste(sufix, k, ".qopt", sep = "")
+  
+  admix<-as.matrix(read.table(name))
+  admix <- admix[order(pop_order),]
+  admix <- t(admix)
+  indexes <- col2pop(colors, pop, 98)
+  barplot(admix[indexes[1:dim(admix)[1]],],col=Colors[[k]],space=0,border=NA,
+          ylab=NULL,
+          #xlab="Admixture\n proportion",
+          main = paste("k =", sub("_.*", "",k)), horiz = T, cex.main = 3,
+          cex.lab = 2)
+  #title(xlab = "Admixture\nproportion", cex.lab = 2,
+  #      line = 4.5)
+  
+  pop_names <- tapply(1:nrow(pop),pop[,3],mean)
+  abline(h =  tapply(1:nrow(pop),pop[,3],max))
+
+  
+}
+text(1.8, pop_names, names(pop_names),xpd=NA,cex = 2)
+dev.off()
+
+likeli <- c(7041066.950747, 6603639.95755, 6351161.814868, 6145494.503165,
+            6013259.227552, 5913669.167065, 5836295.552164, 5776778.601975, 
+            5722241.829907)*(-1)
+
+png("~/Projects/Botocudos/Plots/aic_06_02.png", res = 200, width = 6, height = 6, units = "in")
+plot(x = seq(2, 8), y = -2*likeli[1:7] + 2*seq(2,8)*(104+116125), bty = "l",
+     xlab = "K", ylab = "AIC score", main = "Akaike information criterion for K clusters",
+     col = "deepskyblue1", pch=19)
+dev.off()
+```
+
+```{r, echo = F}
+setwd("~/Projects/Botocudos/Files/ADMIX/2017_12_06/")
+k <- "2_100"
+
+sufix <- "Wollstein_4botocudos_k"
+name <- paste(sufix, k, ".qopt", sep = "")
+admix<-t(as.matrix(read.table(name)))
+colors<- funky(gsub("_*", "",k))
+panel_names <- "587ind.txt"
+
+panel <- read.table("~/Projects/Botocudos/Files/MDS/2017_12_06/Wollstein/panel_Jorde_Wollstein.txt", header = T)
+other_dir <- "~/Projects/Botocudos/Files/MDS/2017_12_06/Wollstein/"
+pop<-read.table(paste(other_dir,panel_names,
+                      sep = ""), as.is=T, header = T)
+
+index <- match(pop$indID, panel$indID)
+pop$population <- as.character(panel$population[index])
+
+pop_order <- factor(pop[,3], levels=c("Africa", "Europe", "CSAsia", "EAsia",
+                                      "NewGuineaH", "Borneo", "Fiji", "Polynesia",
+                                      "America", "Boto15", "Boto17", "Botocudos"))
+pop <- pop[order(pop_order),]
+pop$region <- factor(pop$region, levels = levels(pop_order))
+pop$population <- pop$region
+
+colors<- funky(10)
+colors <- c("darkorange1", "deepskyblue2", "lightpink1",  "palegreen4", "firebrick1", "darkmagenta", "mediumaquamarine")
+Colors <- list("2_100" = c("#ED8F47", "#9471B4"),
+               "3_100" = c("#ED8F47",  "#3F8EAA","#9471B4"),
+               "4_100" = c("#ED8F47", "#3F8EAA", "#9471B4", "#79C360"),
+               "5_100" = c("#ED8F47",  "#3F8EAA", "#E52829", "#79C360", "#9471B4"),
+               "6_100" = c("#ED8F47", "#3F8EAA", "#E52829", "#79C360", "#DDD399", "#9471B4"), 
+               "7_100" =  c("#ED8F47", "#3F8EAA", "#FDB762",  "#E52829", "#79C360","#DDD399", "#9471B4"), 
+               "8_100" = c("#ED8F47",  "#3F8EAA", "#E52829", "#79C360", "#9471B4", "#FDB762", "#A6CEE3", "#DDD399")
+)
+
+png("~/Projects/Botocudos/Plots/ngsAdmix_07_02.png", width = 12, height = 25,
+        res = 200, units = "in")
+par(mfrow = c(1, 6))
+for(k in paste(seq(2,6), rep(100, 5), sep = "_")){
+  par(mar = c(7, 0.5, 3, 2))
+  name <- paste(sufix, k, ".qopt", sep = "")
+  
+  admix<-as.matrix(read.table(name))
+  admix <- admix[order(pop_order),]
+  admix <- t(admix)
+  indexes <- col2pop(colors, pop, 587)
+  barplot(admix[indexes[1:dim(admix)[1]],],col=Colors[[k]],space=0,border=NA,
+          ylab=NULL,
+          #xlab="Admixture\n proportion",
+          main = paste("k =", sub("_.*", "",k)), horiz = T, cex.main = 3,
+          cex.lab = 2)
+  title(xlab = "Admixture\nproportion", cex.lab = 2,
+        line = 4.5)
+  
+  pop_names <- tapply(1:nrow(pop),pop[,3],mean)
+  abline(h =  tapply(1:nrow(pop),pop[,3],max))
+
+  
+}
+text(1.8, pop_names, names(pop_names),xpd=NA,cex = 2)
+dev.off()
+
+likeli <- c(96427246.695695, 93262350.892306, 91447848.036382,
+            90061395.355529, 89340586.377576, 89020636.686872)*(-1)
+
+plot(x = seq(2, 8), y = -2*likeli[1:7] + 2*seq(2,8)*(104+116125), bty = "l",
+     xlab = "K", ylab = "AIC score", main = "Akaike information criterion for K clusters",
+     col = "deepskyblue1", pch=19)
+```
+
+###Maps
+
+```{r}
+library(mapdata)
+
+png("~/Projects/Botocudos/Plots/map_colombia.png",
+    width = 5, height = 5, res = 200, units = "in")
+map("worldHires","Brazil", col="black", fill=TRUE,
+    bg = "cornflowerblue",
+    xlim = c(-95, -25), ylim = c(-35, 20), mar = c(0,0,0,0)
+    #xlim = c(-52, -38), ylim = c(-25, -13)
+    )
+map("worldHires","venezuela", col="gray95",fill=TRUE, add=TRUE, border = F)  #add the adjacent parts of the US; can't forget my homeland
+map("worldHires","chile", col="gray95",fill=TRUE, add=TRUE, border = F)
+map("worldHires","colombia", col="darkgoldenrod1",fill=TRUE, add=TRUE, border = T)
+map("worldHires","guyana", col="gray95", fill=TRUE, add=TRUE, border = F)
+map("worldHires","surinam", col="gray95", fill=TRUE, add=TRUE, border = F)
+map("worldHires","peru", col="gray95", fill=TRUE, add=TRUE, border = F)
+map("worldHires","bolivia", col="gray95", fill=TRUE, add=TRUE, border = F)
+map("worldHires","paraguay", col="gray95", fill=TRUE, add=TRUE, border = F)
+map("worldHires","argentina", col="gray95", fill=TRUE, add=TRUE, border = F)
+map("worldHires","uruguay", col="gray95", fill=TRUE, add=TRUE, border = F)
+map("worldHires","french guiana", col="gray95", fill=TRUE, add=TRUE, border = F)
+map("worldHires","ecuador", col="gray95", fill=TRUE, add=TRUE, border = F)
+map("worldHires","panama", col="gray95", fill=TRUE, add=TRUE, border = F)
+map("worldHires","costa rica", col="gray95", fill=TRUE, add=TRUE, border = F)
+map("worldHires","nicaragua", col="gray95", fill=TRUE, add=TRUE, border = F)
+map("worldHires","honduras", col="gray95", fill=TRUE, add=TRUE, border = F)
+
+dev.off()
+```

@@ -1,0 +1,230 @@
+---
+title: "Botocudos project"
+author: "Cruz-Dávalos, Diana I."
+date: "9/19/2017"
+output: 
+  html_document:
+    theme: "lumen"
+    highlight: "tango"
+    df_print: paged
+
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r sources, echo = F, message=F, warning=F}
+source("~/Projects/Botocudos/Scripts/translate_ids.R")
+source("~/Projects/Botocudos/Scripts/length_distribution_plot.R")
+source("~/Projects/Botocudos/Scripts/preseq_only_plots.R")
+source("~/Projects/Botocudos/Scripts/ry_plot.R")
+source("~/Projects/Botocudos/Scripts/engoenous_plot.R")
+source("~/Projects/Botocudos/Scripts/mapDamage_plot.R")
+source("~/Projects/Botocudos/Scripts/reads_summaries_plots.R")
+source("~/Projects/Botocudos/Scripts/order_endo.R")
+library(cowplot)
+library(ggplot2)
+#library(shiny)
+boto <- read.table("~/Projects/Botocudos/Files/Summaries/Botocudos_summary_2017_09_18.table", header = T)
+```
+
+
+## Samples
+
+We analyzed a total of 23 individuals: one labeled as "Native American" (~600 years old\*) from Minas Gerais, one identified as "Shell mound" (~4,000 years old\*) from Santa Catarina, and twenty-one "Botocudos". From this last group, eight skulls come from Espírito Santo, six from Minas Gerais, one from Bahía, and the 6 remaining have unassigned procedence (probably Minas Gerais or Espírito Santo).
+
+\*according to the Museum's Excell file. We are currently dating the 23 samples.
+
+```{r, fig.align="left", echo = F, warning=F, message=F}
+library(knitr)
+include_graphics("Brazil_map_points.png")
+```
+*Red: Minas Gerais
+
+*Green: Espírito Santo
+
+*Yellow: Bahía
+
+*Pink: Santa Catarina
+
+```{r boto table, rows.print=10, rownames.print = T}
+boto[boto$Library!="*",]
+```
+
+## Summary of sequenced reads
+
+```{r summary plot, echo = F, fig.align='center'}
+
+summary_reads_plot(boto)
+
+```
+
+Zoom up to the reads aligned to the Human genome: 
+
+```{r aligning to hg, echo =F, fig.align='center'}
+
+hg_mapping_plot(boto)
+
+```
+
+```{r endogenous, echo = F, fig.align='center'}
+good <- sum(unique(boto$hits_unique_frac.endogenous.[boto$Library != "*"]) >0.01)
+
+ggendogenous(boto)
+
+```
+
+
+> Samples with endogenous content above 1%: `r good`
+
+
+```{r, echo = F, fig.align='center'}
+
+ggplot(boto[boto$Library != "*",], 
+       aes(x = Library, y = hits_length.nuclear.)) +
+  geom_bar(stat = "identity", fill = "orangered2") +
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(y = "Average length (bp)", title = "Length", x = NULL)
+
+
+ggplot(boto[boto$Library != "*",], 
+       aes(x = Library, y = hits_clonality.nuclear.)) +
+  geom_bar(stat = "identity", fill = "purple3") +
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(y = "Clonality (fraction)", title = "Clonality", x = NULL)
+
+```
+
+## Length distribution
+
+### Nuclear
+```{r length nuc, echo = F, fig.height = 14, fig.width = 14}
+plots_nuc <- lapply(as.vector(boto$Library[boto$Library != "*"]), 
+                    function(ind) gglength(ind, type = c("nuc")))
+
+plot_grid(plotlist = plots_nuc, ncol = 5)
+
+```
+
+
+### Mitochondrial
+```{r length mito, echo = F, fig.height = 14, fig.width = 14}
+plots_mito <- lapply(as.vector(boto$Library[boto$Library != "*"]), 
+                     function(ind) gglength(ind, type = c("mito")))
+
+plot_grid(plotlist = plots_mito, ncol = 5)
+
+```
+
+## Contamination
+
+To do
+
+First approach:
+
+- Considering mitochondrial DNA
+
+- Count total of bases found at each site. 
+
+- Assume that the most frequent base at a particular site is the consensus
+
+- Remaining bases are thus "Contaminants"
+
+- Calculate contamination as # contaminants/total bases 
+
+E.g.:
+
+```{r mito cont example, echo = F}
+
+exam <- data.frame(Position = 1, A = 1, "T" = 5, C = 0, G = 0, Total = 6, Consensus = 5, Contaminants = 1, Frac.Contamination = 1/6)
+exam
+```
+
+```
+# Get counts
+~/install/angsd/angsd -i MA2398.hg19_nuc.realigned.bam -r chrM: -doCounts 1  -iCounts 1 -minMapQ 30 -minQ 20
+
+
+
+# Estimate contamination
+Rscript ~/install/angsd/R/contamination.R mapFile="~/install/angsd/RES/map100.chrX.gz" hapFile="/home/ubelix/iee/dcruz/install/angsd/RES/hapMapCeuXlift.map.gz" countFile="angsdput.icnts.gz" mc.cores=24
+
+Rscript ~/install/angsd/R/contamination.R mapFile="~/install/angsd/RES/chrX.unique.gz" hapFile="/home/ubelix/iee/dcruz/install/angsd/RES/HapMapChrX.gz" countFile="angsdput.icnts.gz" mc.cores=24
+
+~/install/angsd/misc/contamination -a angsdput.icnts.gz -h ~/install/angsd/RES/HapMapChrX.gz
+```
+
+## Sex determination
+
+```{r, echo = F}
+  sex <- build_sex()
+
+sex
+
+```
+
+
+```{r sex, echo=F, fig.height=6, fig.align="center"}
+
+ggsex()
+
+```
+
+
+## Preseq output
+
+### Complexity curves
+
+Note: MN01701 was not deep enough sequenced or it had too little duplicates:
+
+12,397 unique reads
+
+12,420 raw reads
+
+0.00185185185185 fraction of clonal reads
+
+```{r preseq expreads, echo = F, fig.height=14, fig.width=14}
+load("~/Projects/Botocudos/Files/PreSeq/output_preseq_Sep16_all.Rda")
+plots <- lapply(as.vector(boto$Library[boto$Library != "*"]), 
+                    function(ind) plot_expreads_preseq(ind))
+plot_grid(plotlist = plots, ncol = 5)
+
+```
+
+### Genome coverage
+
+```{r preseq gc, echo = F, fig.height=14, fig.width=14}
+plots <- lapply(as.vector(boto$Library[boto$Library != "*"]), 
+                    function(ind) plot_gc_preseq(ind))
+plot_grid(plotlist = plots, ncol = 5)
+rm(semi_final)
+```
+
+## Molecular damage
+
+### Nuclear
+
+```{r damage nuclear, echo = F, fig.height=28, fig.width=18}
+
+par(mfrow=c(12,4))
+
+for( ind in order_endo(boto=boto[boto$Library != "*",])$Library){
+  damage_plot(ind, "nuc")
+} 
+
+
+```
+
+### Mitochondrial
+
+```{r damage mito, echo = F, fig.height=28, fig.width=18}
+
+par(mfrow=c(12,4))
+
+for( ind in boto$Library[boto$Library != "*"]){
+  damage_plot(ind, "mito")
+} 
+
+
+```
+

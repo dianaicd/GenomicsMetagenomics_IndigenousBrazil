@@ -1,0 +1,775 @@
+---
+title: "Isotopic analysis"
+author: "Cruz-Dávalos, Diana I."
+date: "4/3/2018"
+output:  
+  html_document:
+    theme: cosmo
+    fig_caption: yes
+    # pandoc_args: ["-F","pandoc-crossref"]
+  pdf_document: default
+bibliography: botocudo.ris
+nocite: | 
+  @Malaspinas2014
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F, fig.align = "centre", results='asis')
+```
+
+```{r, echo = F, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(cowplot)
+library(siar)
+library(xtable)
+library(knitr)
+#library(kableExtra)
+#library(formattable)
+# Error in match.arg(theme, themes()) : 
+#  'arg' should be one of “default”, “cerulean”, “journal”, “flatly”, “readable”, “spacelab”, “united”, “cosmo”, “lumen”, “paper”, “sandstone”, #“simplex”, “yeti
+```
+
+```{r, echo = F}
+source("~/Projects/Botocudos/Scripts/functions_isotopes.R")
+carbon <- read.csv("~/Projects/Botocudos/Files/Isotopic/carbon.csv",
+                   stringsAsFactors = F)
+carbon <- carbon[!is.na(carbon$Age..BP.),]
+min_boto <- min(carbon$Age..BP.[carbon$ID != "Bot15" & carbon$ID != "Bot17"])
+max_boto <- max(carbon$Age..BP.[grep("Boto", carbon$Ethnicity)])
+native <- carbon$Age..BP.[carbon$Ethnicity == "NativeAmerican_MorrodaBabilonia"]
+sambaqui <- carbon$Age..BP.[carbon$Ethnicity == "Sambaqui_Cabecuda"]
+```
+
+```{r captions, echo = F}
+t1 <- ""
+
+fig1 <- "\\label{fig:age} Figure 1. Uncalibrated dates. The bars represent one standard deviation."
+
+fig2 <- "\\label{fig:isotope} Figure 2. Isotope values. The triangles represent children and the circles represent adults. The color indicates whether we examined a first molar (purple) or any other type of tooth (yellow)."
+
+fig3 <- "\\label{fig:rawdata}Figure 3. The squares represent the mean isotope values for a consumer whose diet was
+based on a specific source (terrestrial fauna, marine fish or marine mammals).
+The dashed lines represent two standard errors of the mean isotope values.
+The solid circles represent the pair of isotope values reported by the CHRONO Centre per individual. 
+The triangles correspond to the isotope values for Bot15 and Bot17 (from Malaspinas et al., 2014),
+dated at the AMS 14C Centre at Aarhus University"
+
+```
+
+## Radiocarbon measurements
+
+```{r age, echo = F, fig.width=15, fig.cap=fig1}
+dodge <- position_dodge(width = 0.99)
+
+m <- sapply(carbon$Ethnicity, function(x) median(carbon$Age..BP.[carbon$Ethnicity == x]))
+#m <- m[!is.na(m)]
+m <- m[order(m)]
+n <- unique(names(m))
+m <- unique(m)
+names(m) <- n
+
+#levels(carbon$Ethnicity) <- names(m)
+
+colors <- rep(c("cornflowerblue", "black"), 7)
+
+carbon$ID <- factor(carbon$ID, levels = unlist(
+  sapply(names(m), 
+         function(x)
+           carbon$ID[carbon$Ethnicity==x])))
+
+#id <- sapply(seq(1,14), function(x) carbon$ID[carbon$Ethnicity == names(m[x])])
+
+id <- unlist(sapply(seq(1,14),
+              function(x) {
+                y <- carbon[carbon$Ethnicity == names(m[x]), c("ID", "Age..BP.")]
+                y <- y[order(y$Age..BP.),]
+                return(y$ID)
+               }))
+
+carbon$ID <- factor(carbon$ID, levels = id)
+
+index <- match(id, carbon$ID)
+carbon <- carbon[index,]
+
+eth <- data.frame(ID = id[round(sapply(
+  unique(carbon$Ethnicity),
+  function(x) 
+    median(which(
+      carbon$Ethnicity == x))))],
+  Ethnicity = unique(sapply(id, function(x) carbon$Ethnicity[carbon$ID == x])),
+  Age..BP. = sapply(names(m),
+  function(x) max(carbon$Age..BP.[carbon$Ethnicity == x]) + 80),
+SD=0
+  )
+carbon$Ethnicity <- factor(carbon$Ethnicity, levels = eth$Ethnicity)
+
+boto<- ggplot(carbon[grepl("Boto.*", carbon$Ethnicity),], aes(x = ID,
+                                                              y = Age..BP.,
+                                                              ymin = Age..BP. - SD,
+                                                              ymax = Age..BP. + SD,
+                                                              color = Ethnicity, group = Ethnicity)) +
+  geom_point(position = dodge) +
+  geom_errorbar(position = dodge, width = 0.2) +
+  theme(axis.text.x = element_text(angle = 90), legend.position = "none") +
+  labs(x = NULL, y = "Age (BP)", title = "") +
+  scale_color_manual(name = "Group",
+                     values = colors,
+                     breaks = eth$Ethnicity) +
+  geom_text(data = eth[grepl("Boto", eth$Ethnicity),], 
+            label = gsub("Botocudo_", "", eth$Ethnicity[grepl("Boto", eth$Ethnicity)])) +
+  theme(text = element_text(family = "Courier")) 
+
+
+other <- ggplot(carbon[22:23,], aes(x = ID,
+                                                              y = Age..BP.,
+                                                              ymin = Age..BP. - SD,
+                                                              ymax = Age..BP. + SD,
+                                                              color = Ethnicity, group = Ethnicity)) +
+  geom_point(position = dodge) +
+  geom_errorbar(position = dodge, width = 0.2) +
+  theme(axis.text.x = element_text(angle = 90), legend.position = "none") +
+  labs(x = NULL, y = "Age (BP)", title = "") +
+  scale_color_manual(name = "Group",
+                     values = colors,
+                     breaks = eth$Ethnicity) +
+  geom_text(data = eth[13:14,], 
+            label = gsub("_.*", "", eth[13:14,]$Ethnicity)) +
+  theme(text = element_text(family = "Courier"))
+
+plot_grid(boto, other, ncol = 2, rel_widths = c(10,3))
+```
+
+
+21 individuals were dated at ^14^CHRONO Center at Queen's University Belfast.
+The dates are shown in Table 1 and in Figure 1, along with the dates for MN00015 (Bot15) and MN00017 (Bot17) presented in Malaspinas et al. (2014).
+The uncalibrated dates are between `r min_boto` BP and `r max_boto` BP for the Botocudo individuals, and `r native` BP and `r sambaqui` BP for the Native American and the Sambaqui individual, respectively.
+
+
+```{r table1, echo = F}
+d <- carbon[,c(1,2,4,5,6,7,9,10,11)]
+colnames(d) <- c("ID", "Material type", "Age (BP)", "SD", 
+                 "Details", "Endogenous DNA", "d13C", "d15N", "C:N ratio")
+d <- d[order(d$`Age (BP)`),]
+rownames(d) <- seq(1, length(d$ID))
+tab <- xtable(d, caption = "Table 1. Isotope valules and calibrated dates.")
+
+kable(tab, caption = "Table 1. Isotope values and uncalibrated dates.")
+```
+
+
+
+## $\delta$^13^C and $\delta$^15^N measurements
+
+We measured the $\delta$^13^C and $\delta$^15^N values for the 21 individuals. 
+These values can give us an insight into the dietary habits for a given organism.
+However, we need to be careful when examining children's teeth.
+The decidious teeth ('baby teeth') develop during the embryonic stage of development,
+and the isotopic measurements reflect the dietary habits of the child's mother.
+Moreover, the crown of the first molars are formed during the early years/breastfeeding period. 
+In some instances, a child's first molar can have enriched ^15^N values due to breastfeeding,
+indicating that a significant proportion of the dentine was formed 
+at that time [@Schroeder2009].
+In order to know more about an individual's dietary habits, it is better to date second and third molars.
+
+
+In Figure 2, we show whether the samples analyzed belonged to a child, and whether the tooth was a first molar.
+Among the samples, we observe two children's first molars (from MN00022 and MN00045) that could have 
+shifted $\delta$^15^N values due to breastfeeding.
+We have to keep in mind this information for the next steps, in which we will infer dietary proportions.
+
+
+
+```{r, echo = F, fig.cap=fig2, fig.width = 8, fig.height=8}
+child <- grepl("child", carbon$Material_type)
+d <- grepl("deciduous", carbon$Material_type)
+child <- child | d
+b <- !(rep(TRUE, 25) & child)
+b[22:25] <- FALSE
+child[19] <- TRUE
+
+carbon$fmolar <- ifelse(grepl(".*1st.* molar.*", carbon$Material_type), 
+                        yes = "First molar", no ="Other")
+carbon$child <- child
+d <- carbon[carbon$ID %in% c("MN00022", "MN00045"),]
+
+ggplot(carbon, aes(x = d13C, y = d15N, color = fmolar,
+                   shape = child)) +
+  geom_point(size = 3, stroke = 1.2) +
+  scale_color_manual(values = c("darkslateblue",
+                                "goldenrod3"),
+                     name = "Tooth") +
+  scale_shape_manual(values = c(1,2), name = "Child") +
+  theme(text = element_text(family = "Courier")) +
+  #
+  labs(title = "Isotope values", x = expression(delta^13 ~ C),
+  #
+  y = expression(delta^15 ~ N)) +
+  coord_flip() +
+  geom_text(data = d, aes(x = d13C, y = d15N+1, label = ID))
+
+```
+
+
+
+## Mixing models for stable isotopic data
+
+We used SIAR (Stable Isotope Analysis in R, @siar) in order **to infer dietary proportions** for the individuals.
+
+
+<!-- There are several ways to group the samples. In  this report, we group them by presumed geographical origin. -->
+
+<!-- According to the archives, and regarding the 19 Botocudo individuals that were dated, 3 of them come from Rio Doce,  -->
+<!-- 8 from Mutum settlement, and the remaining individuals come from 8 different locations. -->
+
+### Model
+
+SIAR fits a model via Markov chain Monte Carlo. The parameters to fit are the **dietary proportions**.
+
+Keypoints of the model:
+
+- a consumer (e.g., a Native American) integrates isotopes from one or more sources (e.g., marine mammals, marine fish, terrestrial fauna, etc.)
+- we have known values of the trophic enrichment factors (TEF), which indicate the difference 
+in the isotopic ratio between a consumer and their diet
+- a consumer incorporates an isotope proportionally to the dietary proportion of a given source, its TEF and its isotope value
+- for a consumer, the observed isotope value is explained by the sum of the dietary proportions
+
+<!-- An advantages of SIAR package is that it has a robust estimation of the parameters even when the  -->
+<!-- variation within groups is large. -->
+
+We used the default Dirichlet prior distribution for the parameters. This distribution allows us to treat
+source data independently; e.g., the estimated dietary proportion for source X does not depend on the
+estimated proportion for source Y. All inferred dietary proportions must sum to one.
+
+
+We fitted a model per individual. As suggested in the manual, we set 500,000 iterations and discarded the first 50,000 iterations.
+
+```{r, echo = F, warning=F, message=F}
+# The consumer data file
+#head(carbon)
+  # All groups
+ind <- carbon[, c(1,10,9)]
+names <- ind$ID
+ind$ID <- as.character(carbon$Ethnicity)
+colnames(ind) <- c("Code", "d15N", "d13C")
+index <- ind$Code == "Botocudo_Mutum" | ind$Code == "Botocudo_Doce"
+ind <- ind[index, ]
+names <- names[index]
+ind$Code[ind$Code == "Botocudo_Mutum"] <- 2
+ind$Code[ind$Code == "Botocudo_Doce" ] <- 1
+ind$Code <- as.numeric(ind$Code)
+# Sources data file
+sour <- read.table("~/Projects/Botocudos/Files/Isotopic/sources.txt", 
+                   header = T, sep = "\t")
+
+# Trophic Enrichment Factor data file
+tef <- read.csv("~/Projects/Botocudos/Files/Isotopic/TEFData.csv")
+
+# We have no data on concentration dependance
+#model1 <- siarmcmcdirichletv4(data = ind, sources = sour, tef, concdep = 0, iterations = 500000, burnin = 50000)
+#save(model1, file="~/Projects/Botocudos/Files/Isotopic/siar_Mutum_RioDoce.Rda")
+load("~/Projects/Botocudos/Files/Isotopic/siar_Mutum_RioDoce.Rda")
+```
+
+
+### Results
+
+#### Raw data
+
+```{r, echo = F, fig.width=9, fig.height=9, fig.cap=fig3}
+ind <- carbon[, c(1,10,9)] 
+names <- ind$ID
+ind$ID <- as.character(carbon$Ethnicity)
+colnames(ind) <- c("Code", "d15N", "d13C")
+ 
+# Raw data
+names <- gsub("MN0", "", names)
+#siarplotdata(model1, leg = 0)
+#points(x = ind$d15N, y = ind$d13C, col = ind$Code, xlim = c(3,33),
+#     ylim = c(-25, -3), pch = ind$Code)
+
+# 1&2 = Polynesians
+# 3 = Collection
+# 4 = "Native American"
+# 5 = Cabeçuda
+index <- as.numeric(factor(sub("(.*\\_)(.+?)", "\\2", carbon$Ethnicity)))
+# colors <- c("darkslategray", "darkslategray", #Bot15, Bot17
+#             "darkturquoise", # Botocudo
+#             "black", # Native American
+#             "darkorange3" # Cabecuda
+#             )
+colors_leg <- c("antiquewhite3", #Aimores
+            "darkslategray", "darkslategray", #Bot15, Bot17
+            "darkorange3", # Cabecuda
+            "chocolate1", #Doce
+            "firebrick1", #Itamacuari
+            "deeppink4", #Itapemirim
+            "aquamarine3", # Minas
+            "black", # Native American, Morro da Babilonia
+            "forestgreen", # Mucuri
+            "cornflowerblue", #Mutum
+            
+            "blue", # Pote
+            #"bisque2", #
+            "palevioletred", #Poxixa Mutum
+             "darkturquoise" # Botocudo_Unknown
+            )
+
+colors <- colors_leg[index]
+shapes <- c(19, 17, 17, rep(19, 11))
+shapes <- shapes[index]
+# Plot
+plot(x = ind$d15N, y = ind$d13C, xlim = c(0,33),
+     ylim = c(-22, -3), #type = "n",
+     bty = "l", col = alpha(colors,0.77), pch = shapes,
+     ylab = expression(delta^13 ~ C),
+     xlab = expression(delta^15 ~ N),
+     main = "Isotope values",
+     cex = 1.8,
+     type = "n")
+
+# Terrestrial
+color <- "black"
+cross_isotope("Terrestrial Fauna", tef, sour, color)
+
+# Marine Fish
+color <- "firebrick"
+cross_isotope("Marine Fish", tef, sour, color)
+
+# Marine Mammals
+color <- "dodgerblue4"
+cross_isotope("Marine Mammals", tef, sour, color)
+
+
+names <- c("Aimores",
+         "Bot15 and Bot17",
+          "Cabeçuda",
+            "Rio Doce",
+            "Itamacuari",
+            "Itapemirim",
+            "Minas",
+            "Native American, Morro da Babilonia",
+            "Mucuri",
+            "Mutum",
+         "Poté",
+         "Poxixa Mutum",
+          "Botocudo (unknown)",
+         "Botocudo collection")
+index <- c(3,8,NA,2,NA,1,13,5,6,7,4,9,10,11,12)
+colors_leg <- colors_leg[c(1,2, seq(4,14))]
+legend("topleft", 
+       c("Terrestrial Fauna", 
+         "Marine Fish", 
+         "Marine Mammals", 
+         NA,
+         #"Botocudo collection", 
+         names[index]), 
+       col = c("black","firebrick", "dodgerblue4", NA,colors_leg[index]),
+
+       pch = c(15,15,15,NA,19,19, NA,17, NA,rep(19,11)), bty = "n", 
+       lty = c(5,5,5,NA,rep(NA,21)),
+       merge = T)
+ 
+points(x = ind$d15N, y = ind$d13C, xlim = c(0,33),
+     ylim = c(-22, -3), #type = "n",
+     bty = "l", col = alpha(colors,0.77), pch = shapes,
+     # ylab = expression(delta^13 ~ C),
+     # xlab = expression(delta^15 ~ N),
+     # main = "Isotope values",
+     cex = 1.8)
+
+```
+
+
+
+We had a first inspection of the isotope values for the 23 individuals (21 dated in this study plus Bot15 and Bot17),
+along with the expected isotope values for an organism with a diet based on terrestrial fauna, marine fish or marine mammals (Figure 3).
+In order to obtain the coordinates of a (theoretical) consumer whose diet consisted on a single source,
+we summed the mean TEF values and the mean isotope values of a source.
+
+
+We observe that for the Cabeçuda individual (or Sambaqui) the isotope values
+correspond to a marine diet, in agreement with the origin of the individual.
+The Native American from Morro da Babilonia shows an unusual high value for $\delta$^15^N,
+and we need to contact the ^14^CHRONO Centre to get more information.
+Regarding the Botocudo individuals, most of the samples group close to the expected values for a diet based on terrestrial fauna.
+Interestingly, the Polynesian individuals (Bot15 and Bot17) fall on the limits or outside of the expected isotope values for a marine diet. 
+
+
+```{r, echo = F}
+
+# Proportions for a group
+#siarmatrixplot(model1)
+
+#siarproportionbygroupplot(model1, grp = 2, clr = c("darkslategray3", "darkslategray4", "gray0"),
+#                          scl = 0.75)
+
+#siarhistograms(model1)
+```
+
+### Inferred dietary proportions
+The inferred dietary proportions for the 23 individuals are listed in Table S1, and displayed on in Figures 4-6.
+We noticed that, although MN00045 and MN00022 are among the individuals from the Botocudo collection
+with highest proportions of marine diets, this might be due to the type of material that was sent to date (children's first molars).
+The program also inferred a high proportion of marine diet for the Native American (Morro da Babilônia) due
+to the anormal $\delta$^15^N value obtained for this individual.
+
+#### Boxplots
+
+![Figure 4. Dietary proportion (boxplots).  The samples from children's first molars are indicated with a '*' in front of the individual's ID.](All_proportions.png)
+
+#### Densities
+
+![Figure 5. Dietary proportion (densities). The samples from children's first molars are indicated with a '*' in front of the individual's ID.](All_densities.png)
+
+#### Diagnostic matrix plot
+
+High correlations indicate that the program has problems to distinguish between the dietary proportions
+of two sources. Thus, as expected, the draws for marine fish and marine mammals tend to be highly correlated, as their isotope values are similar.
+
+![Figure 6. Dietary proportions (histograms and correlations). For every individual, we have a matrix with nine entries: The histograms of the estimated proportions are located on the diagonal; on the upper entries, the contour plots depict whether the posterior distributions are correlated; the lower entries contain the values corresponding to the correlation coefficient for pairs of distribution. The samples from children's first molars are indicated with a '*' in front of the individual's ID.](All_matrix.png)
+
+```{r, echo = F, eval = F}
+# The consumer data file
+head(carbon)
+  # All groups
+# Individulas without groups
+ind <- carbon[, c(1,10,9)]
+names <- ind$ID
+ind$ID <- as.character(carbon$ID)
+colnames(ind) <- c("Code", "d15N", "d13C")
+
+names <- carbon$ID
+ind$Code <- as.numeric(factor(ind$Code))
+
+# Sources data file
+sour <- read.table("~/Projects/Botocudos/Files/Isotopic/sources.txt", 
+                   header = T, sep = "\t")
+
+# Trophic Enrichment Factor data file
+tef <- read.csv("~/Projects/Botocudos/Files/Isotopic/TEFData.csv")
+
+for(i in seq(1, 23)){
+  #print(carbon[i,1])
+  # We have no data on concentration dependance
+d <- ind[i,]
+d$Code <- 1
+#model_ind <- siarsolomcmcv4(data = d, sources = sour, tef, concdep = 0, iterations = 500000, burnin = 50000)
+n <- paste("~/Projects/Botocudos/Files/Isotopic/Models/","model_", carbon[i, 1], ".Rda", sep = "")
+#save(model_ind, file = n)
+}
+
+par(mfrow=c(5,5))
+for(i in seq(1, 23)){
+  print(carbon[i,1])
+  d <- ind[i,]
+  d$Code <- 1
+  
+  n <- paste("~/Projects/Botocudos/Files/Isotopic/Models/",
+             "model_", carbon[i, 1], ".Rda", sep = "")
+  load(n)
+  model_ind$TITLE <- carbon[i,1]
+  # png(paste("~/Projects/Botocudos/Plots/Isotopes/",
+  #           carbon[i,1], "_matrix.png", sep = ""),
+  #     width = 700, height = 700, res = 180)
+  # siarmatrixplot(model_ind)
+  # dev.off()
+  
+  # png(paste("~/Projects/Botocudos/Plots/Isotopes/",
+  #           carbon[i,1], "_proportions.png", sep = ""),
+  #     height = 1000, width = 1000, res = 180)
+  # siarproportionbygroupplot(model_ind, grp = 1,
+  #                           clr = c("darkslategray3",
+  #                                   "darkslategray4", "gray0"),
+  #                           scl = 0.75)
+  # 
+  # dev.off()
+  
+  # png(paste("~/Projects/Botocudos/Plots/Isotopes/",
+  #           carbon[i,1], "_densities.png", sep = ""),
+  #     height = 1500, width = 1500, res = 250)
+  # siarhistograms(model_ind)
+  # 
+  # dev.off()
+  
+}
+
+
+```
+
+#### Traces
+
+For every individual, we saved the sampled values of 30,000 out of 500,000 draws for every estimated dietary proportion after removing the burnin phase (first 50,000 iterations).
+
+![Figure 7. MCMC traces (after burnin phase). A point represents a sampled value at a given iteration. The samples from children's first molars are indicated with a '*' in front of the individual's ID.](All_trace_14July2018.png)
+
+```{r traces, echo = F, fig.height=20}
+carbon <- carbon[order(as.numeric(sub("%", "",carbon$Endogenous)), decreasing = T),]
+rownames(carbon) <- seq(1,23)
+# png("~/Projects/Botocudos/Plots/Isotopes/Trace_July13_2018.png",
+#     width = 21, height = 21, res = 120, units = "in")
+# par(mfrow=c(9, 9))
+# ticks <- c(0, 15000, 30000)
+# labels <- ticks*15+50000
+# others <- c(22, 23, 17, 21)
+# boto <- c(seq(1,16), 18, 19, 20)
+# for(i in c(others,boto )){
+#   print(carbon[i,1])
+#   d <- ind[i,]
+#   d$Code <- 1
+# 
+#   n <- paste("~/Projects/Botocudos/Files/Isotopic/Models/",
+#              "model_", carbon[i, 1], ".Rda", sep = "")
+#   load(n)
+#   model_ind$TITLE <- carbon[i,1]
+# 
+#   out <- model_ind$output
+#   for(j in seq(1,3)){
+#       plot(out[,j], ylim = c(0, 1), ylab = colnames(out)[j],
+#        main = carbon[i,1], type = "b", pch = 20, xaxt = "n", col = alpha("black", 0.01))
+#     axis(1, at=ticks, labels=labels)
+#   }
+# 
+#   if(i %in% others[c(2,4)] ){
+#     for(j in seq(1,3)){
+#       plot(1, type="n", axes=F, xlab="", ylab="")
+#     }
+#   }
+# 
+# }
+# 
+# dev.off()
+
+```
+
+<!-- ### Other papers -->
+<!-- Other papers -->
+
+```{r, echo = F, eval = F}
+strauss <- read.csv("~/Projects/Botocudos/Files/Isotopic/Strauss_Table_S12.csv")
+
+
+bastos14 <- read.csv("~/Projects/Botocudos/Files/Isotopic/Bastos2014_Table1.csv")
+
+bastos151 <- read.csv("~/Projects/Botocudos/Files/Isotopic/Bastos2015_Table1.csv")
+colnames(bastos151) <- c("ID", "Sex", "Tooth", "X87Sr.86Sr", "d13C", "d15N", "C:N", "Collagen")
+
+bastos152 <- read.csv("~/Projects/Botocudos/Files/Isotopic/Bastos2015_Table2.csv")
+colnames(bastos152) <- c("ID", "Species", "X87Sr.86Sr", "d13C", "d15N", "C:N", "Collagen")
+
+colonese <- read.csv("~/Projects/Botocudos/Files/Isotopic/Colonese_2014.csv")
+colnames(colonese) <- c("Site", "Burial", "Age", "Sex", "CalAge","d13C", "d15N", "C", "N", "Col.wt.", "C:N")
+
+plot(x = strauss$d13C, y = strauss$d15N, col = "brown1", 
+     pch = c(15, 16, 17, 18)[as.numeric(strauss$Species)], 
+     xlim = c(-26, -8), ylim = c(0, 30), bty = "l", 
+     xlab = expression(delta^13~C~'‰'), ylab = expression(delta^15~N~'‰'))
+# Mazama sp. = mamifero ; Eupharactus sexcinctus = mamifero
+# Dasypus novencinctus = mamamifero; Tayassuidae = mamifero
+points(x = colonese$d13C, y = colonese$d15N, col = c("lavender", "lavender", "deepskyblue", "lavender")[as.numeric(colonese$Site)], pch = 16)
+# Colonese: MRS=inland; Jab-II=coast; PCG=coast; G-IV=coast
+#Order in data.frame: MRS PCG Jab-II G-IV
+points(x = bastos14$d13C, y = bastos14$d15N, col = "goldenrod2", pch = 16)
+points(x = bastos151$d13C, y = bastos151$d15N, col = "darkseagreen2", pch = 16)
+points(x = bastos152$d13C, y = bastos152$d15N, col = "cornflowerblue", pch = 16)
+# Anomalocardia brasiliana = Mollusca; Cuniculus paca = mamifero;
+# Dasyprocta aguti = mamifero; Hydrochoerus hydrochaeris = mamifero;
+# Leopardus pardalis = mamifero ; 
+points(x = carbon$d13C, y = carbon$d15N, 
+       col = c("mediumorchid1", "mediumorchid1",  "black","bisque4", "indianred4")[as.numeric(factor(gsub("_.*", "", carbon$Ethnicity)))], 
+       pch = 16)
+
+segments(x0 = -25, x1 = -18.5, y0 = 2)
+segments(x0 = -25, x1 = -18.5, y0 = 9.5)
+segments(x0 = -25, y0 = 2, y1 = 9.5)
+segments(x0 = -18.5, y0 = 2, y1 = 9.5)
+text(x = -22, y = 8, labels = "Terrestrial mammals")
+
+segments(x0 = -21, x1 = -10.5, y0 = 7)
+segments(x0 = -21, x1 = -10.5, y0 = 11)
+segments(x0 = -21, y0 = 7, y1 = 11)
+segments(x0 = -10.5, y0 = 7, y1 = 11)
+text(x = -18, y = 10, labels = "Inlands' individuals")
+
+segments(x0 = -15, x1 = -9, y0 = 9)
+segments(x0 = -15, x1 = -9, y0 = 16)
+segments(x0 = -15, y0 = 9, y1 = 16)
+segments(x0 = -9, y0 = 9, y1 = 16)
+text(x = -12, y = 11, labels = "Fish")
+
+segments(x0 = -13, x1 = -10, y0 = 11.5)
+segments(x0 = -13, x1 = -10, y0 = 17)
+segments(x0 = -13, y0 = 11.5, y1 = 17)
+segments(x0 = -10, y0 = 11.5, y1 = 17)
+text(x = -12, y = 14, labels = "Coastal individuals")
+
+```
+
+
+## Calibrated dates
+
+Finally, we calibrated the radiocarbon results using a Southern Hemisphere calibration curve (ShCal13, @Reimer2013)
+for all individuals. The estimated dietary proportions are listed in Table S1.
+
+Additionally, for Bot15, Bot17 and MN01701 (Cabeçuda from Sambaqui), we corrected for a marine reservoir effect,
+according to the estimated carbon uptake from a marine diet, and added a local $\Delta$R offset of 33±24 years, 
+as suggested during our visit to the Museu Macional. The parameters specific to the individuals with
+marine diets are presented in Table 2,
+along with the parameters reported in Malaspinas et al. (2014) for Bot15 and Bot17. 
+Notably, we obtained higher proportions of marine diet for Bot15 and Bot17 than those reported in @Malaspinas2014a (Table 2).
+
+
+```{r table reservoir, eval = F, echo = F}
+
+for(i in seq(1,23)){#seq(21, 23)){
+  print(carbon[i,1])
+  d <- ind[i,]
+  d$Code <- 1
+  
+  n <- paste("~/Projects/Botocudos/Files/Isotopic/Models/",
+             "model_", carbon[i, 1], ".Rda", sep = "")
+  load(n)
+  model_ind$TITLE <- carbon[i,1]
+  for(j in 1:3){
+    p <- mean(model_ind$output[,j])
+    print(paste("Group", j, ":", round(p,2)))
+    print(1-p)
+  }
+
+  siarproportionbygroupplot(model_ind, grp = 1, prn = 1)
+}
+# Probability values for Group 1 
+# 	 95 % lower = 0 upper = 0.24 
+# 	 75 % lower = 0.0068 upper = 0.16 
+# 	 50 % lower = 0.022 upper = 0.12 
+# Probability values for Group 2 
+# 	 95 % lower = 0.017 upper = 0.73 
+# 	 75 % lower = 0.18 upper = 0.61 
+# 	 50 % lower = 0.3 upper = 0.53 
+# Probability values for Group 3 
+# 	 95 % lower = 0.11 upper = 0.86 
+# 	 75 % lower = 0.28 upper = 0.72 
+# 	 50 % lower = 0.36 upper = 0.6 
+# Please maximise this graph before saving or printing. 
+#[1] 0.1093477
+#[1] 0.8906523
+#+-14
+
+# Bot15
+# Probability values for Group 1 
+# 	 95 % lower = 0.42 upper = 0.79 
+# 	 75 % lower = 0.51 upper = 0.72 
+# 	 50 % lower = 0.56 upper = 0.68 
+# Probability values for Group 2 
+# 	 95 % lower = 0 upper = 0.44 
+# 	 75 % lower = 0.0087 upper = 0.3 
+# 	 50 % lower = 0.021 upper = 0.21 
+# Probability values for Group 3 
+# 	 95 % lower = 0 upper = 0.4 
+# 	 75 % lower = 0.015 upper = 0.29 
+# 	 50 % lower = 0.067 upper = 0.25 
+# Please maximise this graph before saving or printing.
+# [1] 0.6078145
+# [1] 0.3921855
+# +- 18%
+# 30+-16%
+
+# Bot17
+# Probability values for Group 1 
+# 	 95 % lower = 0.17 upper = 0.55 
+# 	 75 % lower = 0.27 upper = 0.48 
+# 	 50 % lower = 0.32 upper = 0.44 
+# Probability values for Group 2 
+# 	 95 % lower = 0.065 upper = 0.68 
+# 	 75 % lower = 0.23 upper = 0.56 
+# 	 50 % lower = 0.3 upper = 0.49 
+# Probability values for Group 3 
+# 	 95 % lower = 0 upper = 0.5 
+# 	 75 % lower = 0.037 upper = 0.37 
+# 	 50 % lower = 0.12 upper = 0.33 
+# Please maximise this graph before saving or printing.
+#> mean(model_ind$output[,1])
+#[1] 0.3671983
+#> 1 - mean(model_ind$output[,1])
+#[1] 0.6328017
+# +-18%
+
+#60+-16%
+
+# c("Malaspinas et al. (2014)", "This study")
+# c("39+-18%", "63+-18%")
+# c("30+-16%", "60+-16%")
+```
+
+```{r formatted table, echo = F, eval = F}
+p <- data.frame("Parameters" = c("Atmospheric calibration curve", "Marine calibration curve", "ΔR", "Marine carbon protein (Bot15)", "Marine carbon protein (Bot17)"),
+           "Malaspinas et al. 2014" = c("ShCal04", "Marine09", "0±20%", "30±16%", "60±16%"),
+           "This study" = c("ShCal13", "Marine13", "33±24", "39±18%", "63±18%"))
+
+kable(p) %>%
+  kable_styling(bootstrap_options = "condensed")
+
+```
+
+
+|                                     |Malaspinas et al. (2014)   | This study            |
+|:------------------------------------|:-------------------------:|:---------------------:|
+|Marine carbon protein (Bot15)        | 30±16%                    | 39±18%                |
+|Marine carbon protein (Bot17)        | 60±16%                    | 63±18%                |
+|Marine carbon protein (MN01701)      | NA                        | 89±14%                |
+|Atmospheric calibration curve        | ShCal04 [@Board2004]      | ShCal13  [@Reimer2013]|
+|Marine calibration curve             | Marine09 [@Reimer2009]    | Marine13 [@Reimer2013]|
+|$\Delta$R offset                     | 0±20                      | 33±24                 |
+Table: Table 2. Calibration parameters for individuals with possible marine diets.
+
+We used the OxCal programme, (version 4.3, @BronkRamsey2009) to calibrate the radiocarbon results. The figures below represent the 
+posterior density for the ^14^C dates. 
+We show in parentheses the date and standard deviation reported by ^14^CHRONO Centre,
+as well as the agreement indices ("A") and convergence integral ("C"") returned by OxCal (Figure 8).
+The agreement indices are a measure of the agreement between the model (prior) and the observational data (likelihood); 
+this value should be over 60% (although in some instances we recovered values of 101%).
+The convergence integral is a test of the effectiveness of the MCMC algorithm; this value should be above 95%.
+
+Regarding Bot15 and Bot17, the probability density are in agreement with the curves presented in @Malaspinas2014a (Figure 8B).
+Finally, the calibrated dates for the Botocudo individuals indicate that they are post-Columbian (Figure 8C). 
+
+![Figure 8. Calibrated ^14^C dates for (A) MN1943 and MN01701, (B) Bot15 and Bot17 from Malaspinas et al. (2014) and from this study and (C) the Botocudo collection (this study only). The numbers in parentheses refer to the uncalibrated dates; in brackets, we report the agreement indices and the convergence integral values. The circles indicate the estimated mean, and the bars represent one standard deviation. The horizontal brackets denote the regions associated to the 95% highest posterior density. ](All_calibrated.png)
+
+```{r tables1, echo = F}
+library(knitr)
+library(dplyr)
+library(kableExtra)
+cap <- "Table S1. Estimated average of dietary proportions (scaled to 100%). For every mean, \
+the lower and upper bounds correspond to two standard deviations. The 'Total marine' column was obtained by substracting the values on the 'Terrestrial Fauna' column from 100%. * Samples from children's first molars. ^ Native American from Morro da Babilônia."
+
+table_s1 <- read.csv("~/Projects/Botocudos/Files/Isotopic/Table_S1_July132018.csv", header = T)
+per <- as.numeric(gsub("±.*", "", table_s1$Total.marine))/100
+table_s1 <- table_s1[order(per),]
+per <- per[order(per)]
+per <- per*100 
+
+colfun <- colorRampPalette(c("cornsilk4", "deepskyblue3"))
+
+table_s1 %>%
+  mutate(
+    "Total marine" = cell_spec(Total.marine, color = colfun(100)[per]#
+                               #ifelse(per >=0.5, alpha("red",per), alpha("green", 1-per))
+                             ),
+    "Terrestrial Fauna" = cell_spec(Group.1),
+    "Marine Fish" = cell_spec(Group2),
+    "Marine Mammals" = cell_spec(Group3)
+  ) %>%
+  select(ID, "Terrestrial Fauna", "Marine Fish", "Marine Mammals", "Total marine") %>%
+  kable(escape = F, format = "html", caption = cap) %>%
+kable_styling("striped", full_width = F)
+
+```
+
+```{r, echo = F, eval = F}
+table_s1$Mean <- per
+
+ggplot(table_s1, aes(x = ID, y = Mean)) + geom_segment(aes(x = 0, y = Mean, xend = ID, yend = Mean)) + geom_point()
+
+```
+
+
+## References

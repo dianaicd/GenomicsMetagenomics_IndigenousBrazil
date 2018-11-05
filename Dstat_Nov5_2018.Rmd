@@ -1,0 +1,24 @@
+---
+title: "Dstat"
+author: "Cruz-Dávalos, Diana I."
+date: "11/4/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(colorspace)
+library(ggplot2)
+source("~/Projects/Botocudos/Scripts/plot_dstat.R")
+```
+
+```{r}
+# We need to specify who will be H2 and who will be H3
+
+my_plot <- plot_dstat(directory = "~/Projects/Botocudos/Files/Dstat/fromFlorian/",
+                      fileName = "ABBAresult.Observed.txt", h3 = "Log02WithError",
+                       h2 =  "French", start = 0, end = 0.1, pval = 0.05)
+
+print(my_plot)
+```
+

@@ -1,0 +1,3 @@
+# trivial script to set shebang in exec/estimate.R
+
+#sed -i "" "1 c #!`which Rscript`" exec/estimate.R

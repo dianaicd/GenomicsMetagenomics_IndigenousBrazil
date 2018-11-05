@@ -1,0 +1,64 @@
+module add UHTS/Analysis/GenomeAnalysisTK/3.7
+
+bcftools view America_nodamage.vcf.gz -S ^karitiana.txt -O z -o America_nokaritiana.vcf
+
+ref=/home/ubelix/iee/dcruz/data/References/Human/hg19/chromosomes_1-22_XY_mito.fasta
+ind=karitiana
+gunzip $ind.vcf.gz
+sed -i 's/^/chr/' $ind.vcf
+sed -i 's/chr\#/\#/' $ind.vcf
+bgzip $ind.vcf
+tabix $ind.vcf.gz
+
+
+GenomeAnalysisTK \
+   -T SimulateReadsForVariants \
+   -R $ref \
+   -V $ind.vcf.gz \
+   -o karitiana.bam \
+   --readDepth 1 \
+   --errorRate 30
+
+
+
+for i in $(seq 0 8) ; do samtools view  karitiana.bam -r ${k[$i]} -b -o karitiana.$i.bam ; done
+
+frac=0.1
+for i in $(seq 0 8); do samtools view $ind.$i.bam -s $frac -b -o ${ind}.${i}_10000.bam ; done
+
+for i in $(seq 0 8); do samtools index ${ind}.${i}_10000.bam ;done
+
+panel=America_nokaritiana
+gunzip $panel.vcf.gz
+sed -i 's/^/chr/' $panel.vcf
+sed -i 's/chr\#/\#/' $panel.vcf
+sed -i 's/ID=/ID=chr/' $panel.vcf
+bgzip $panel.vcf
+tabix $panel.vcf.gz
+
+panel=America_nokaritiana
+gunzip $panel.vcf.gz
+sed -i 's/^chr//' $panel.vcf
+bgzip $panel.vcf
+tabix $panel.vcf.gz
+
+for i in $(seq 0 8)
+do
+ samtools view -H $ind.${i}_10000.bam >header.txt ; sed -i 's/SN:chr/SN:/' header.txt
+ samtools reheader -i header.txt $ind.${i}_10000.bam > tmp.bam
+ mv tmp.bam $ind.${i}_10000.bam
+ samtools index $ind.${i}_10000.bam
+done
+
+for i in $(seq 0 8)
+do
+ samtools view -H $ind.${i}.bam >header.txt ; sed -i 's/SN:chr/SN:/' header.txt
+ samtools reheader -i header.txt $ind.${i}.bam > tmp.bam
+ mv tmp.bam $ind.${i}.bam
+ samtools index $ind.${i}.bam
+done
+
+580:	      $mapQualityCutoff ||= 20;
+581:	      $ntQualityCutoff ||= 30;
+
+open(PU,"samtools mpileup -Bl $sitesFile -q $mapQualityCutoff -Q $ntQualityCutoff @bam_files $empty_bam | $::buffer_exe |") || die;
