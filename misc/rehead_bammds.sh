@@ -5,10 +5,11 @@
 # in the panel
 
 # These two objectives can be achieved by reheading a  bam file:
-ch=($(seq 1 22))
+ch=($(seq 1 22) MT X Y)
 ind=$1
+name=$2
 
-samtools view -H $ind.bam >$ind.header
+samtools view -H $ind.bam >$name.header
 
 if [ ! -e keep_chrs.txt ]
 then
@@ -18,8 +19,8 @@ then
   done >keep_chrs.txt
 fi
 
-grep '^@SQ' $ind.header |grep -vf keep_chrs.txt  >$ind.remove
-grep -vf $ind.remove $ind.header > $ind.new.header
-rm $ind.header $ind.remove
-samtools reheader $ind.new.header $ind.bam >$ind.reheaded.bam
-samtools index $ind.reheaded.bam
+grep '^@SQ' $name.header |grep -vf keep_chrs.txt  >$name.remove
+grep -vf $name.remove $name.header > $name.new.header
+rm $name.header $name.remove
+samtools reheader $name.new.header $ind.bam >$name.reheaded.bam
+samtools index $name.reheaded.bam
