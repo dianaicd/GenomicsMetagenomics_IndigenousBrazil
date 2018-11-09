@@ -1,6 +1,6 @@
   # find the best replicate
-  panel=compareQuack_20181024
-  ind=Quack_Bot15_Bot17
+  panel=88ind_nodamage
+  ind=24ind
   pref=likelihoods
   n=10
   rep=10
