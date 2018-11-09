@@ -69,29 +69,40 @@ fi
 #
 if [ ! -e ${panel}_sites.txt ]
 then
-  cut -f 1-3 ${panel}.beagle | sed 1d | sed 's/_/\t/' |sort -V > ${panel}_sites.txt
-  #cp ${dir}/GenoLike/sites.txt ./
-  #sed -i 1d sites.txt
-  #sed -i 's/chr//' sites.txt
-  #sort -V sites.txt >sorted.txt
-  #sed 's/^/chr/' sorted.txt >sites.txt
-  #~/install/angsd/angsd sites index sorted.txt
-  angsd sites index ${panel}_sites.txt
-  cut -f1 ${panel}_sites.txt |sort -V |uniq >chrs.txt
+  CHRS=($(tail -n +2 $panel.beagle | cut -f1 -d'_' |sort |uniq))
+  for chr in ${CHRS[@]}
+  do 
+    cut -f 1-3 ${panel}.beagle | sed 1d |\
+    grep "^${chr}_" | sed 's/_/\t/' |sort -V > ${panel}_${chr}_sites.txt
+    angsd sites index ${panel}_${chr}_sites.txt
+    cut -f1 ${panel}_${chr}_sites.txt |sort -V |uniq >chr${chr}.txt
+  done
   cut -f 1 ${panel}.beagle > ${panel}_ids.txt
 fi
 
 #------------------------------------------------------------------------------
 # Compute genotype likelihoods for the samples
 #
-n=$(wc -l ${panel}_sites.txt |cut -f1 -d ' ')
+n=$(cat ${panel}_*_sites.txt | wc -l|cut -f1 -d ' ')
 if [ ! -e ${name}_${n}_sites.beagle ]
 then
-  angsd -GL 1 -out ${name}_${n}_sites -nThreads 10 -doGlf 2 -doMajorMinor 3  \
+  CHRS=($(tail -n +2 $panel.beagle | cut -f1 -d'_' |sort |uniq))
+  for chr in ${CHRS[@]}
+  do
+  angsd -GL 1 -out ${name}_${n}_${chr}_sites -doGlf 2 -doMajorMinor 3  \
     -bam $name.bam.list -minQ 35 -minmapQ 30 -trim 5\
-    -sites ${panel}_sites.txt -rf chrs.txt -P 30 #-minInd 1
-
-  gunzip ${name}_${n}_sites.beagle.gz
+    -sites ${panel}_${chr}_sites.txt -rf chr${chr}.txt -nThreads 4  & #-minInd 1
+  done 
+  { sleep 5; echo waking up after 5 seconds; } &
+  { sleep 1; echo waking up after 1 second; } &
+  wait
+  echo all jobs are done!
+  cat ${name}_${n}_*_sites.beagle.gz >${name}_${n}_sites.beagle.gz
+  gunzip ${name}_${n}_sites.beagle.gz -c > ${name}_${n}_tmp.beagle
+  head -n1 ${name}_${n}_tmp.beagle > header_${name}_${n}.txt
+  sed -i '/marker/d' ${name}_${n}_tmp.beagle
+  cat header_${name}_${n}.txt ${name}_${n}_tmp.beagle >  ${name}_${n}_sites.beagle
+  rm header_${name}_${n}.txt ${name}_${n}_tmp.beagle ${name}_${n}_sites.beagle.gz 
   #sed -i 's/chr//' ${name}_sites.beagle
 
 fi
