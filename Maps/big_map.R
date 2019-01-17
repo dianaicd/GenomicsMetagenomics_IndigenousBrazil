@@ -61,30 +61,33 @@ plot.map<- function(database,center,...){
   map(Obj,...)
 }
 
-png("~/Projects/Botocudos/Plots/map_CIG.png",
-    width = 20, height = 15, res = 350, units = "in")
+# png("~/Projects/Botocudos/Plots/map_DBC.png",
+#     width = 20, height = 15, res = 300, units = "in")
 
-plot.map("world", center=180, col="gray95",bg="cornflowerblue",
-         fill=TRUE,ylim=c(-60,90),mar=c(0,0,0,0), border = F)
+pdf("~/Projects/Botocudos/Plots/map_DBC.pdf", width = 20, height = 15)
+plot.map("world", center=180, col="white",bg="powderblue",
+         fill=TRUE,ylim=c(-60,90),mar=c(0,0,0,0), border = NA, xlim = c(-140, 155))
 
 plot.map(database = "worldHires", regions = "Brazil", 
-         center=180, col="black",
-         fill=TRUE,ylim=c(-60,90),mar=c(0,0,0,0), add = T)
+         center=180, col="gray90",
+         fill=TRUE,ylim=c(-60,90),mar=c(0,0,0,0), add = T,
+         border = "gray")
 
 plot.map(minas, regions = "Minas Gerais",add=TRUE, 
-     col=alpha("firebrick1", 0.7), 
-     border=F, fill=TRUE,ylim=c(-60,90),mar=c(0,0,0,0),
+     col=alpha("mistyrose2", 0.9), 
+     border="mistyrose2", fill=F,ylim=c(-60,90),mar=c(0,0,0,0),
      namefield = "nome", center = 180)
 
 plot.map(espirito, add = T, 
-     col = alpha("darkolivegreen1", 0.6), 
-     border = F, fill=TRUE,ylim=c(-60,90),mar=c(0,0,0,0),
+     col = alpha("mistyrose2", 0.9), 
+     border = "mistyrose2", fill=F,ylim=c(-60,90),mar=c(0,0,0,0),
      namefield = "nome", center = 180)
 
 plot.map(bahia, add = T, 
-     col = alpha("gold", 0.6),
-     border = F, fill=TRUE,ylim=c(-60,90),mar=c(0,0,0,0),
+     col = alpha("mistyrose2", 0.9),
+     border = "mistyrose2", fill=F,ylim=c(-60,90),mar=c(0,0,0,0),
      namefield = "nome", center = 180)
 
 
 dev.off()
+

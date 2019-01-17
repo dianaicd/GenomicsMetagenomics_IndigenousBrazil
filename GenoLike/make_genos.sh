@@ -2,9 +2,9 @@
 
 # Path to bam files:
 # Directory where we can find the VCF panel
-dir=/home/dcruzdva/archive/Panels/Merged/500k
+dir=~/archive/Panels/fromAnna/Jorde_Wollstein
 # Name of the panel
-panel=88ind_nodamage
+panel=Jorde_Wollstein_hg19_reheaded
 # Name for the output
 name=24ind
 # Selected individuals

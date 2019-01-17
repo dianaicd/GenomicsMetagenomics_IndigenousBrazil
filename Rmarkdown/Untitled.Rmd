@@ -1,0 +1,94 @@
+---
+title: "Dstat - replicate Moreno Mayar et al. 2018"
+author: "DI Cruz Dávalos"
+date: "11/21/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(colorspace)
+source("~/Projects/Botocudos/Scripts/Dstat/plot_dstat.R")
+source("~/Projects/Botocudos/Scripts/Dstat/is_australasian.R")
+```
+
+```{r}
+abba <- read.table("~/Projects/Botocudos/Files/Dstat/2018_11_21/MN0008_fromVictor_rmtrans.txt",
+                   header = T)
+fileName <- "MN0008_fromVictor_rmtrans.txt"
+
+# H1 = Lagoasta
+my_plot <- plot_dstat(directory = "~/Projects/Botocudos/Files/Dstat/2018_10_31/",
+                       fileName = "MN0008_rmtrans.txt",
+                       h3 = "Papuan",
+                       h2 =  "MN0008", start = 0, end = 4, pval =3, correctError = F, x1 = -0.5, x2 = 0.6,)
+
+# png("~/Projects/Botocudos/Plots/Dstat/DBC_retreat_TeamAB.png",
+#     width = 7, height = 8, res = 300, bg = NA, units = "in")
+pdf("~/Projects/Botocudos/Plots/Dstat/DBC_retreat_TeamAB.pdf",
+    width = 7, height = 8)
+my_plot + theme(text = element_text(size = 20))
+dev.off()
+
+print(my_plot)
+
+```
+
+```{r}
+directory <- "~/Projects/Botocudos/Files/Dstat/2018_11_21/"
+fileName <- "MN0008_fromVictor_rmtrans.txt"
+# Fix H1 and H2
+h1 <- "Mixe"
+nativeAmericans <- c('AncKaweskar2','AncKaweskar3','AncYamana2','AncYamana',
+                     'Andaman','Anzick1','Ayayema','Aymara','Chane','CK09',
+                     'CK10','CK13','Huichol','Karitiana',
+                     'KaritianaB','KaritianaBI16','KaritianaG','KaritianaH','Lovelock2',
+                     'Lovelock3', 'LagoaSta',#'LS4','LS6','LS7','LS8','LU01','LU02','LU06',
+                     'MayaG','MayaH','Mixe','MixeE','MixeF','Piapoco',
+                     'PimaCEPH','PimaE','PimaF','PtaStaAna','Quechua','SpCave',
+                     'SuruiA','SuruiB','Taino','USR1','Yukpa','MN0008',
+                     'Aconcagua')
+  setwd(directory)
+  abba <- read.table(fileName, header = T,
+                     stringsAsFactors = F)
+  #head(abba)
+  
+  # Dstat of the form (h1, h2, target, outgroup)
+  # usually h2 and target are fixed
+  
+  #------------------------------------------------------------------------------
+  # Select trees where H1=target is tested
+  # Switch the H2 from H1 to H2 when necessary
+  abba <- abba[abba$H1 == h1 | abba$H2 == h1 ,]
+  index <- abba$H2 == h1
+  h2 <- abba[index, "H1"]
+  abba[index, "H2"] <- h2
+  abba[index, "H1"] <- h1
+  abba$Z[index] <- -1*abba$Z[index]
+  
+  # Select trees in which Native Americans are in H2
+  index <- abba$H2 %in% nativeAmericans
+  abba <- abba[index, ]
+  # Remove trees with Native Americans, LagoaSta and Yoruba in H3
+  lagoa <- c("LS4", "LS6", "LS7", "LS8", "LU01", "LU02", "LU06")#, "LagoaSta")
+  index <- abba$H3 %in% nativeAmericans
+  abba <- abba[!index, ]
+  index <- abba$H3 == "Yoruba"
+  abba <- abba[!index, ]
+  index <- abba$H3 %in% lagoa
+  abba <- abba[!index, ]
+  
+  abba$pop <- sapply(abba$H3, function(x) is_australasian(x))
+  abba$Z <- (abba$Z - mean(abba$Z))/(sd(abba$Z))
+  
+png(paste("~/Projects/Botocudos/Plots/Dstat/fig4Moreno2018_",h1, ".png", sep = ""),
+      res = 300, units = "in", height = 5, width = 5)
+  ggplot(abba, aes(x = Z, y = H2, color = pop)) +
+    geom_point(shape = 5, stroke = 1) +
+    theme_bw(base_size = 12) +
+    scale_color_manual(values = c("violet", "gray")) +
+    labs(title = h1)
+dev.off()
+```
+
