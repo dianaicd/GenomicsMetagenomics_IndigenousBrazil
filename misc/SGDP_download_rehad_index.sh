@@ -84,7 +84,7 @@ do
 
     samtools quickcheck -v Reheaded/*.bam > bad_bams.fofn   && echo 'all ok' || echo 'some files failed check, see bad_bams.fofn'
     n=$(wc -l bad_bams.fofn | cut -f1 -d ' ')
-    if [ $n > 0 ]
+    if [ $n -gt 0 ]
     then 
         mv bad_bams.fofn bams_to_rehead.txt
     else 
