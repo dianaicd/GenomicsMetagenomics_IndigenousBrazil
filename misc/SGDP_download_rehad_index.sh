@@ -11,7 +11,7 @@ then
 fi 
 
 # 1. Try to download
-while $is_incomplete
+while [ $is_incomplete = 1 ]
 do
     while read line
     do
@@ -72,7 +72,7 @@ chroms=($(seq 1 22))
 ls *bam > bams_to_rehead.txt
 notready=1
 
-while $notready
+while [ $notready = 1 ] 
 do
     while read bam
     do
