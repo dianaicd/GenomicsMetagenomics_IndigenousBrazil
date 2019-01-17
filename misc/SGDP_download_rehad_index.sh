@@ -3,8 +3,15 @@
 dir_name=$1
 
 is_incomplete=1
+
+# Maybe we ran this script the other day but we do not remember it...
+if [ -e all_complete.txt ]
+then
+    is_incomplete=0
+fi 
+
 # 1. Try to download
-while is_incomplete = 1
+while $is_incomplete
 do
     while read line
     do
@@ -48,32 +55,55 @@ do
             grep $file ~/Project/Simons/bam_simons.txt | cut -f 16 >>todownload.txt
         fi 
     done < validate.txt
+
+    if [ $is_incomplete = 0 ]
+    then
+        echo "well done" > all_complete.txt
+    fi 
+
     rm validate.txt
 done
 
 # 4. Change the header and index
-# To comper the SGDP bam files to those from the Americas,
+# To compare the SGDP bam files to those from the Americas,
 # we need to look only at chromosomes 1 - 22.
 # 
 chroms=($(seq 1 22))
+ls *bam > bams_to_rehead.txt
+notready=1
+
+while $notready
+do
+    while read bam
+    do
+        ind=$(basename $bam .bam)
+        name=$(grep $name ~/Project/Simons/Simons_sample_pop_region_country.txt | cut -f3)
+        echo "$ind\t$name" >> bam_pop
+        samtools view -b $ind.bam ${chroms[@]} > Reheaded/$name.bam &
+    done < bams_to_rehead.txt
+
+    samtools quickcheck -v Reheaded/*.bam > bad_bams.fofn   && echo 'all ok' || echo 'some files failed check, see bad_bams.fofn'
+    n=$(wc -l bad_bams.fofn | cut -f1 -d ' ')
+    if [ $n > 0 ]
+    then 
+        mv bad_bams.fofn bams_to_rehead.txt
+    else 
+        notready=0
+    fi 
+done
+{ sleep 5; echo waking up after 5 seconds; } &
+{ sleep 1; echo waking up after 1 second; } &
+  wait
+
+
+cd Reheaded 
 
 for bam in *bam
 do
-  ind=$(basename $bam .bam)
-  name=$(grep $name ~/Project/Simons/Simons_sample_pop_region_country.txt | cut -f3)
-  echo "$ind\t$name" >> bam_pop
-  samtools view -b $ind.bam ${chroms[@]} > Reheaded/$name.bam &
-done
+   samtools index $bam &
+done 
 { sleep 5; echo waking up after 5 seconds; } &
 { sleep 1; echo waking up after 1 second; } &
-  wait
+wait
 
-cd Reheaded 
-for bam in *bam 
-do
-    samtools index $bam &
-done
-{ sleep 5; echo waking up after 5 seconds; } &
-{ sleep 1; echo waking up after 1 second; } &
-  wait
   echo all jobs are done!
