@@ -61,7 +61,7 @@ do
     { sleep 5; echo waking up after 5 seconds; } &
     { sleep 1; echo waking up after 1 second; } &
     wait
-    
+
     if [ $is_incomplete = 0 ]
     then
         echo "well done" > all_complete.txt
@@ -77,6 +77,11 @@ done
 chroms=($(seq 1 22))
 ls *bam > bams_to_rehead.txt
 notready=1
+
+if [ -d Reheaded ]
+then 
+    mkdir Reheaded
+fi
 
 while [ $notready = 1 ] 
 do
