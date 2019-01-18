@@ -78,7 +78,7 @@ chroms=($(seq 1 22))
 ls *bam > bams_to_rehead.txt
 notready=1
 
-if [ -d Reheaded ]
+if [ ! -d Reheaded ]
 then 
     mkdir Reheaded
 fi
