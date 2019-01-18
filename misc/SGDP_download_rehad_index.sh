@@ -77,7 +77,7 @@ do
     while read bam
     do
         ind=$(basename $bam .bam)
-        name=$(grep $name ~/Project/Simons/Simons_sample_pop_region_country.txt | cut -f3)
+        name=$(grep $ind ~/Project/Simons/Simons_sample_pop_region_country.txt | cut -f3)
         echo "$ind\t$name" >> bam_pop
         samtools view -b $ind.bam ${chroms[@]} > Reheaded/$name.bam &
     done < bams_to_rehead.txt
