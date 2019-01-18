@@ -53,9 +53,15 @@ do
         then  # if 0 matches, then enter in the loop again
             is_incomplete=1
             grep $file ~/Project/Simons/bam_simons.txt | cut -f 16 >>todownload.txt
+        else
+            echo "indexing $file"
+            samtools index $file & 
         fi 
     done < validate.txt
-
+    { sleep 5; echo waking up after 5 seconds; } &
+    { sleep 1; echo waking up after 1 second; } &
+    wait
+    
     if [ $is_incomplete = 0 ]
     then
         echo "well done" > all_complete.txt
