@@ -24,15 +24,11 @@ do
     echo "Files might or might not be fully downloaded"
     
     # 2. Compute MD5sum
-    if [ -e validate.txt ]
-    then
-        rm validate.txt
-    fi 
-    touch validate.txt
+    touch validated.txt
     while read bam 
     do
         echo "validating $bam"
-         md5sum $bam.bam >> validate.txt &
+         md5sum $bam.bam >> tmp_md5.txt &
     done < ~/Project/Simons/${dir_name}_bam.txt
     # Wait for MD5sum to finish
     { sleep 5; echo waking up after 5 seconds; } &
@@ -41,6 +37,7 @@ do
     echo "Files might or might not be fully downloaded"
     rm todownload.txt
     is_incomplete=0
+    cat validated.txt tmp_md5.txt > tovalidate.txt
 
     # 3. Verify the MD5
     while read line
@@ -49,15 +46,19 @@ do
         file=$(echo $line | cut -f2 -d ' ')
         # Check if md5 value exists
         match=$(grep -c $m  ~/Project/Simons/prefix_md5.txt)
-        if [ match = 0 ]
+        if [ $match = 0 ]
         then  # if 0 matches, then enter in the loop again
             is_incomplete=1
             grep $file ~/Project/Simons/bam_simons.txt | cut -f 16 >>todownload.txt
         else
-            echo "indexing $file"
-            samtools index $file & 
+            if [ ! -e $file.bai ]
+            then
+                echo "indexing $file"
+                samtools index $file & 
+                echo $line >> validated.txt
+            fi
         fi 
-    done < validate.txt
+    done < tovalidate.txt
     { sleep 5; echo waking up after 5 seconds; } &
     { sleep 1; echo waking up after 1 second; } &
     wait

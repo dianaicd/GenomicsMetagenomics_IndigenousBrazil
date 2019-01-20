@@ -14,8 +14,8 @@ import sys
 
 
 # %%
-beagle_name = "/Users/dcruz/Projects/Botocudos/Files/test/head.beagle"#sys.argv[1]
-expected_name = "/Users/dcruz/Projects/Botocudos/Files/test/head.expected"#sys.argv[2]
+beagle_name = sys.argv[1]
+expected_name = sys.argv[2]
 
 # %%
 print("Input file: " + beagle_name)
@@ -73,4 +73,3 @@ print("Output file: " + expected_name)
 np.savetxt(fname=expected_name, fmt='%.6f',
            X=expected_alleles, delimiter='\t')
 
-np.opp
