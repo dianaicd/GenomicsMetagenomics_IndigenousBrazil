@@ -95,7 +95,10 @@ do
         #samtools view -b $ind.bam ${chroms[@]} > Reheaded/$name.bam &
         rehead_bammds.sh $ind $name &
     done < bams_to_rehead.txt
-
+    { sleep 5; echo waking up after 5 seconds; } &
+    { sleep 1; echo waking up after 1 second; } &
+    wait
+    
     samtools quickcheck -v Reheaded/*.bam > bad_bams.fofn   && echo 'all ok' || echo 'some files failed check, see bad_bams.fofn'
     n=$(wc -l bad_bams.fofn | cut -f1 -d ' ')
     if [ $n -gt 0 ]
