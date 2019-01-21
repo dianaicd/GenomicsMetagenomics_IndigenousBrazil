@@ -88,3 +88,4 @@ np.savetxt(fname=expected_name, fmt='%.6f',
 print("Distance file: " + dist_name)
 np.savetxt(fname=dist_name, fmt='%.6f',
            X=final_dist, delimiter='\t')
+
