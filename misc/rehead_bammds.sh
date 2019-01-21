@@ -29,5 +29,5 @@ fi
 
 rm Reheaded/$name.header
 
-samtools reheader Reheaded/$name.newheader ${ind}.bam > Reheaded/$name.bam
+samtools reheader Reheaded/$name.newheader.txt ${ind}.bam > Reheaded/$name.bam
 #samtools index Reheaded/$name.bam
