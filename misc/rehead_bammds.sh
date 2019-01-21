@@ -9,26 +9,25 @@ ch=($(seq 1 22))
 ind=$1
 name=$2
 
-
-if [ ! -e keep_chrs.txt ]
-then
-  for chr in "${ch[@]}"
-  do
-    echo "SN:$chr"
-  done >keep_chrs.txt
-fi
-
 if [ ! -d Reheaded ]
 then
  mkdir Reheaded
 fi
 
 samtools view -H $ind.bam > Reheaded/$name.header
-sed -i 's/SN:chr/SN:/' Reheaded/$name.header
 
-grep '^@SQ' Reheaded/$name.header |grep -vf keep_chrs.txt  > Reheaded/$name.remove
-grep -vf Reheaded/$name.remove Reheaded/$name.header > Reheaded/$name.new.header
-rm Reheaded/$name.header Reheaded/$name.remove
+if [ ! -e Reheaded/$name.newheader.txt ]
+then
+  head -n1 Reheaded/$name.header > Reheaded/$name.newheader.txt
+  for chr in "${ch[@]}"
+  do
+    grep -P "SN:chr$chr\t" Reheaded/$name.header |sed 's/chr//' >> Reheaded/$name.newheader.txt 
+  done
+  grep '@RG' Reheaded/$name.header >> Reheaded/$name.newheader.txt 
+  grep '@PG' Reheaded/$name.header >> Reheaded/$name.newheader.txt
+fi
 
-samtools reheader Reheaded/$name.new.header ${ind}.bam > Reheaded/$name.bam
-samtools index Reheaded/$name.bam
+rm Reheaded/$name.header
+
+samtools reheader Reheaded/$name.newheader ${ind}.bam > Reheaded/$name.bam
+#samtools index Reheaded/$name.bam

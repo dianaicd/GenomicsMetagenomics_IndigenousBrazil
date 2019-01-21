@@ -92,7 +92,8 @@ do
         name=$(grep $ind ~/Project/Simons/Simons_sample_pop_region_country.txt | cut -f3)
         echo "$ind\t$name" >> bam_pop
         echo " $ind.bam to Reheaded/$name.bam"
-        samtools view -b $ind.bam ${chroms[@]} > Reheaded/$name.bam &
+        #samtools view -b $ind.bam ${chroms[@]} > Reheaded/$name.bam &
+        rehead_bammds.sh $ind $name &
     done < bams_to_rehead.txt
 
     samtools quickcheck -v Reheaded/*.bam > bad_bams.fofn   && echo 'all ok' || echo 'some files failed check, see bad_bams.fofn'
