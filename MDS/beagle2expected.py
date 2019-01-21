@@ -16,7 +16,7 @@ import sys
 # %%
 beagle_name = sys.argv[1]
 expected_name = sys.argv[2]
-
+dist_name = sys.argv[3]
 # %%
 print("Input file: " + beagle_name)
 # "/Users/dcruz/Projects/Botocudos/Files/test/head.beagle"
@@ -42,6 +42,7 @@ def missing_to_na(snp, index, beagle):
     if(beagle[snp, index] == beagle[snp, index + 1] and
        beagle[snp, index] == beagle[snp, index + 2]):
         return np.array([np.nan, np.nan, np.nan])
+
     else:
         return beagle[snp, index:index + 3]
 
@@ -50,10 +51,11 @@ def distance_ind(ind1, ind2):
     # Find missing values in at least one individual
     is_missing = np.logical_not(np.logical_or(np.isnan(ind1),
                             np.isnan(ind2)))
-    values = pd.Index(is_missing) ##
+
     # calculate distance ignoring missing values
-    dist = sc.distance.cityblock(ind1[values],
-                                         ind2[values])/sum(values)
+    dist = sum((ind1[is_missing] - ind2[is_missing])**2)/sum(is_missing)
+    #sc.distance.cityblock(ind1[is_missing],
+    #                                     ind2[is_missing])/sum(is_missing)
     return(dist)
 
 # %%
@@ -66,10 +68,23 @@ beagle = np.vstack([np.hstack([missing_to_na(snp, index, beagle)
                    for snp in range(0, nSNP)])
 
 expected_alleles = np.array([calculate_expected(i, beagle)
-                            for i in range(0, nInd-4, 3)]).T
+                            for i in range(0, nInd-3, 3)]).T
+# %%
+nInd = int(nInd/3)
+print(nInd)
+final_dist = np.zeros(shape = (nInd, nInd))
+for i in range(0, nInd):
+    for j in range(0, nInd-1):
+        if i < j:
+            final_dist[i][j] = distance_ind(expected_alleles[:,i], expected_alleles[:, j])
+
+#%%
 # %%
 
-print("Output file: " + expected_name)
+print("Expected alleles file: " + expected_name)
 np.savetxt(fname=expected_name, fmt='%.6f',
            X=expected_alleles, delimiter='\t')
 
+print("Distance file: " + dist_name)
+np.savetxt(fname=dist_name, fmt='%.6f',
+           X=final_dist, delimiter='\t')
