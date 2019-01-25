@@ -14,14 +14,20 @@ import sys, os, subprocess
 # %%
 
 # file with 1529173 reads
-path = sys.argv[1] #"/Users/dcruz/Projects/Botocudos/Files/test/test_1.bam"
-down_path = sys.argv[2] #"/Users/dcruz/Projects/Botocudos/Files/test/test_downsampled.bam"
-total_selected = sys.argv[3]#10
+path = sys.argv[1] 
+#path = "/Users/dcruz/Projects/Botocudos/Files/test/test_1.bam"
 
-command = "samtools idxstats " + down_path + " | awk -F '\t' '{s+=$3+$4}END{print s}'"
+down_path = sys.argv[2] 
+#down_path = "/Users/dcruz/Projects/Botocudos/Files/test/test_downsampled.bam"
+
+total_selected = int(sys.argv[3])
+#total_selected = 100000
+
+command = "samtools idxstats " + path + " | awk -F '\t' '{s+=$3+$4}END{print s}'"
 total_size = int(subprocess.Popen(command, shell=True, stdout=subprocess.PIPE).stdout.read().rstrip())
-#total_size = 1529173
 
+#total_size = 1529173
+#print(total_selected) 
 #%%
 selected_sites = np.zeros(total_size,dtype=int)
 position1 = np.random.choice(a=total_size,size = total_selected, replace = False)
