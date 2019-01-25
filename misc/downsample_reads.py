@@ -19,7 +19,7 @@ down_path = sys.argv[2] #"/Users/dcruz/Projects/Botocudos/Files/test/test_downsa
 total_selected = sys.argv[3]#10
 
 command = "samtools idxstats " + down_path + " | awk -F '\t' '{s+=$3+$4}END{print s}'"
-total_size = int(subprocess.Popen(command, shell=True, stdout=subprocess.PIPE).stdout.read().rstrip)
+total_size = int(subprocess.Popen(command, shell=True, stdout=subprocess.PIPE).stdout.read().rstrip())
 #total_size = 1529173
 
 #%%
