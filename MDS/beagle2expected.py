@@ -13,7 +13,7 @@ import sys
 # Use genotype likelihoods to compute the distance matrix
 
 
-# %%
+# %%<
 beagle_name = sys.argv[1]
 expected_name = sys.argv[2]
 dist_name = sys.argv[3]
@@ -39,28 +39,23 @@ def calculate_expected(index, beagle):
 def missing_to_na(snp, index, beagle):
     # values of 0.33333,0.333333, 0.3333333 are considered as
     # missing data
+    # missing data are encoded as 0
     if(beagle[snp, index] == beagle[snp, index + 1] and
        beagle[snp, index] == beagle[snp, index + 2]):
-        return np.array([np.nan, np.nan, np.nan])
-
+        return np.array([0,0,0])
     else:
         return beagle[snp, index:index + 3]
 
 # %%
 def distance_ind(ind1, ind2):
-    # Find missing values in at least one individual
-    is_missing = np.logical_not(np.logical_or(np.isnan(ind1),
-                            np.isnan(ind2)))
-
+    # no missing value
+    is_not_na = np.logical_and(ind1,ind2)
     # calculate distance ignoring missing values
-    dist = sum((ind1[is_missing] - ind2[is_missing])**2)/sum(is_missing)
-    #sc.distance.cityblock(ind1[is_missing],
-    #                                     ind2[is_missing])/sum(is_missing)
+    dist = np.sum(is_not_na * np.power((ind1 - ind2),2))/np.sum(is_not_na)
     return(dist)
 
 # %%
-nInd = beagle.shape[1]
-nSNP = beagle.shape[0]
+(nSNP, nInd) = beagle.shape
 print("Number of individuals: " + str(nInd/3))
 print("Number of markers: " + str(nSNP))
 beagle = np.vstack([np.hstack([missing_to_na(snp, index, beagle)
@@ -71,7 +66,6 @@ expected_alleles = np.array([calculate_expected(i, beagle)
                             for i in range(0, nInd-3, 3)]).T
 # %%
 nInd = int(nInd/3)
-print(nInd)
 final_dist = np.zeros(shape = (nInd, nInd))
 for i in range(0, nInd):
     for j in range(0, nInd-1):
