@@ -36,9 +36,9 @@ selected_sites[position1] = 1
 #%%
 
 samfile = pysam.AlignmentFile(path, "rb")
-total_downsampled = sum(selected_sites)
+#total_downsampled = np.sum(selected_sites)
+#print(total_downsampled)
 
-print(total_downsampled)
 # %%
 i = 0
 a = datetime.datetime.now()
