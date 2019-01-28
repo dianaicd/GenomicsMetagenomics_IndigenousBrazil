@@ -36,9 +36,9 @@ while (<VCF>){
 
     # Matching reference or alternative allele;
     # print position and ref|alt
-    if ($seq[9] ~= m/^0:/){
+    if ($seq[9] =~ m/^0:/){
         print OUTPUT "$seq[1]\t$ref\n";
-    }elsif($seq[9] ~= m/^1:/){
+    }elsif($seq[9] =~ m/^1:/){
         print OUTPUT "$seq[1]\t$alt\n";
     }
 }
