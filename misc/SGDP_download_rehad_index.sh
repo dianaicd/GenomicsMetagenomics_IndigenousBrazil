@@ -38,6 +38,7 @@ do
     rm todownload.txt
     is_incomplete=0
     cat validated.txt tmp_md5.txt > tovalidate.txt
+    rm tmp_md5.txt
 
     # 3. Verify the MD5
     while read line
@@ -68,7 +69,6 @@ do
         echo "well done" > all_complete.txt
     fi 
 
-    rm validate.txt
 done
 
 # 4. Change the header and index
