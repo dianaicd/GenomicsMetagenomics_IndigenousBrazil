@@ -10,7 +10,7 @@ Created on Fri Jan 25 13:58:43 2019
 import pysam
 import numpy as np
 import datetime
-import sys, os, subprocess 
+import sys, subprocess 
 # %%
 
 # file with 1529173 reads
@@ -24,7 +24,8 @@ total_selected = int(sys.argv[3])
 #total_selected = 100000
 
 command = "samtools idxstats " + path + " | awk -F '\t' '{s+=$3+$4}END{print s}'"
-total_size = int(subprocess.Popen(command, shell=True, stdout=subprocess.PIPE).stdout.read().rstrip())
+total_size = int(subprocess.Popen(command, shell=True, 
+                                  stdout=subprocess.PIPE).stdout.read().rstrip())
 
 #total_size = 1529173
 #print(total_selected) 
