@@ -12,6 +12,7 @@ Created on Thu Jan 24 14:17:43 2019
 import pysam
 import argparse
 import numpy as np
+import datetime
 
 
 parser = argparse.ArgumentParser()
@@ -36,13 +37,23 @@ parser.add_argument("-max", "--maximum_length", type = int,default=90,
                     help="maximum length for the newly created read")
 parser.add_argument("-n", "--number_read", type = int,default=0,
                     help="Number of read in the bamfile. If 0 (default) is given, will be recomputed, which is time consuming")
-parser.add_argument("-ns", "--number_subsamble", type = int,default=0,
-                    help="Number of read to subsamble. If 0 (default) is given, no subsamble will be performed")
+parser.add_argument("-ns", "--number_subsamble", type = int,default=None,
+                    help="Number of read to subsamble. If None (default) is given, no subsambling will be performed")
 parser.add_argument("-sk", "--skip_damage", default=False,
                     help="If True, skip the part about damaging DNA", action='store_true')
 
 args = parser.parse_args()
 
+def getTimeAndPrint():
+    now = datetime.datetime.now()
+    print(now.strftime("%d %b %H:%M:%S"))
+    return(now)
+
+def getTimeAndPrintDifference(previousTime: "datetime.datetime"):
+    now = datetime.datetime.now()
+    difference = now - previousTime
+    print(f'Last operation took {str(difference)}')
+    return(now)
 def subSample(inputFile: str, outputFile: str, totalSize: int, subsampleSize: int):
     positionSelected = np.zeros(totalSize)
     position1 = np.random.choice(a=totalSize, size=subsampleSize, replace=False)
@@ -76,8 +87,8 @@ def shortenDNA(sequence: 'np.array[str]', mean, sigma, hardcutMin, hardcutMax):
     return(sequence[0:newNbBase])
 
 
-def shrinkAndDamage(inputFile: str, outputFile: str, mean, sigma, hardcutMin, hardcutMax,
-                    frequencyCtoT: 'np.array',frequencyGtoA: 'np.array'):
+def shortenAndDamage(inputFile: str, outputFile: str, mean, sigma, hardcutMin, hardcutMax,
+                     frequencyCtoT: 'np.array', frequencyGtoA: 'np.array'):
     samfileInput = pysam.AlignmentFile(inputFile, "rb")
     f = open(outputFile, "w")
     for read in samfileInput:
@@ -105,14 +116,22 @@ def countRead(intputFile: str):
         counter = counter + 1
     return(counter)
 
-
+tinitial = tlastoperation = getTimeAndPrint()
 if args.number_read == 0:
-    print("counting the number of read \n")
+    print("counting the number of read")
     args.number_read = countRead(args.input)
     print(f"{args.number_read} read were detected")
-print(f"Reducing the number of read to {args.number_subsamble} and printing to {args.bam_file}")
-subSample(args.input, args.bam_file, args.number_read, args.number_subsamble)
-print(f"Done reducing the number of read ")
+    tlastoperation = getTimeAndPrintDifference(tinitial)
+
+if args.number_subsamble is not None :
+    print(f"Reducing the number of read to {args.number_subsamble} and printing to {args.bam_file}")
+    subSample(args.input, args.bam_file, args.number_read, args.number_subsamble)
+    print(f"Done reducing the number of read ")
+    tlastoperation = getTimeAndPrintDifference(tlastoperation)
+else:
+    print("No subsampling will be performed")
+    args.bam_file = args.input
+
 if not args.skip_damage:
     if(args.CTOT == None or args.CTOT == None):
         print("You should provide input file for the frequency of mutation")
@@ -122,8 +141,8 @@ if not args.skip_damage:
         FrenquencyCtoT = allFrequency[:, 1]
         allFrequency = np.loadtxt(args.GTOA, "float")
         FrenquencyGtoA = allFrequency[:, 1]
-        shrinkAndDamage(args.bam_file,  args.fastq_file,
-                    args.mean_length, args.sigma_length, args.minimum_length, args.maximum_length,
-                    FrenquencyCtoT,FrenquencyGtoA)
-        print("All done")
-
+        shortenAndDamage(args.bam_file, args.fastq_file,
+                         args.mean_length, args.sigma_length, args.minimum_length, args.maximum_length,
+                         FrenquencyCtoT, FrenquencyGtoA)
+        tlastoperation = getTimeAndPrintDifference(tlastoperation)
+print("All done")
