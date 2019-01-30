@@ -25,11 +25,12 @@ do
     
     # 2. Compute MD5sum
     touch validated.txt
-    while read bam 
+    while read line 
     do
+        bam=$(basename $line)
         echo "validating $bam"
          md5sum $bam.bam >> tmp_md5.txt &
-    done < ~/Project/Simons/${dir_name}_bam.txt
+    done < todownload.txt
     # Wait for MD5sum to finish
     { sleep 5; echo waking up after 5 seconds; } &
     { sleep 1; echo waking up after 1 second; } &
