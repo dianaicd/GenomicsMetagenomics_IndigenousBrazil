@@ -27,7 +27,7 @@ do
     touch validated.txt
     while read line 
     do
-        bam=$(basename $line)
+        bam=$(basename $line .bam)
         echo "validating $bam"
          md5sum $bam.bam >> tmp_md5.txt &
     done < todownload.txt
