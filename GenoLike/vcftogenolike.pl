@@ -150,5 +150,5 @@ close OUTPUT
         or warn $! ? "Error closing : $!"
                    : "Exit status $? ";
 
-print "Damaged sites: $damage \nNot di-allelic site: $di\n";
+print "Damaged sites: $damaged \nNot di-allelic site: $di\n";
 print "Panel with $nsites sites";

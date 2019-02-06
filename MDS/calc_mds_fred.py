@@ -15,14 +15,17 @@ def calc_mds(delta) -> None:
 
     a = -delta**2/2
 
-    at0 = np.sum(a, 0)/N
-    att = np.sum(a)/N**2
-
+    at0 = np.nansum(a, 0)/N
+    att = np.nansum(a)/N**2
+    
     one = np.ones((N,))
     b = a - np.outer(at0, one) - np.outer(one, at0) + att
-
+    print(b)
+    plt.imshow(b)
     lambdas, vecs = np.linalg.eigh(b)
-
+    print(lambdas)
+    print(vecs)
+    print(b.shape)
     N = len(lambdas)
 
     coordinates = np.hstack((lambdas.reshape((N, 1)), vecs.T)).copy()

@@ -59,16 +59,16 @@ def distance_ind(ind1, ind2):
 print("Number of individuals: " + str(nInd/3))
 print("Number of markers: " + str(nSNP))
 beagle = np.vstack([np.hstack([missing_to_na(snp, index, beagle)
-                    for index in range(0, nInd - 1, 3)])
+                    for index in range(0, nInd, 3)])
                    for snp in range(0, nSNP)])
 
 expected_alleles = np.array([calculate_expected(i, beagle)
-                            for i in range(0, nInd-3, 3)]).T
+                            for i in range(0, nInd, 3)]).T
 # %%
 nInd = int(nInd/3)
 final_dist = np.zeros(shape = (nInd, nInd))
 for i in range(0, nInd):
-    for j in range(0, nInd-1):
+    for j in range(0, nInd):
         if i < j:
             final_dist[i][j] = distance_ind(expected_alleles[:,i], expected_alleles[:, j])
 
