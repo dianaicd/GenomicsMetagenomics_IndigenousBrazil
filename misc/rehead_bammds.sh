@@ -21,7 +21,7 @@ then
   head -n1 Reheaded/$name.header > Reheaded/$name.newheader.txt
   for chr in "${ch[@]}"
   do
-    grep -P "SN:chr$chr\t" Reheaded/$name.header |sed 's/chr//' >> Reheaded/$name.newheader.txt 
+    grep -P "SN:[a-z]*$chr\t" Reheaded/$name.header |sed 's/chr//' >> Reheaded/$name.newheader.txt 
   done
   grep '@RG' Reheaded/$name.header >> Reheaded/$name.newheader.txt 
   grep '@PG' Reheaded/$name.header >> Reheaded/$name.newheader.txt
