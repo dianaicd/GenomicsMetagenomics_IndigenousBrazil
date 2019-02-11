@@ -4,7 +4,7 @@
 # Diana Cruz
 
 # Input file from ~/archive/Panels/fromVictor
-whole=Maanasa_mask1_flip
+whole=Maanasa_mask1_flip.americas
 
 # I filtered the names of the groups by hand and saved them in:
 name=Maanasa_mask1_flip_whole
@@ -16,14 +16,13 @@ for i in $(cat $name)
 done > ${name}.clust
 
 # Create .names file
+# All this work is to solve the problem with the annoying header
 cut -f 1,2 -d ' ' ${name}.clust |sed 's/ /_/' > ${name}.names
-#remove=($(cat remove_maanasa.txt))
-#grep -vf remove_maanasa.txt ${name}.names >tmp.names
-#mv tmp.names ${names}.names
 bcftools view -S ${name}.names ${whole}.vcf -o ${name}.vcf -O v
 awk '{print($3," ",$1)}' ${name}.clust |sed 's/_/-/g'| sed 's/ \+/_/' > new_names.txt
 bcftools reheader -s new_names.txt ${name}.vcf > ${name}_reheaded.vcf
 
+# Make the panel file I use to plot later
 awk '{print($1,$1,$3,$3,$3)}' ${name}.clust |sed 's/ \+/\t/g' >${name}.panel.txt
 
 # Saved names from Moreno Mayar et al in:
