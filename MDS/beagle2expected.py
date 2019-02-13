@@ -51,7 +51,8 @@ def distance_ind(ind1, ind2):
     # no missing value
     is_not_na = np.logical_and(ind1,ind2)
     # calculate distance ignoring missing values
-    dist = np.sum(is_not_na * np.power((ind1 - ind2),2))/np.sum(is_not_na)
+    #dist = np.sum(is_not_na * np.power((ind1 - ind2),2))/np.sum(is_not_na)
+    dist = np.sum(is_not_na * np.abs((ind1 - ind2)))/np.sum(is_not_na)
     return(dist)
 
 # %%
