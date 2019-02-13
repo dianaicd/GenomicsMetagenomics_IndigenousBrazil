@@ -20,7 +20,6 @@ label_given = []
 
 for x in f:
     label_given.append(x.strip())
-# %%
 #label_given = panel
 labelUnique,index = np.unique(label_given,return_inverse=True)
 colors = cm.rainbow(np.linspace(0, 1, len(labelUnique)))
@@ -28,9 +27,9 @@ color_value = colors[index]
 
 # %%
 dist = np.loadtxt(dist_path)
-#dist = dist[0:23, 0:23]
-dist = dist[0:2598, 0:2598]
-dist = dist + dist.T
+#dist = dist[0:23, 023]
+#dist = dist[0:2598, 0:2598]
+#dist = dist + dist.T
 
 #%%
 
@@ -38,32 +37,47 @@ dist = dist + dist.T
 plt.imshow(dist, vmin = 0, vmax = 1)
 plt.colorbar()
 
+# %%
+# Remove nan
+
+empty = np.where(np.isnan(dist))
+
+unique,counts = np.unique(empty, return_counts = True)
+occur = dict(zip(unique, counts))
+individualToRemove = []
+
+toremove = sorted(occur.items(), key=operator.itemgetter(1), reverse=True)
+for key,value in toremove:
+    #print(key)
+    #print(value)
+    if(np.sum(np.isnan(dist[value, :]))>0):
+        dist[value, :] = 0
+        individualToRemove.append(value)
+        del label_given[value]
+    
 #%%
+sub_dist = np.delete(dist, individualToRemove, axis = 1)
+#sub_dist = np.delete(sub_dist, individualToRemove, axis = 1)
 
 empty = np.where(np.isnan(dist))
 full = np.zeros(dist.shape)
 full[empty] = 1
 
 plt.imshow(full)
-
-# %%
-# Remove nan
-individualToRemove = (5, 7, 9, 15, 21, 22)
-sub_dist = np.delete(dist, individualToRemove, axis = 0)
-sub_dist = np.delete(sub_dist, individualToRemove, axis = 1)
-
+#%%
 plt.imshow(sub_dist)
 
 # %%
-empty = np.where(np.isnan(sub_dist))
-full = np.zeros(sub_dist.shape)
-full[empty] = 1
+#empty = np.where(np.isnan(sub_dist))
+#full = np.zeros(sub_dist.shape)
+#full[empty] = 1
 
-plt.imshow(full)
-
+#plt.imshow(full)
+sub_dist = sub_dist[0:2588, 0:2588]
+sub_dist = sub_dist + sub_dist.T
 #%%
 
-lambdas,vect = calc_mds(dist)
+lambdas,vect = calc_mds(sub_dist)
 
 # %%
 plt.figure(figsize = (10.,10.))
