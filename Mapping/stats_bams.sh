@@ -19,7 +19,9 @@ if [ ! -e $x.bam ]
 fi
 if [ ! -e $x.settings ]
   then
-    echo "Could not find ${x}.settings"
+    echo "Could not find ${x}.settings. Will try to make it."
+    ids=($(samtools view -H $x.bam |grep '^@RG' |cut -f 2 |sed 's/ID://'))
+    
     exit 1
 fi
 if [ ! -e ${x}.bam.bai ]

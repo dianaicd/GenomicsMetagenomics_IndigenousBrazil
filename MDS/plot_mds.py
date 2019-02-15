@@ -8,32 +8,40 @@ Created on Mon Jan 21 11:04:03 2019
 #%%
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
-import numpy as np
+import numpy as npç
+import operator
+import re
 # %%
-dist_path = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/Maanasa_mask1_flip_24ind.dist"
+# Read in distance file and labels
+dist_path = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/Maanasa_americas_24indLS_other.dist"
 
-# %%
 #botocudos = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/bam.filelist"
-botocudos = "/Users/dcruz/Projects/Botocudos/Files/Panels/Maanasa_pop.txt"
+#botocudos = "/Users/dcruz/Projects/Botocudos/Files/Panels/Maanasa_pop.txt"
+botocudos = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/pop.24indLS.Maanasa_americas_reheaded_filtered.txt"
 f = open(botocudos)
 label_given = []
 
 for x in f:
     label_given.append(x.strip())
-#label_given = panel
+
+#%%
+# Colors for the plot
+label_given = [re.sub("MN.*", "Botocudos", s) for s in label_given]
+label_given = [re.sub("LS.*", "Lagoa Santa", s) for s in label_given]
+
 labelUnique,index = np.unique(label_given,return_inverse=True)
 colors = cm.rainbow(np.linspace(0, 1, len(labelUnique)))
 color_value = colors[index]
 
 # %%
 dist = np.loadtxt(dist_path)
-#dist = dist[0:23, 023]
-#dist = dist[0:2598, 0:2598]
-#dist = dist + dist.T
+
+# Bug in previous version
+if not dist.shape[0] == dist.shape[1]: 
+    dist = dist[0:dist.shape[0], 0:dist.shape[0]]
+
 
 #%%
-
-
 plt.imshow(dist, vmin = 0, vmax = 1)
 plt.colorbar()
 
@@ -48,32 +56,34 @@ individualToRemove = []
 
 toremove = sorted(occur.items(), key=operator.itemgetter(1), reverse=True)
 for key,value in toremove:
-    #print(key)
-    #print(value)
-    if(np.sum(np.isnan(dist[value, :]))>0):
-        dist[value, :] = 0
-        individualToRemove.append(value)
-        del label_given[value]
-    
-#%%
-sub_dist = np.delete(dist, individualToRemove, axis = 1)
-#sub_dist = np.delete(sub_dist, individualToRemove, axis = 1)
 
-empty = np.where(np.isnan(dist))
+    if(np.sum(np.isnan(dist[:, key]))>0):
+        dist[key, :] = 0
+        individualToRemove.append(key)
+
+for ind in sorted(individualToRemove, reverse = True):
+    del label_given[ind]
+
+#%%
+individualToRemove = sort(individualToRemove)
+
+sub_dist = np.delete(dist, individualToRemove, axis = 1)
+sub_dist = np.delete(sub_dist, individualToRemove, axis = 0)
+
+
+#%%
 full = np.zeros(dist.shape)
 full[empty] = 1
 
 plt.imshow(full)
+plt.colorbar()
+#%%
+plt.imshow(dist)
+plt.colorbar()
 #%%
 plt.imshow(sub_dist)
-
+plt.colorbar()
 # %%
-#empty = np.where(np.isnan(sub_dist))
-#full = np.zeros(sub_dist.shape)
-#full[empty] = 1
-
-#plt.imshow(full)
-sub_dist = sub_dist[0:2588, 0:2588]
 sub_dist = sub_dist + sub_dist.T
 #%%
 
@@ -81,22 +91,39 @@ lambdas,vect = calc_mds(sub_dist)
 
 # %%
 plt.figure(figsize = (10.,10.))
-plt.scatter(vect[:,1], vect[:,2], c = color_value)
+plt.scatter(vect[:,0], vect[:,1], c = color_value)
 plt.legend(labelUnique,scatterpoints=1)
 
 #%%
 plt.figure(figsize = (10.,10.))
 for index_label, label in enumerate(labelUnique):
 	position = np.where(np.array(label_given) == label)
-	plt.scatter(vect[position,0], vect[position,1], c = colors[index_label],
+	plt.scatter(vect[position,0], -vect[position,1], c = colors[index_label],
+   
+          label = label )
+    
+position = np.where(np.array(label_given) == "Botocudos")
+plt.scatter(vect[position,0], -vect[position,1], c = "black",
              label = label )
-#plt.legend(label_given)
+
+position = np.where(np.array(label_given) == "Lagoa Santa")
+plt.scatter(vect[position,0], -vect[position,1], c = "pink",
+             label = label )
+position = np.where(np.array(label_given) == "Karitiana")
+plt.scatter(vect[position,0], -vect[position,1], c = "green",
+             label = label )
+position = np.where(np.array(label_given) == "Surui")
+plt.scatter(vect[position,0], -vect[position,1], c = "orange",
+             label = label )
+position = np.where(np.array(label_given) == "Bajo")
+plt.scatter(vect[position,0], -vect[position,1], c = "red",
+             label = label )
+plt.legend(labelUnique)
 
 # %%
 # plot eigenvalues
- plot(-sort(-lambdas), "o")
+#plt.plot((lambdas), "o")
 
  # %%
  # (should be) Marchenko Pastur
-
-  hist(-sort(-lambdas))
+#plt.hist(-sort(-lambdas)[20:-10], 20)

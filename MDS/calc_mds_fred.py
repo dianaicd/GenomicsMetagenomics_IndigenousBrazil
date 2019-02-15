@@ -36,4 +36,4 @@ def calc_mds(delta) -> None:
 
     coordinates = np.array(coordinates)
     coordinates = coordinates.T
-    return(lambdas, coordinates)
+    return(sort(lambdas), coordinates)
