@@ -21,7 +21,7 @@ if [ ! -e $x.settings ]
   then
     echo "Could not find ${x}.settings. Will try to make it."
     ids=($(samtools view -H $x.bam |grep '^@RG' |cut -f 2 |sed 's/ID://'))
-    
+    ~/data/Git/Botocudos-scripts/Mapping/summary_settings.sh $x "$(echo ${ids[@]})"
     exit 1
 fi
 if [ ! -e ${x}.bam.bai ]
