@@ -60,6 +60,10 @@ def add_key(line):
 # Get reference and alternative alleles
 with open(path_sites, 'r') as sites:        
     [add_key(line) for line in sites.readlines()]
+    
+print(refalt.keys())
+#print("we have "+str(len(refalt.keys()))+" keys. For example " + refalt.keys()[0])
+
 # %%
 
 nInd = int((len(open(path_mpileup, 'r').readline().split("\t")) -3 ) / 3)
