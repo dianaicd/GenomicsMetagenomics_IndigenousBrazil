@@ -56,7 +56,7 @@ all_chr=($(samtools view -H ${x}.bam |grep '@SQ' |cut -f 2 |sed 's/SN://'))
 
 #------------------------------------------------------------------------------#
 # Statistics refering to total reads and trimming
-~/data/Scripts/summary_settings.sh
+#~/data/Scripts/summary_settings.sh
 #------------------------------------------------------------------------------#
 # Endogenous reads
 # Endogenous=all contigs defined in the reference
