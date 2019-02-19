@@ -8,16 +8,16 @@ Created on Mon Jan 21 11:04:03 2019
 #%%
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
-import numpy as npç
+import numpy as np
 import operator
 import re
 # %%
 # Read in distance file and labels
-dist_path = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/Maanasa_americas_24indLS_other.dist"
+dist_path = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/Maanasa_americas.dist"
 
 #botocudos = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/bam.filelist"
 #botocudos = "/Users/dcruz/Projects/Botocudos/Files/Panels/Maanasa_pop.txt"
-botocudos = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/pop.24indLS.Maanasa_americas_reheaded_filtered.txt"
+botocudos = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/Maanasa_americas.inds"
 f = open(botocudos)
 label_given = []
 
@@ -92,38 +92,29 @@ lambdas,vect = calc_mds(sub_dist)
 # %%
 plt.figure(figsize = (10.,10.))
 plt.scatter(vect[:,0], vect[:,1], c = color_value)
-plt.legend(labelUnique,scatterpoints=1)
+plt.legend(labels=labelUnique,scatterpoints=1)
 
 #%%
 plt.figure(figsize = (10.,10.))
 for index_label, label in enumerate(labelUnique):
 	position = np.where(np.array(label_given) == label)
-	plt.scatter(vect[position,0], -vect[position,1], c = colors[index_label],
-   
-          label = label )
-    
-position = np.where(np.array(label_given) == "Botocudos")
-plt.scatter(vect[position,0], -vect[position,1], c = "black",
-             label = label )
-
-position = np.where(np.array(label_given) == "Lagoa Santa")
-plt.scatter(vect[position,0], -vect[position,1], c = "pink",
-             label = label )
+	plt.scatter(vect[position,0], vect[position,1], c = colors[index_label],
+             label = label)
 position = np.where(np.array(label_given) == "Karitiana")
-plt.scatter(vect[position,0], -vect[position,1], c = "green",
+plt.scatter(vect[position,0], vect[position,1], c = "green",
              label = label )
 position = np.where(np.array(label_given) == "Surui")
-plt.scatter(vect[position,0], -vect[position,1], c = "orange",
+plt.scatter(vect[position,0], vect[position,1], c = "pink",
              label = label )
 position = np.where(np.array(label_given) == "Bajo")
-plt.scatter(vect[position,0], -vect[position,1], c = "red",
+plt.scatter(vect[position,0], vect[position,1], c = "red",
              label = label )
-plt.legend(labelUnique)
 
+plt.legend(labelUnique)
 # %%
 # plot eigenvalues
-#plt.plot((lambdas), "o")
+plt.plot((lambdas), "o")
 
  # %%
  # (should be) Marchenko Pastur
-#plt.hist(-sort(-lambdas)[20:-10], 20)
+plt.hist(-sort(-lambdas))
