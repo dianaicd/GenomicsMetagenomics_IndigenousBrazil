@@ -31,7 +31,7 @@ function download_file {
             { sleep 5; echo waking up after 5 seconds; } &
             { sleep 1; echo waking up after 1 second; } &
             wait
-            echo "File $bam might or might not be fully downloaded"
+            echo "File $bam.bam might or might not be fully downloaded"
             fully_retrieved=$(grep -ci "fully retrieved" download_${bam}.txt)
         done
         
@@ -41,34 +41,34 @@ function download_file {
         # We must try to download from zero if it is corrupted.
 
         # Quickcheck of bam
-        echo "Quickcheck of $bam"
-        samtools quickcheck -v $bam > bad_${bam}.fofn \
+        echo "Quickcheck of $bam.bam"
+        samtools quickcheck -v $bam.bam > bad_${bam}.fofn \
 	        && error=0 \
 	        || error=1
-        if [ $error = 1 ] ; then rm $bam ; continue ; fi 
+        if [ $error = 1 ] ; then rm $bam.bam ; continue ; fi 
 
         # index
-        echo "index $bam"
-        samtools index $bam 2>index_${bam}.txt 
+        echo "index $bam.bam"
+        samtools index $bam.bam 2>index_${bam}.txt 
         error=$(wc -l index_${bam}.txt |cut -f1 -d' ')
-        if [ $error > 0 ] ; then is_incomplete=1 ;rm $bam ; continue; fi
+        if [ $error > 0 ] ; then is_incomplete=1 ;rm $bam.bam ; continue; fi
         
         # idxstats
-        echo "idxstats $bam"
-        samtools idxstats $bam 2>idxstats_${bam}.txt 
+        echo "idxstats $bam.bam"
+        samtools idxstats $bam.bam 2>idxstats_${bam}.txt 
         error=$(wc -l idxstats_${bam}.txt |cut -f1 -d' ')
-        if [ $error > 0 ] ; then is_incomplete=1 ; rm $bam ; continue; fi
+        if [ $error > 0 ] ; then is_incomplete=1 ; rm $bam.bam ; continue; fi
 
         # md5
-        echo "md5 $bam"
-        md5sum $bam > md5sum_${bam}.txt  
+        echo "md5 $bam.bam"
+        md5sum $bam.bam > md5sum_${bam}.txt  
         pattern=$(head -n1 md5sum_${bam}.txt | cut -f1 -d ' ')
         # Check if md5 value exists
         match=$(grep -c $pattern $MD5_FILE )
         if [ $match = 0 ]
         then 
             is_incomplete=1
-            rm $bam 
+            rm $bam.bam 
             continue 
         else 
             is_incomplete = 0
@@ -85,7 +85,7 @@ do
         exists=$(grep -c $bam $full_bam_list)
         if [ $exists -gt 0 ]
         then
-            download_file $continent ${bam}.bam &
+            download_file $continent $bam &
         else
             echo "This file does not exist." > complete_${bam}.txt
         fi
