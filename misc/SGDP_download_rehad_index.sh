@@ -2,20 +2,29 @@
 #
 dir_name=$1
 
-is_incomplete=1
+incomplete_downloads=1
+continue_download=1
+fully_retrieved=0
+md5_found=0
 
 # Maybe we ran this script the other day but we do not remember it...
 if [ -e all_complete.txt ]
 then
-    is_incomplete=0
+    incomplete_downloads=0
 fi 
 
 # 1. Try to download
-while [ $is_incomplete = 1 ]
+while [ $incomplete_downloads = 1 ]
 do
     while read line
     do
-     wget -c $line &
+        if [ $continue_download = 1 ]
+        then
+            wget -c $line &
+        else
+            wget -r $line &
+            $continue_download = 1
+        fi
     done < todownload.txt
     # Wait for downloads to finish
     { sleep 5; echo waking up after 5 seconds; } &
@@ -38,8 +47,6 @@ do
     echo "Files might or might not be fully downloaded"
     rm todownload.txt
     is_incomplete=0
-    cat validated.txt tmp_md5.txt > tovalidate.txt
-    rm tmp_md5.txt
 
     # 3. Verify the MD5
     while read line
@@ -60,12 +67,12 @@ do
                 echo $line >> validated.txt
             fi
         fi 
-    done < tovalidate.txt
+    done < tmp_md5.txt
     { sleep 5; echo waking up after 5 seconds; } &
     { sleep 1; echo waking up after 1 second; } &
     wait
 
-    if [ $is_incomplete = 0 ]
+    if [ $incomplete_downloads = 0 ]
     then
         echo "well done" > all_complete.txt
     fi 
