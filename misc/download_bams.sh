@@ -85,7 +85,7 @@ do
         exists=$(grep -c $bam $full_bam_list)
         if [ $exists -gt 0 ]
         then
-            download_file $continent "$bam.bam" &
+            download_file $continent ${bam}.bam &
         else
             echo "This file does not exist." > complete_${bam}.txt
         fi
