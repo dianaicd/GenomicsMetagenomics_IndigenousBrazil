@@ -18,9 +18,9 @@ vcf_path = sys.argv[1]
 counts_path = sys.argv[2]
 path_out_sampled = sys.argv[3]
 # %%
-vcf_path = "/Users/dcruz/Projects/Botocudos/Files/test/88ind_head.vcf"
-counts_path = "/Users/dcruz/Projects/Botocudos/Files/test/88ind_counts.txt"
-path_out_sampled = "/Users/dcruz/Projects/Botocudos/Files/test/88ind_sampled.txt"
+# vcf_path = "/Users/dcruz/Projects/Botocudos/Files/test/88ind_head.vcf"
+# counts_path = "/Users/dcruz/Projects/Botocudos/Files/test/88ind_counts.txt"
+# path_out_sampled = "/Users/dcruz/Projects/Botocudos/Files/test/88ind_sampled.txt"
 # %%
 # Parse VCF format to allele counts
 
