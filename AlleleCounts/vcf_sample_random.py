@@ -15,11 +15,12 @@ import sys
 # %%
 t_0 = time.time()
 vcf_path = sys.argv[1]
-#vcf_path = "/Users/dcruz/Projects/Botocudos/Files/test/88ind_head.vcf"
 counts_path = sys.argv[2]
-#counts_path = "/Users/dcruz/Projects/Botocudos/Files/test/88ind_counts.txt"
 path_out_sampled = sys.argv[3]
-# path_out_sampled = "/Users/dcruz/Projects/Botocudos/Files/test/88ind_sampled.txt"
+# %%
+vcf_path = "/Users/dcruz/Projects/Botocudos/Files/test/88ind_head.vcf"
+counts_path = "/Users/dcruz/Projects/Botocudos/Files/test/88ind_counts.txt"
+path_out_sampled = "/Users/dcruz/Projects/Botocudos/Files/test/88ind_sampled.txt"
 # %%
 # Parse VCF format to allele counts
 
@@ -44,11 +45,14 @@ start = time.time()
 counts = open(counts_path, "w")
 with open(vcf_path, 'r') as vcf:
     number_comments = 0
-    while re.match("#", vcf.readline()):
+    line = vcf.readline()
+    while re.match("#", line):
+        line = vcf.readline()
         number_comments += 1
         continue
     print("Number of lines starting with #")
     print(number_comments)
+    counts.write(parse_genos(line))
 
     [counts.write(parse_genos(line)) for line in vcf.readlines()]
 
