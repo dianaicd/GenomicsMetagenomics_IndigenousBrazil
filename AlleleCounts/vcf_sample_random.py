@@ -43,9 +43,15 @@ start = time.time()
 # Skip header and get nInd
 counts = open(counts_path, "w")
 with open(vcf_path, 'r') as vcf:
+    number_comments = 0
     while re.match("#", vcf.readline()):
+        number_comments += 1
         continue
+    print("Number of lines starting with #")
+    print(number_comments)
+
     [counts.write(parse_genos(line)) for line in vcf.readlines()]
+
 
 counts.close()
 end = time.time()
