@@ -13,6 +13,7 @@ import time
 import numpy.ma as ma
 import sys
 # %%
+t_0 = time.time()
 vcf_path = sys.argv[1]
 #vcf_path = "/Users/dcruz/Projects/Botocudos/Files/test/88ind_head.vcf"
 counts_path = sys.argv[2]
@@ -37,21 +38,25 @@ def parse_genos(line):
     return(parsed_line)
 
 # %%
+print("Parsing VCF to counts.")
+start = time.time()
 # Skip header and get nInd
 counts = open(counts_path, "w")
 with open(vcf_path, 'r') as vcf:
     while re.match("#", vcf.readline()):
-                   continue
+        continue
     [counts.write(parse_genos(line)) for line in vcf.readlines()]
 
 counts.close()
+end = time.time()
+print(end - start)
 # %%
-
+print("Loading counts, finding reference and alternative.")
+start = time.time()
 counts = np.loadtxt(counts_path)
 
 # %%
 # Dimensions
-print("Doing other things")
 start = time.time()
 nSites, nInd = counts.shape
 
@@ -62,9 +67,12 @@ nInd = int(nInd/2)
 counts_ref = ma.array(counts[:, index_ref])
 counts_alt = ma.array(counts[:, index_alt])
 del counts
-
+end = time.time()
+print(end - start)
 # %%
 # Find missing data
+print("Finding and masking missing data.")
+start = time.time()
 missing_data = np.logical_and(counts_ref==0, counts_alt==0)
 
 # %%
@@ -77,18 +85,23 @@ lonely_alleles = counts_ref[np.where(only_one)] > 0
 to_mask = np.logical_or(only_one, missing_data)
 counts_ref[to_mask] = ma.masked
 counts_alt[to_mask] = ma.masked
-
+end = time.time()
+print(end - start)
 # %%
 # Calculate base frequencies
-
+print("Calculating allele frequencies.")
+start = time.time()
 freqs = counts_ref/(counts_ref + counts_alt)
 heterozygote = np.zeros(freqs.shape)+0.5
 
 alt_is_major_allele = np.where(ma.less(freqs,heterozygote ))
 freqs[alt_is_major_allele] = 1 - freqs[alt_is_major_allele]
-
+end = time.time()
+print(end - start)
 # %%
 # Sample
+print("Sampling alleles.")
+start = time.time()
 probs = np.random.sample(size = missing_data.shape)
 
 sampled = ma.less(probs, freqs)
@@ -106,3 +119,7 @@ alleles[np.where(ma.equal(sampled, False))] = 1
 end = time.time()
 print(end - start)
 np.savetxt(fname = path_out_sampled, X = alleles, fmt = "%1.f")
+
+t_end = time.time()
+print("Total time:")
+print(t_end - t_0)
