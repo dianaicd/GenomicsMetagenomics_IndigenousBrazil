@@ -14,7 +14,7 @@ import sys
 # %%
 path_mpileup = sys.argv[1]
 path_out_counts = sys.argv[2]
-path_out_sampled = sys.argv[3] 
+path_out_sampled = sys.argv[3]
 path_sites = sys.argv[4]
 
 #%%
@@ -40,11 +40,13 @@ def parse_line(pileup, nInd):
     for p in matches:
         pattern = re.compile("[+|-]" + str(abs(p)) + ".{" + str(abs(p)) +"}")
         parsed = re.sub(pattern, "", parsed)
-    
+
     # Count matches
     allele_counts = []
     for ind in range(0, nInd):
         i = 3*ind + 4
+        print("Value of i:")
+        print(i)
         # for base in ref, alt
         pos = parsed.split("\t")[0] + "_" + parsed.split("\t")[1]
         for base in refalt[pos]:
@@ -58,10 +60,10 @@ def add_key(line):
     refalt[line.split()[0]] = [int(line.split()[1]), int(line.split()[2])]
 # %%
 # Get reference and alternative alleles
-with open(path_sites, 'r') as sites:        
+with open(path_sites, 'r') as sites:
     [add_key(line) for line in sites.readlines()]
-    
-print(refalt.keys())
+
+#print(refalt.keys())
 #print("we have "+str(len(refalt.keys()))+" keys. For example " + refalt.keys()[0])
 
 # %%
@@ -116,7 +118,7 @@ alt_is_major_allele = np.where(freqs < 0.5)
 freqs[alt_is_major_allele] = 1 - freqs[alt_is_major_allele]
 
 # %%
-# Sample 
+# Sample
 probs = np.random.sample(size = missing_data.shape)
 
 sampled = probs < freqs
