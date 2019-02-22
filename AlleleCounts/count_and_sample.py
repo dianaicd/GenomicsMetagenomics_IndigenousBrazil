@@ -32,7 +32,8 @@ refalt = {}
 def parse_line(pileup, nInd):
     # remove missing, beginning, end
     #pattern = "\*|\^.|\$"
-
+    # Get olnly the columns with the bases
+    pileup = pileup[range(4, nInd*3, 3)]
     pattern = "\^."
     parsed = re.sub(pattern, "", pileup)
     pattern = re.compile(r"\+\d+|\-\d+")
@@ -45,13 +46,13 @@ def parse_line(pileup, nInd):
     # Count matches
     allele_counts = []
     for ind in range(0, nInd):
-        i = 3*ind + 4
+        i += 1#3*ind + 4
         #print("Value of i:")
 
         # for base in ref, alt
         pos = parsed.split("\t")[0] + "_" + parsed.split("\t")[1]
         print(pos)
-        string = parsed.split("\t")[i]
+        string = parsed.split("\t")[ind]
         for base in refalt[pos]:
             pattern = base_column[base]
             count = len(tuple(re.finditer(pattern, string, flags = re.I)))
