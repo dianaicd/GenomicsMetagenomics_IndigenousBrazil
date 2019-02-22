@@ -49,7 +49,7 @@ def parse_line(pileup, nInd):
     allele_counts = []
     for ind in range(0, nInd):
         # for base in ref, alt
-                string = parsed.split("\t")[ind]
+        string = parsed.split("\t")[ind]
         for base in refalt[pos]:
             pattern = base_column[base]
             count = len(tuple(re.finditer(pattern, string, flags = re.I)))
