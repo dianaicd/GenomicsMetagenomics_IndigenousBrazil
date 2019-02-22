@@ -45,12 +45,14 @@ def parse_line(pileup, nInd):
     allele_counts = []
     for ind in range(0, nInd):
         i = 3*ind + 4
-        print("Value of i:")
+        #print("Value of i:")
         print(i)
         # for base in ref, alt
         pos = parsed.split("\t")[0] + "_" + parsed.split("\t")[1]
+        string = parsed.split("\t")[i]
+        pattern = base_column[base]
         for base in refalt[pos]:
-            count = len(tuple(re.finditer(base_column[base], parsed.split("\t")[i], flags = re.I)))
+            count = len(tuple(re.finditer(pattern, string, flags = re.I)))
             allele_counts.append(count)
 
     return(allele_counts)
