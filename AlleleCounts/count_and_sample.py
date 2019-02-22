@@ -34,7 +34,7 @@ def parse_line(pileup, nInd):
     #pattern = "\*|\^.|\$"
     # Get olnly the columns with the bases
     pos = pileup.split("\t")[0] + "_" + pileup.split("\t")[1]
-    pileup = "_".join(pileup.split("\t")[4:(nInd*3+8):3])
+    pileup = "\t".join(pileup.split("\t")[4:(nInd*3+8):3])
     print(pileup)
     
     pattern = "\^."
