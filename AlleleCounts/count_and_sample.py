@@ -46,7 +46,7 @@ def parse_line(pileup, nInd):
     # Count matches
     allele_counts = []
     for ind in range(0, nInd):
-        i += 1#3*ind + 4
+      #  i += 1#3*ind + 4
         #print("Value of i:")
 
         # for base in ref, alt
