@@ -33,6 +33,7 @@ def parse_line(pileup, nInd):
     # remove missing, beginning, end
     #pattern = "\*|\^.|\$"
     # Get olnly the columns with the bases
+    pos = pileup.split("\t")[0] + "_" + pileup.split("\t")[1]
     pileup = pileup[4:(nInd*3+3):3]
     pattern = "\^."
     parsed = re.sub(pattern, "", pileup)
@@ -50,7 +51,7 @@ def parse_line(pileup, nInd):
         #print("Value of i:")
 
         # for base in ref, alt
-        pos = parsed.split("\t")[0] + "_" + parsed.split("\t")[1]
+        
         print(pos)
         string = parsed.split("\t")[ind]
         for base in refalt[pos]:
