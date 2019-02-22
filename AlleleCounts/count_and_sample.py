@@ -33,7 +33,7 @@ def parse_line(pileup, nInd):
     # remove missing, beginning, end
     #pattern = "\*|\^.|\$"
     # Get olnly the columns with the bases
-    pileup = pileup[range(4, nInd*3, 3)]
+    pileup = pileup[4:(nInd*3+3):3)]
     pattern = "\^."
     parsed = re.sub(pattern, "", pileup)
     pattern = re.compile(r"\+\d+|\-\d+")
