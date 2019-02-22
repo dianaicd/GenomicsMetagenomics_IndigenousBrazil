@@ -26,12 +26,14 @@ path_sites = sys.argv[4]
 # %%
 base_column = {0:"A", 1:"C", 2:"G", 3:"T"}
 refalt = {}
-
+j = 0
 # %%
 # Parse the amazing mpileup format
 def parse_line(pileup, nInd):
     # remove missing, beginning, end
     #pattern = "\*|\^.|\$"
+    j += 1
+    print(j)
     pattern = "\^."
     parsed = re.sub(pattern, "", pileup)
     pattern = re.compile(r"\+\d+|\-\d+")
@@ -46,7 +48,7 @@ def parse_line(pileup, nInd):
     for ind in range(0, nInd):
         i = 3*ind + 4
         #print("Value of i:")
-        print(i)
+
         # for base in ref, alt
         pos = parsed.split("\t")[0] + "_" + parsed.split("\t")[1]
         string = parsed.split("\t")[i]
