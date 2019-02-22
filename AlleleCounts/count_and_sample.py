@@ -35,7 +35,6 @@ def parse_line(pileup, nInd):
     # Get olnly the columns with the bases
     pos = pileup.split("\t")[0] + "_" + pileup.split("\t")[1]
     pileup = "\t".join(pileup.split("\t")[4:(nInd*3+8):3])
-    print(pileup)
     
     pattern = "\^."
     parsed = re.sub(pattern, "", pileup)
@@ -49,13 +48,8 @@ def parse_line(pileup, nInd):
     # Count matches
     allele_counts = []
     for ind in range(0, nInd):
-      #  i += 1#3*ind + 4
-        #print("Value of i:")
-
         # for base in ref, alt
-        
-        print(pos)
-        string = parsed.split("\t")[ind]
+                string = parsed.split("\t")[ind]
         for base in refalt[pos]:
             pattern = base_column[base]
             count = len(tuple(re.finditer(pattern, string, flags = re.I)))
