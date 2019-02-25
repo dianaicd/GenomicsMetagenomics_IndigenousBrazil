@@ -19,7 +19,7 @@ then
 fi
 
 libs=($(samtools view -H ${bam}.bam |grep "^@RG" |cut -f 3 | \
-        sed 's/LB://' \sort | uniq))
+        sed 's/LB://' |sort | uniq))
 nlibs=$(echo ${#libs[*]})
 
 echo "The file $bam.bam contains $nlibs library(ies)."
