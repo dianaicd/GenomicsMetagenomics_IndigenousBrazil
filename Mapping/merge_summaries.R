@@ -1,7 +1,7 @@
 setwd("/scratch/beegfs/monthly/dcruzdva/Botocudos/BAM/2018_10_23/test")
 library(plyr)
 files <- list.files()
-index <- grepl("reshaped", files)
+index <- grepl(".summary$", files)
 files <- files[index]
 boto <- data.frame()
 for(f in files){
@@ -15,5 +15,5 @@ for(f in files){
 }
 
 write.table(boto,
-            "/scratch/beegfs/monthly/dcruzdva/Botocudos/BAM/2018_10_23/test/Quack_libs.summary",
+            paste("Botocudos_summary_", Sys.Date(), ".table", sep = ""),
             row.names = F, col.names = T, quote = F)

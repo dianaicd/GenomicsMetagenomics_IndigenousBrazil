@@ -18,10 +18,10 @@ path_out_sampled = sys.argv[3]
 path_sites = sys.argv[4]
 
 #%%
-#path_mpileup = "/Users/dcruz/Projects/Botocudos/Files/test/test_mpileup.txt"
-#path_out_counts = "/Users/dcruz/Projects/Botocudos/Files/test/test_counts.gz"
-#path_out_sampled = "/Users/dcruz/Projects/Botocudos/Files/test/test_sampled.gz"
-#path_sites = "/Users/dcruz/Projects/Botocudos/Files/test/mpileup.sites.txt"
+path_mpileup = "/Users/dcruz/Projects/Botocudos/Files/test/1.mpileup"
+path_out_counts = "/Users/dcruz/Projects/Botocudos/Files/test/test_counts.gz"
+path_out_sampled = "/Users/dcruz/Projects/Botocudos/Files/test/test_sampled.gz"
+path_sites = "/Users/dcruz/Projects/Botocudos/Files/test/sites.refalt"
 
 # %%
 base_column = {0:"A", 1:"C", 2:"G", 3:"T"}
@@ -84,7 +84,7 @@ np.savetxt(fname = path_out_counts, X = counts, fmt = "%1.f")
 
 # %%
 # Dimensions
-print("Doing other things")
+print("Subsetting reference and alternative alleles.")
 start = time.time()
 nSites, nInd = counts.shape
 
@@ -98,33 +98,41 @@ del counts
 
 # %%
 # Find missing data
+print("Finding missing data")
 missing_data = np.logical_and(counts_ref==0, counts_alt==0)
 
 # %%
 # Find sites where there is only one allele
+print("Finding wites for which there is only one allele.")
 only_one = np.logical_xor(counts_ref, counts_alt)
 lonely_alleles = counts_ref[np.where(only_one)] > 0
 
 # %%
 # Mask array where data are missing or there is only one allele
+print("Mask sites where data re missing or have only one allele.")
 to_mask = np.logical_or(only_one, missing_data)
 counts_ref[to_mask] = ma.masked
 counts_alt[to_mask] = ma.masked
 
 # %%
 # Calculate base frequencies
-
+print("Calculate base frequencies")
+# Frequencies of the reference allele
 freqs = counts_ref/(counts_ref + counts_alt)
 
 alt_is_major_allele = np.where(freqs < 0.5)
+# Where alternative allele is at higher frequency,
+# switch the reported 
 freqs[alt_is_major_allele] = 1 - freqs[alt_is_major_allele]
 
 # %%
 # Sample
+print("Sampling random alleles")
 probs = np.random.sample(size = missing_data.shape)
 
-sampled = probs < freqs
-sampled[alt_is_major_allele] = np.logical_not(sampled[alt_is_major_allele])
+sampled = ma.less_equal(probs, freqs)
+
+sampled[alt_is_major_allele] = ma.logical_not(sampled[alt_is_major_allele])
 # %%
 del probs
 del freqs
