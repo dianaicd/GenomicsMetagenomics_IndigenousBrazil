@@ -9,7 +9,6 @@ Created on Mon Feb 18 13:58:59 2019
 import numpy as np
 import numpy.ma as ma
 import sys
-# Use genotype likelihoods to compute the distance matrix
 
 
 # %%
