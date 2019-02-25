@@ -50,10 +50,10 @@ done
 # Make a .settings file per sample
 if [ ! -e ${bam}.settings ]
 then
-  ~/data/Scripts/summary_settings.sh $bam "$(echo ${libs[@]})"
+  ~/data/Git/Botocudos-scripts/Mapping/summary_settings.sh $bam "$(echo ${libs[@]})"
 fi
 
-settings=$(~/data/Scripts/summary_settings.sh $bam "$(echo ${libs[@]})")
+settings=$(~/data/Git/Botocudos-scripts/Mapping/summary_settings.sh $bam "$(echo ${libs[@]})")
 #-------------------------------------------------------------------------------
 if [ ! -e ${bam}_depth.txt ]
 then
@@ -62,7 +62,7 @@ fi
 
 chrs=($(samtools view -H ${bam}.bam |grep "^@SQ" |sed 's/SN://' |cut -f 2))
 seq_retained_reads=$(echo $settings |cut -f 4 -d ' ')
-endogenous=$(~/data/Scripts/count_hits.sh $bam "$(echo ${chrs[@]})" ${seq_retained_reads} endo)
+endogenous=$(~/data/Git/Botocudos-scripts/Mapping/count_hits.sh $bam "$(echo ${chrs[@]})" ${seq_retained_reads} endo)
 
 if [ $organism = "Human" ]
 then
@@ -70,8 +70,8 @@ then
   nuclear_chr=( "${chrs[@]/$mito_chr}")
 
 
-  nuclear=$(~/data/Scripts/count_hits.sh $bam "$(echo ${nuclear_chr[@]})" ${seq_retained_reads} nuclear)
-  mitochondrial=$(~/data/Scripts/count_hits.sh $bam "$(echo ${mito_chr[@]})" ${seq_retained_reads} MT)
+  nuclear=$(~/data/Git/Botocudos-scripts/Mapping/count_hits.sh $bam "$(echo ${nuclear_chr[@]})" ${seq_retained_reads} nuclear)
+  mitochondrial=$(~/data/Git/Botocudos-scripts/Mapping/count_hits.sh $bam "$(echo ${mito_chr[@]})" ${seq_retained_reads} MT)
 
   echo "Target Sample Library lib_type seq_reads_se seq_trash_se seq_trash_se_frac \
 seq_retained_reads seq_retained_nts seq_retained_length hits_raw_endogenous \
