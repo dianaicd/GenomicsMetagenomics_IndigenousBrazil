@@ -1,0 +1,68 @@
+---
+title: "Report February 25th, 2019"
+author: "Cruz-Dávalos, Diana I."
+date: "7/23/2018"
+output: 
+  html_document:
+    theme: "lumen"
+    highlight: "tango"
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message = F, warning = F)
+```
+
+
+```{r libraries}
+library(cowplot)
+library(ggplot2)
+```
+
+
+```{r}
+scripts <- c("misc/translate_ids.R", "Plotting/length_distribution_plot.R",
+             "Plotting/preseq_only_plots.R", "Plotting/ry_plot.R", "Plotting/engoenous_plot.R",
+             "Plotting/mapDamage_plot.R", "Plotting/reads_summaries_plots.R",
+             "misc/order_endo.R")
+for(x in scripts){
+  source(paste("~/Projects/Botocudos/Scripts/", x, sep = ""))
+}
+```
+
+```{r load boto}
+boto <- read.table("~/Projects/Botocudos/Files/Summaries/2019_02_25/Botocudos_summary_2019-02-25.table",
+                   header = T, stringsAsFactors = F)
+  boto <- boto[order(boto$hits_unique_frac_endogenous),]
+  boto$Library <- factor(boto$Library, 
+                         levels = boto$Library[order(boto$hits_unique_frac_endogenous)],
+                         ordered = T)
+  
+  
+```
+
+```{r summary}
+png("~/Projects/Botocudos/Plots/Sequencing/sequenced.png",
+    width = 9.5, height = 4.5, units = "in", res = 250)
+summary_reads_plot(boto = boto)
+dev.off()
+```
+
+```{r coverage}
+boto$Library <- factor(boto$Library, 
+                       levels = boto$Library[order(boto$hits_coverage_nuclear)])
+
+png("~/Projects/Botocudos/Plots/Sequencing/depth.png",
+    width = 15, height = 8, res = 250, units = "in")
+ggplot(boto, 
+       aes(x = Library, y = hits_coverage_nuclear)) +
+  geom_bar(stat = "identity", fill = "brown3") + 
+  labs(x = NULL, y = "Depth of coverage", title = "Depth of coverage") +
+  theme(axis.text.x = element_text(angle = 90)) +
+  annotate("text", x = seq(1,24), 
+           y = boto$hits_coverage_nuclear[order(boto$hits_coverage_nuclear)]+0.1,
+           label = prettyNum(boto$hits_coverage_nuclear[order(boto$hits_coverage_nuclear)], digits = 2))
+dev.off()
+```
+
+

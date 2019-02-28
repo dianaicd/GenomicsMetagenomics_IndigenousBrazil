@@ -5,7 +5,7 @@ ggendogenous <- function(boto, fill = "midnightblue", color = "midnightblue", la
   rounds <- length(color)
   if(lanes){
     p <- ggplot(boto[boto$Library != "*", ],
-                aes(x = Library, y = hits_unique_frac.endogenous.,
+                aes(x = Library, y = hits_unique_frac_endogenous,
                     fill = boto[,fill])) +
       geom_hline(yintercept = seq(0.05, 0.3, 0.05), lty = "dotted",
                  size = 0.1, colour = "black") +
@@ -15,7 +15,7 @@ ggendogenous <- function(boto, fill = "midnightblue", color = "midnightblue", la
       scale_fill_manual(values = color, name = "Sequencing") 
   }else{
     p <- ggplot(boto[boto$Library != "*", ],
-                aes(x = Library, y = hits_unique_frac.endogenous.)) +
+                aes(x = Library, y = hits_unique_frac_endogenous)) +
       geom_hline(yintercept = seq(0.05, 0.3, 0.05), lty = "dotted",
                  size = 0.1, colour = "black") +
       geom_hline(yintercept = seq(0.075, 0.3, 0.05), lty = "dotted",
@@ -45,7 +45,7 @@ ggendogenous <- function(boto, fill = "midnightblue", color = "midnightblue", la
     annotate("text", x = 24, y = 0.37, label = "35%")
   return(p)
   
-  # hist(boto$hits_unique_frac.endogenous.[boto$Library != "*"], 
+  # hist(boto$hits_unique_frac_endogenous[boto$Library != "*"], 
   #      breaks = c(0, 0.01, seq(0.01, 0.4, 0.02)), freq = T, xlab = "Endogenous content (fraction)", 
   #      main = "Histogram of frequencies", col = "firebrick1", border = "white") 
   # grid()
