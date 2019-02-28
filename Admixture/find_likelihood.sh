@@ -1,10 +1,11 @@
   # find the best replicate
-  panel=88ind_nodamage
-  ind=24ind
+  panel=$1 #88ind_nodamage
+  ind=$2 #24ind
+  
+  n=$3 #10
+  rep=$4 #10
+  program=$5 #"ngsAdmix"
   pref=likelihoods
-  n=10
-  rep=10
-  program="ngsAdmix"
 
   if [ $program = "ADMIXTURE" ]
     then
