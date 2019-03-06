@@ -1,0 +1,52 @@
+---
+title: "Virus_2019_03_01"
+author: "DI Cruz Dávalos"
+date: "3/1/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+On February 28th, I received a set of files *_OneHit_BLAST6 from Yami.
+I will transform those data.
+
+```{r}
+setwd("~/Projects/Botocudos/Files/Microbiome/Virome/OneHitBLAST6_unmapped/")
+
+virusHost <- read.csv("~/Projects/Botocudos/Files/Microbiome/Virome/virushostdb.tsv",
+                        header = T, sep = "\t")
+index <- grep("Homo", virusHost$host.lineage)
+length(index)
+
+```
+
+```{r}
+ind <- "MN00346"
+
+name <- paste("~/Projects/Botocudos/Files/Microbiome/Virome/OneHitBLAST6_unmapped/",
+              ind, "_OneHit_BLAST6", sep = "")
+
+hits <- read.table(name)
+colnames(hits) <- c(ID de la secuencia query, ID de la secuencia subject, % de identidad, longitud de alineamiento, longitud del query, longitud del subject, mismatch, gapopen, inicio de query,  fin de query, inicio de subject, fin de subject, evalue y por último, pero no menos importante el bitscore)
+```
+
+## Parvovirus B19 
+
+```{r}
+
+# 20 samples analyzed in Muhlemann et al., 2018
+
+barbara <- data.frame(sample=c("DA55", "DA66", "DA68", "DA251", "DA336",
+                    "DA337", "RISE392", "RISE569"),
+           sequenced = c(164355731-69084710, 55312203-26452823, 104147704-29090703, 210122856-26853705,
+                         91827389-40179131,98281097-62573101,
+                         424657845 - (61124739*(1/0.46)), 158418355- (8420687*(1/0.88))),
+           found = c(62, 541, 187, 150, 218,1378,107,1494 ))
+boto <- c(0.04, 0.38, 0.28, 0.02, 0.11, 0.07, 0.07, 0.65, 0.35, 1.86)
+
+hist(barbara$found/barbara$sequenced*1e6, breaks = 150, xlab = "B19V reads per million sequenced reads",
+     main = "Mühlemann et al. 2018 (8 samples)")
+abline(v = boto, col = "red")
+```
