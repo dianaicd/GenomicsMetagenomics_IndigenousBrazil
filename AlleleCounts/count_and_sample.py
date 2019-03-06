@@ -105,11 +105,12 @@ missing_data = np.logical_and(counts_ref==0, counts_alt==0)
 # Find sites where there is only one allele
 print("Finding wites for which there is only one allele.")
 only_one = np.logical_xor(counts_ref, counts_alt)
-lonely_alleles = counts_ref[np.where(only_one)] > 0
+# True if observing only alternative alleles
+lonely_alleles = counts_alt[np.where(only_one)] >0
 
 # %%
 # Mask array where data are missing or there is only one allele
-print("Mask sites where data re missing or have only one allele.")
+print("Mask sites where data are missing or have only one allele.")
 to_mask = np.logical_or(only_one, missing_data)
 counts_ref[to_mask] = ma.masked
 counts_alt[to_mask] = ma.masked
@@ -118,20 +119,21 @@ counts_alt[to_mask] = ma.masked
 # Calculate base frequencies
 print("Calculate base frequencies")
 # Frequencies of the reference allele
-freqs = counts_ref/(counts_ref + counts_alt)
+freq_ref = counts_ref/(counts_ref + counts_alt)
 
-alt_is_major_allele = np.where(freqs < 0.5)
-# Where alternative allele is at higher frequency,
-# switch the reported 
-freqs[alt_is_major_allele] = 1 - freqs[alt_is_major_allele]
+alt_is_major_allele = np.where(freq_ref < 0.5)
+
+#freq_ref[alt_is_major_allele] = 1 - freq_ref[alt_is_major_allele]
 
 # %%
 # Sample
 print("Sampling random alleles")
 probs = np.random.sample(size = missing_data.shape)
 
-sampled = ma.less_equal(probs, freqs)
+sampled = ma.less_equal(probs, freq_ref)
 
+# Where alternative allele is at higher frequency,
+# switch the selected allele
 sampled[alt_is_major_allele] = ma.logical_not(sampled[alt_is_major_allele])
 # %%
 del probs
