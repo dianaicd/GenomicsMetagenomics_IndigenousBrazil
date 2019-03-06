@@ -105,8 +105,8 @@ missing_data = np.logical_and(counts_ref==0, counts_alt==0)
 # Find sites where there is only one allele
 print("Finding wites for which there is only one allele.")
 only_one = np.logical_xor(counts_ref, counts_alt)
-# True if observing only alternative alleles
-lonely_alleles = counts_alt[np.where(only_one)] >0
+# True if observing only reference alleles
+lonely_alleles = counts_ref[np.where(only_one)] >0
 
 # %%
 # Mask array where data are missing or there is only one allele
