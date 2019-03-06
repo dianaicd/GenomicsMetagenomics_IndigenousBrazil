@@ -18,10 +18,10 @@ path_out_sampled = sys.argv[3]
 path_sites = sys.argv[4]
 
 #%%
-path_mpileup = "/Users/dcruz/Projects/Botocudos/Files/test/1.mpileup"
-path_out_counts = "/Users/dcruz/Projects/Botocudos/Files/test/test_counts.gz"
-path_out_sampled = "/Users/dcruz/Projects/Botocudos/Files/test/test_sampled.gz"
-path_sites = "/Users/dcruz/Projects/Botocudos/Files/test/sites.refalt"
+#path_mpileup = "/Users/dcruz/Projects/Botocudos/Files/test/1.mpileup"
+#path_out_counts = "/Users/dcruz/Projects/Botocudos/Files/test/test_counts.gz"
+#path_out_sampled = "/Users/dcruz/Projects/Botocudos/Files/test/test_sampled.gz"
+#path_sites = "/Users/dcruz/Projects/Botocudos/Files/test/sites.refalt"
 
 # %%
 base_column = {0:"A", 1:"C", 2:"G", 3:"T"}
