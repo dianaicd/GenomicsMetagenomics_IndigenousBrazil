@@ -137,7 +137,7 @@ sampled = ma.less_equal(probs, freq_ref)
 sampled[alt_is_major_allele] = ma.logical_not(sampled[alt_is_major_allele])
 # %%
 del probs
-del freqs
+del freq_ref
 del alt_is_major_allele
 # %%
 alleles = np.empty(sampled.shape)
