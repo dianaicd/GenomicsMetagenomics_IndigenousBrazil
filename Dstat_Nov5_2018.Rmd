@@ -1,0 +1,23 @@
+---
+title: "Dstat"
+author: "Cruz-Dávalos, Diana I."
+date: "5/11/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, cache = T)
+library(ggplot2)
+library(colorspace)
+source("~/Projects/Botocudos/Scripts/Dstat/plot_dstat.R")
+```
+
+
+```{r}
+my_plot <- plot_dstat(directory = "~/Projects/Botocudos/Files/Dstat/2018_10_31/",
+                       fileName = "MN0008_rmtrans.txt",
+                       h3 = "French",
+                       h2 =  "Mixe", start = 0, end = 0.1, pval = 0.05, c)
+
+print(my_plot)
+```
