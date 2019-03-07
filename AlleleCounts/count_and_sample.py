@@ -142,8 +142,8 @@ print("Sampling random alleles")
 probs = np.random.sample(size = missing_data.shape)
 
 sampled = ma.less_equal(probs, freq_ref)
-sampled[alt_is_major_allele] = ma.greater(probs[alt_is_major_allele], 
-       freq_ref[alt_is_major_allele])
+#sampled[alt_is_major_allele] = ma.greater(probs[alt_is_major_allele], 
+#       freq_ref[alt_is_major_allele])
 # Where alternative allele is at higher frequency,
 # switch the selected allele
 #sampled[alt_is_major_allele] = ma.logical_not(sampled[alt_is_major_allele])
