@@ -118,11 +118,12 @@ print(np.sum(missing_data[:,0]))
 print("Calculate base frequencies")
 
 # Frequencies of the reference allele
-freq_ref = counts_ref/(counts_ref + counts_alt)
-alt_is_major_allele = ma.where(freq_ref < 0.5)
+freq = counts_ref/(counts_ref + counts_alt)
+alt_is_major_allele = ma.where(freq < 0.5)
+freq[alt_is_major_allele] = 1 - freq[alt_is_major_allele]
 
 print("frequencies for ind1:")
-x = freq_ref[freq_ref[:,0].mask == False, 0]
+x = freq[freq[:,0].mask == False, 0]
 print(x)
 print("Sites where alt is major allele in ind1")
 print(alt_is_major_allele[0][ma.where(alt_is_major_allele[1] == 0)])
@@ -141,15 +142,15 @@ print(alt_is_major_allele[0][ma.where(alt_is_major_allele[1] == 0)])
 print("Sampling random alleles")
 probs = np.random.sample(size = missing_data.shape)
 
-sampled = ma.less_equal(probs, freq_ref)
+sampled = ma.less_equal(probs, freq)
 #sampled[alt_is_major_allele] = ma.greater(probs[alt_is_major_allele], 
 #       freq_ref[alt_is_major_allele])
 # Where alternative allele is at higher frequency,
 # switch the selected allele
-#sampled[alt_is_major_allele] = ma.logical_not(sampled[alt_is_major_allele])
+sampled[alt_is_major_allele] = ma.logical_not(sampled[alt_is_major_allele])
 # %%
 del probs
-del freq_ref
+del freq
 del alt_is_major_allele
 # %%
 # True if observing only alternative alleles
