@@ -9,7 +9,7 @@ Created on Mon Feb 18 13:58:59 2019
 import numpy as np
 import numpy.ma as ma
 import sys
-
+import time
 
 # %%
 counts_name = sys.argv[1]
@@ -17,7 +17,7 @@ dist_name = sys.argv[2]
 # %%
 print("Input file: " + counts_name)
 # "/Users/dcruz/Projects/Botocudos/Files/test/head.beagle"
-
+start = time.time()
 counts = np.loadtxt(counts_name)
 
 # %%
@@ -36,16 +36,22 @@ def distance_ind(ind1, ind2):
 
 print("Number of individuals: " + str(nInd))
 print("Number of markers: " + str(nSNP))
-
+end = time.time()
+print(end - start)
 # %%
-
+start = time.time()
 final_dist = np.zeros(shape = (nInd, nInd))
 for i in range(0, nInd):
     for j in range(0, nInd):
         if i < j:
             final_dist[i][j] = distance_ind(counts[:,i], counts[:, j])
+end = time.time()
 
+print(end - start)
 # %%
+start = time.time()
 print("Distance file: " + dist_name)
 np.savetxt(fname=dist_name, fmt='%.6f',
            X=final_dist, delimiter='\t')
+end = time.time()
+print(end - time)
