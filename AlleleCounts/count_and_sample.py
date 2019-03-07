@@ -104,23 +104,14 @@ print("Finding missing data")
 missing_data = np.logical_and(np.equal(counts_ref, 0),
                               np.equal(counts_alt, 0))
 
-# %%
-# Find sites where there is only one allele
-print("Finding sites for which there is only one allele.")
-only_one = np.logical_xor(counts_ref, counts_alt)
-
-print("Sites with only one allele (ind1)")
-print(np.sum(only_one[:,0]))
-
-# %%
-# Mask array where data are missing or there is only one allele
+# Mask array where data are missing 
 print("Mask sites where data are missing or have only one allele.")
-to_mask = np.logical_or(only_one, missing_data)
-counts_ref[to_mask] = ma.masked
-counts_alt[to_mask] = ma.masked
+#to_mask = np.logical_or(only_one, missing_data)
+counts_ref[missing_data] = ma.masked
+counts_alt[missing_data] = ma.masked
 
 print("Sites masked in ind1:")
-print(np.sum(to_mask[:,0]))
+print(np.sum(missing_data[:,0]))
 
 # %%
 # Calculate base frequencies
@@ -135,6 +126,14 @@ print(freq_ref[:,0])
 print("Sites where alt is major allele in ind1")
 print(alt_is_major_allele[0][ma.where(alt_is_major_allele[1] == 0)])
 #freq_ref[alt_is_major_allele] = 1 - freq_ref[alt_is_major_allele]
+
+# %%
+# Find sites where there is only one allele
+#print("Finding sites for which there is only one allele.")
+#only_one = np.logical_xor(counts_ref, counts_alt)
+
+#print("Sites with only one allele (ind1)")
+#print(np.sum(only_one[:,0]))
 
 # %%
 # Sample
