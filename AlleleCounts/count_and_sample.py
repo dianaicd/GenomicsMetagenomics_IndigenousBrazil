@@ -130,14 +130,6 @@ print(alt_is_major_allele[0][ma.where(alt_is_major_allele[1] == 0)])
 #freq_ref[alt_is_major_allele] = 1 - freq_ref[alt_is_major_allele]
 
 # %%
-# Find sites where there is only one allele
-#print("Finding sites for which there is only one allele.")
-#only_one = np.logical_xor(counts_ref, counts_alt)
-
-#print("Sites with only one allele (ind1)")
-#print(np.sum(only_one[:,0]))
-
-# %%
 # Sample
 print("Sampling random alleles")
 probs = np.random.sample(size = missing_data.shape)

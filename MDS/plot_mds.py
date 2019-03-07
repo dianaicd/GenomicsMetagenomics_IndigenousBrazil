@@ -13,12 +13,12 @@ import operator
 import re
 # %%
 # Read in distance file and labels
-dist_path = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/Maanasa_americas_reheaded_filtered.dist"
+dist_path = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/Botocudos_fromVictor.Maanasa_americas_reheaded_filtered.dist"
 
 #botocudos = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/bam.filelist"
 #botocudos = "/Users/dcruz/Projects/Botocudos/Files/Panels/Maanasa_pop.txt"
-botocudos = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/Maanasa_americas.inds"
-#botocudos = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/Botocudos_fromVictor_Maanasa.ind"
+#botocudos = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/Maanasa_americas.inds"
+botocudos = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/Botocudos_fromVictor_Maanasa.ind"
 
 f = open(botocudos)
 label_given = []
@@ -44,8 +44,8 @@ if not dist.shape[0] == dist.shape[1]:
 
 
 #%%
-#plt.imshow(dist, vmin = 0, vmax = 1)
-#plt.colorbar()
+plt.imshow(dist, vmin = 0, vmax = 1)
+plt.colorbar()
 
 # %%
 # Remove nan
@@ -77,14 +77,14 @@ sub_dist = np.delete(sub_dist, individualToRemove, axis = 0)
 full = np.zeros(dist.shape)
 full[empty] = 1
 
-#plt.imshow(full)
-#plt.colorbar()
+plt.imshow(full)
+plt.colorbar()
 #%%
-#plt.imshow(dist)
-#plt.colorbar()
+plt.imshow(dist)
+plt.colorbar()
 #%%
-#plt.imshow(sub_dist)
-#plt.colorbar()
+plt.imshow(sub_dist)
+plt.colorbar()
 # %%
 sub_dist = sub_dist + sub_dist.T
 #%%

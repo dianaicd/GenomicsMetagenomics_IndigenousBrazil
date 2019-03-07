@@ -54,4 +54,4 @@ print("Distance file: " + dist_name)
 np.savetxt(fname=dist_name, fmt='%.6f',
            X=final_dist, delimiter='\t')
 end = time.time()
-print(end - time)
+print(end - start)

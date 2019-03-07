@@ -50,3 +50,18 @@ hist(barbara$found/barbara$sequenced*1e6, breaks = 150, xlab = "B19V reads per m
      main = "Mühlemann et al. 2018 (8 samples)")
 abline(v = boto, col = "red")
 ```
+
+
+```{r}
+virus <- read.csv("~/Projects/Botocudos/Files/Microbiome/Virome/HumanVirus2.txt",
+                  skip=2, header = T, sep = "\t")
+
+rownames(virus) <- gsub("_", " ", gsub("-", " ", virus[,1]))
+
+png("~/Projects/Botocudos/Files/Microbiome/Virome/Heatmap_norm.png",
+    width = 10, height = 7, res = 300, units = "in")
+heatmap(as.matrix(virus[4:38,2:25]/as.numeric(virus[1, 2:25])), 
+        col = rev(heat.colors(350)), scale = "col")
+dev.off()
+
+```
