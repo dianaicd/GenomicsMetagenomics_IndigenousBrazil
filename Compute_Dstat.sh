@@ -49,15 +49,18 @@ then
   mkdir Corrected
 fi
 
+nThreads=8
 for chr in ${CHR[@]}
 do 
   echo $chr
-  angsd -doabbababa 2 \
+  angsd -doAbbababa2 1 \
   -out Corrected/${ind}_${panel}_${chr}_rmtrans \
   -bam ${panel}.txt \
   -doCounts 1 -anc $anc \
-  -minQ 20 -minMapQ 30 -r ${chr} -nThreads 4 \
-  -sizeFile sizeFile.size &
+  -minQ 20 -minMapQ 30 -r ${chr} -nThreads $nThreads \
+  -rmTrans 1 -useLast 0 \
+  -sizeFile $panel.size >out_${ind}_${panel}_${chr}_rmtrans \
+  2>err_${ind}_${panel}_${chr}_rmtrans &
 done
 
 { sleep 5; echo waking up after 5 seconds; } &

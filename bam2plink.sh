@@ -1,24 +1,15 @@
 panel=Maanasa_mask1_flip
-
-
-while read botocudo
-    do
-    echo $botocudo
-    ind=$(basename $botocudo .bam)
-    bam2plink.py bamfile=$botocudo plinkpref=$panel MinBQ=20 indname=$botocudo popname=Botocudo doCns=F trim=5 MinMQ=30 &
-done < botocudos.txt
-
-{ sleep 5; echo waking up after 5 seconds; } &
-{ sleep 1; echo waking up after 1 second; } &
-  wait
-  echo all jobs are done!
+bamlist=bamlist
 
 while read botocudo
     do
     echo $botocudo
     ind=$(basename $botocudo .bam)
-    bam2plink.py bamfile=$botocudo plinkpref=$panel MinBQ=20 indname=$botocudo popname=$botocudo doCns=F trim=5 MinMQ=30 &
-done < fromvictor.txt
+    bam2plink.py bamfile=$botocudo plinkpref=$panel \
+    MinBQ=20 indname=$botocudo popname=$botocudo doCns=F \
+    trim=5 MinMQ=30 >out_${botocudo}_bam2plink.txt \
+    2> err_${botocudo}_bam2plink.txt &
+done < $bamlist
 
 { sleep 5; echo waking up after 5 seconds; } &
 { sleep 1; echo waking up after 1 second; } &
