@@ -128,10 +128,10 @@ print("Calculate base frequencies")
 
 # Frequencies of the reference allele
 freq_ref = counts_ref/(counts_ref + counts_alt)
-alt_is_major_allele = np.where(freq_ref < 0.5)
+alt_is_major_allele = ma.where(freq_ref < 0.5)
 
 print("Sites where alt is major allele in ind1")
-print(alt_is_major_allele[1][np.where(alt_is_major_allele[0] == 0)])
+print(alt_is_major_allele[1][ma.where(alt_is_major_allele[0] == 0)])
 #freq_ref[alt_is_major_allele] = 1 - freq_ref[alt_is_major_allele]
 
 # %%
