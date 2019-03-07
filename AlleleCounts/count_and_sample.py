@@ -105,8 +105,7 @@ missing_data = np.logical_and(counts_ref==0, counts_alt==0)
 # Find sites where there is only one allele
 print("Finding wites for which there is only one allele.")
 only_one = np.logical_xor(counts_ref, counts_alt)
-# True if observing only reference alleles
-lonely_alleles = counts_ref[np.where(only_one)] >0
+
 
 # %%
 # Mask array where data are missing or there is only one allele
@@ -140,9 +139,14 @@ del probs
 del freq_ref
 del alt_is_major_allele
 # %%
+# True if observing only alternative alleles
+
+
 alleles = np.empty(sampled.shape)
 alleles[:] = np.nan
-alleles[only_one] = lonely_alleles
+# Must assign True to cells with reference alleles
+alleles[only_one] = np.greater_equal(counts_ref[only_one], 0)
+
 alleles[np.where(sampled == True)] = 0
 alleles[np.where(sampled == False)] = 1
 end = time.time()
