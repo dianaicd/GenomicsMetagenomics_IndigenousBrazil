@@ -47,6 +47,11 @@ def parse_line(pileup, nInd):
 
     # Count matches
     allele_counts = []
+    if(pos == "1_167042762"):
+        print(parsed)
+        print("pileup for ind1")
+        print(parsed.split("\t")[0])
+        
     for ind in range(0, nInd):
         # for base in ref, alt
         string = parsed.split("\t")[ind]
@@ -57,7 +62,8 @@ def parse_line(pileup, nInd):
 
     return(allele_counts)
 
-
+# %%
+# Build dictionary with position as key
 def add_key(line):
     refalt[line.split()[0]] = [int(line.split()[1]), int(line.split()[2])]
 # %%
