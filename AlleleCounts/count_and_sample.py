@@ -122,7 +122,8 @@ freq_ref = counts_ref/(counts_ref + counts_alt)
 alt_is_major_allele = ma.where(freq_ref < 0.5)
 
 print("frequencies for ind1:")
-print(freq_ref[:,0])
+x = freq_ref[freq_ref[0].mask == False, 0]
+print(freq_ref[x,0])
 print("Sites where alt is major allele in ind1")
 print(alt_is_major_allele[0][ma.where(alt_is_major_allele[1] == 0)])
 #freq_ref[alt_is_major_allele] = 1 - freq_ref[alt_is_major_allele]
