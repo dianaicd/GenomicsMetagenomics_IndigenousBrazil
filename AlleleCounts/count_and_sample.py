@@ -47,13 +47,6 @@ def parse_line(pileup, nInd):
 
     # Count matches
     allele_counts = []
-    if(pos == "1_167042762"):
-        print(parsed)
-        print("pileup for ind1")
-        print(parsed.split("\t")[0])
-        print(refalt[pos])
-        print(base_column[refalt[pos][0]])
-        print(base_column[refalt[pos][1]])
         
     for ind in range(0, nInd):
         # for base in ref, alt
