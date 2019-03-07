@@ -156,7 +156,7 @@ del alt_is_major_allele
 alleles = np.empty(sampled.shape)
 alleles[:] = np.nan
 # Must assign True to cells with reference alleles
-alleles[only_one] = np.greater_equal(counts_ref[only_one], 0)
+#alleles[only_one] = np.greater_equal(counts_ref[only_one], 0)
 
 alleles[np.where(sampled == True)] = 0
 alleles[np.where(sampled == False)] = 1
