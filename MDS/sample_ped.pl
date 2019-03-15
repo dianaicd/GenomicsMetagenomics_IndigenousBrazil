@@ -52,7 +52,7 @@ while(<PED>){
     @new_line = @line[0..$offset-1];
     $nSites = (scalar(@line) - $offset)/2;
     foreach $i (0..$nSites){
-        $allele = @line[$offset + 2*$i + int(rand(1))];
+        $allele = @line[$offset + 2*$i + int(rand(2))];
         push @new_line,$allele;
         push @new_line,$allele;
     }
