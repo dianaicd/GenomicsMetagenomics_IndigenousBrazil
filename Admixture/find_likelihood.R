@@ -13,7 +13,7 @@ toscp <- c()
 ourbest <- c()
 for(k in seq(2, n)){
   file_name <- paste(preffix, "_k", k, "_", panel_name, "_", ind_name, sep = "")
-  file <- read.table(file_name)
+  file <- read.csv(file_name, sep = "\t")
   like <- max(file$V2)
   index <- which(file$V2 == like)
   print(paste("Best likelihood for k", k, "is", like, "of replicate", file$V1[index]))
