@@ -7,18 +7,21 @@
 ref=/archive/unibe/eg/amalaspi/group/genomes/reference_human/hs.build37.1/hs.build37.1.fa
 nThreads=12
 chromosomes=($(seq 1 22))
+panel=h
 
 for chr in ${chromosomes[@]}
 do
 
-    bcftools mpileup -C 50 -r $chr -b $bamfile -Q20 -q30 -a DP,SP \
-    -f $ref --threads $nThreads | \
+    bcftools mpileup -C 50 -b $bamfile -Q20 -q30 -a DP,SP \
+    -f $ref --threads $nThreads -R ${panel}_${chr}_positions.txt | \
     bcftools call --threads $nThreads -v -c | \
-    bcftools filter --threads $nThreads -Ob -e \
-    '(DP < 2*AVG(DP[*]) & DP >AVG(DP[*])/3) 
-    || (QUAL < 30) || (SP < 1e-4) || 
-    (COUNT(GT="het")/COUNT(GT!="het") < 0.2) || 
-    (POS <=5)' -o $bamfile.bcf >out_${chr} 2>err_${chr}.txt &
+    bcftools filter --threads $nThreads -e \
+    '(DP > (2*AVG(DP))) || (DP < (AVG(DP)/3)) 
+    || (SP < 1e-4) 
+    || (GT="het" & 
+        ( (COUNT(GT="R")/COUNT(GT="A")  
+           | COUNT(GT="A")/COUNT(GT="R") < 0.2) ) )' \
+     -Ob -o ${bamfile}_${chr}.bcf >out_${chr} 2>err_${chr}.txt &
 
 done
 # filter out:
