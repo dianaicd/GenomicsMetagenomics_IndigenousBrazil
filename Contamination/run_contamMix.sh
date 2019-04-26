@@ -18,7 +18,13 @@ bam=$1
 rmtrans=$2
 
 ind=$(basename $bam .bam)
+
+# Multifasta file with 311 mitochondrial genomes needed for multiple alignment
+mt311=~/archive/Contamination/311humans.fasta
+# name of mitochondrial chromosome
 mito=MT
+# Number of iterations (Anna's choice:100,000)
+nIter=100000
 
 mkdir $mito
 cd $mito
@@ -39,6 +45,7 @@ then
   samtools faidx ${ind}_${mito}.fa
   picard-tools CreateSequenceDictionary REFERENCE=${ind}_${mito}.fa OUTPUT=${ind}_${mito}.dict
 fi
+
 #-------------------------------------------------------------------------------
 # Once we have the consensus, we should realign
 # the reads to this fasta "reference"
@@ -49,16 +56,18 @@ then
   bedtools bamtofastq -i ${ind}_${mito}.bam -fq ${ind}_${mito}_consensus.truncated
   gzip ${ind}_${mito}_consensus.truncated
 
-  echo -e "ID\tData\tMAPQ\tLB\tPL\tSM" > mito.txt
-  paste <(ls ${ind}_${mito}_consensus.truncated.gz | cut -d'/' -f3 | cut -d'.' -f1) \
-  <(ls ${ind}_${mito}_consensus.truncated.gz) \
-  <(ls ${ind}_${mito}_consensus.truncated.gz | rev | cut -d'/' -f1 | rev | cut -d'_' -f-3) \
-  <(ls ${ind}_${mito}_consensus.truncated.gz | rev | cut -d'/' -f1 | rev | cut -d'_' -f1 | sed "s/$/_${mito}_consensus/") | \
-  awk '{print $1,$2,"30",$3,"ILLUMINA",$4}' OFS='\t' >> mito.txt
+  # echo -e "ID\tData\tMAPQ\tLB\tPL\tSM" > mito.txt
+  # paste <(ls ${ind}_${mito}_consensus.truncated.gz | cut -d'/' -f3 | cut -d'.' -f1) \
+  # <(ls ${ind}_${mito}_consensus.truncated.gz) \
+  # <(ls ${ind}_${mito}_consensus.truncated.gz | rev | cut -d'/' -f1 | rev | cut -d'_' -f-3) \
+  # <(ls ${ind}_${mito}_consensus.truncated.gz | rev | cut -d'/' -f1 | rev | cut -d'_' -f1 | sed "s/$/_${mito}_consensus/") | \
+  # awk '{print $1,$2,"30",$3,"ILLUMINA",$4}' OFS='\t' >> mito.txt
 
-  echo "------------------Input file for mapping_aDNA.sh------------------------"
-  cat mito.txt
-  mapping_aDNA.sh --ref ${ind}_${mito}.fa -i mito.txt --skip1 1
+  #echo "------------------Input file for mapping_aDNA.sh------------------------"
+  #cat mito.txt
+
+  aDNA_mapping.sh --ref ${ind}_${mito}.fa \
+    --fastq1 ${ind}_${mito}_consensus.truncated --skip1 1
 fi
 
 #------------------------------------------------------------------------------
@@ -67,7 +76,7 @@ if [ ! -e 311_${ind[$i]}_aligned.fasta ]
 then
   echo "–--------------------------Multiple alignment--------------------------"
 
-  cat ~/archive/Contamination/311humans.fasta ${ind}_${mito}.fa > 311_${ind}.fasta
+  cat $mt311 ${ind}_${mito}.fa > 311_${ind}.fasta
   mafft --auto 311_${ind}.fasta > 311_${ind}_aligned.fasta
 fi
 
@@ -76,8 +85,8 @@ fi
 if [ "$rmtrans" == "rmtrans" ]
 then
   echo "-----------------Running contamMix, removing transitions---------------"
-  ~/data/Scripts/contamMix/exec/estimate.R --samFn ${ind}_${mito}_consensus.bam  --malnFn 311_${ind}_aligned.fasta  --figure ${ind}_rmtrans_fig --nIter 100000 --alpha 0.1 --transverOnly --saveData ${ind}_rmtrans_data  > out_rmtrans_${ind}.txt
+  ~/data/Scripts/contamMix/exec/estimate.R --samFn ${ind}_${mito}_consensus.bam  --malnFn 311_${ind}_aligned.fasta  --figure ${ind}_rmtrans_fig --nIter $nIter --alpha 0.1 --transverOnly --saveData ${ind}_rmtrans_data  > out_rmtrans_${ind}.txt
 else
   echo "--------------Running contamMix, using all the mt reads----------------"
-  ~/data/Scripts/contamMix/exec/estimate.R --samFn ${ind}_${mito}_consensus.bam  --malnFn 311_${ind}_aligned.fasta  --figure ${ind}_fig --nIter 100000 --alpha 0.1 --saveData ${ind}_data > out_${ind}.txt
+  ~/data/Scripts/contamMix/exec/estimate.R --samFn ${ind}_${mito}_consensus.bam  --malnFn 311_${ind}_aligned.fasta  --figure ${ind}_fig --nIter $nIter --alpha 0.1 --saveData ${ind}_data > out_${ind}.txt
 fi
