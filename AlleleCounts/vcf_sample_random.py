@@ -11,12 +11,31 @@ import numpy as np
 import re
 import time
 import numpy.ma as ma
-import sys
+import sys, getopt
 # %%
+# Get arguments
 t_0 = time.time()
-vcf_path = sys.argv[1]
-counts_path = sys.argv[2]
-path_out_sampled = sys.argv[3]
+vcf_path = 0
+counts_path = "out_counts.txt"
+path_out_sampled = "out_sampled.txt"
+
+
+print('ARGV      :', sys.argv[1:])
+
+options, remainder = getopt.getopt(sys.argv[1:], 'v:c:s:', ['vcf_path', 
+                                                         'counts_path',
+                                                         'sampled_counts'])
+print('OPTIONS   :', options)
+
+for opt, arg in options:
+    if opt in ('-v', '--vcf_path'):
+        vcf_path = arg
+    elif opt in ('-c', '--counts_path'):
+        counts_path = arg
+    elif opt in ('-s', '--sampled_counts'):
+        sampled_counts = arg
+        
+
 # %%
 # vcf_path = "/Users/dcruz/Projects/Botocudos/Files/test/88ind_head.vcf"
 # counts_path = "/Users/dcruz/Projects/Botocudos/Files/test/88ind_counts.txt"
@@ -39,27 +58,28 @@ def parse_genos(line):
     return(parsed_line)
 
 # %%
-print("Parsing VCF to counts.")
-start = time.time()
-# Skip header and get nInd
-counts = open(counts_path, "w")
-with open(vcf_path, 'r') as vcf:
-    number_comments = 0
-    line = vcf.readline()
-    while re.match("#", line):
+if vcf_path:
+    print("Parsing VCF to counts.")
+    start = time.time()
+    # Skip header and get nInd
+    counts = open(counts_path, "w")
+    with open(vcf_path, 'r') as vcf:
+        number_comments = 0
         line = vcf.readline()
-        number_comments += 1
-        continue
-    print("Number of lines starting with #")
-    print(number_comments)
-    counts.write(parse_genos(line))
-
-    [counts.write(parse_genos(line)) for line in vcf.readlines()]
-
-
-counts.close()
-end = time.time()
-print(end - start)
+        while re.match("#", line):
+            line = vcf.readline()
+            number_comments += 1
+            continue
+        print("Number of lines starting with #")
+        print(number_comments)
+        counts.write(parse_genos(line))
+    
+        [counts.write(parse_genos(line)) for line in vcf.readlines()]
+    
+    
+    counts.close()
+    end = time.time()
+    print(end - start)
 # %%
 print("Loading counts, finding reference and alternative.")
 start = time.time()
@@ -93,6 +113,7 @@ lonely_alleles = counts_ref[np.where(only_one)] > 0
 # %%
 # Mask array where data are missing or there is only one allele
 to_mask = np.logical_or(only_one, missing_data)
+print(to_mask.shape)
 counts_ref[to_mask] = ma.masked
 counts_alt[to_mask] = ma.masked
 end = time.time()
