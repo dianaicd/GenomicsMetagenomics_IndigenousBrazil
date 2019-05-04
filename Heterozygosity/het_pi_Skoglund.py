@@ -23,17 +23,17 @@ autosomes = False
 
 print('ARGV      :', sys.argv[1:])
 
-options, remainder = getopt.getopt(sys.argv[1:], 'c:s:o:ab', ['counts',
-                                                         'sites',
-                                                         'output',
+options, remainder = getopt.getopt(sys.argv[1:], 'c:s:o:ab:', ['counts=',
+                                                         'sites=',
+                                                         'output=',
                                                          'autosomes_only',
-                                                         'block_size'])
+                                                         'block_size='])
 print('OPTIONS   :', options)
 
 for opt, arg in options:
     if opt in ('-c', '--counts'):
         path_sampled = arg
-    elif opt in ('-s', '--path_sites'):
+    elif opt in ('-s', '--sites'):
         path_sites = arg
     elif opt in ('-o', '--output'):
         basename = arg
@@ -152,7 +152,7 @@ np.savetxt(fname = basename+"pi.txt", X=pi_genome, delimiter="\t",
            fmt = ['%i','%i','%i','%f'], header = 'chr\tstart\tend\tpi')
 # %%
 
-resamples = jackknife_resampling(pi_genome)
+resamples = jackknife_resampling(pi_genome[:,3])
 np.savetxt(fname = basename+".pi.resampled.txt", X=resamples, delimiter="\t")
 # %%
 
