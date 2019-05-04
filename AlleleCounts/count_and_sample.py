@@ -73,7 +73,7 @@ with open(path_sites, 'r') as sites:
 # %%
 
 nInd = int((len(open(path_mpileup, 'r').readline().split("\t")) -3 ) / 3)
-print(nInd)
+#print(nInd)
 #%%
 
 print("Parsing and counting bases.")
@@ -81,7 +81,7 @@ start = time.time()
 with open(path_mpileup, "r") as file:
     counts = np.array([parse_line(line, nInd) for line in file.readlines()])
 end = time.time()
-print(end - start)
+#print(end - start)
 np.savetxt(fname = path_out_counts, X = counts, fmt = "%1.f")
 
 # %%
@@ -100,18 +100,18 @@ del counts
 
 # %%
 # Find missing data
-print("Finding missing data")
+#print("Finding missing data")
 missing_data = np.logical_and(np.equal(counts_ref, 0),
                               np.equal(counts_alt, 0))
 
 # Mask array where data are missing 
-print("Mask sites where data are missing or have only one allele.")
+#print("Mask sites where data are missing or have only one allele.")
 #to_mask = np.logical_or(only_one, missing_data)
 counts_ref[missing_data] = ma.masked
 counts_alt[missing_data] = ma.masked
 
-print("Sites masked in ind1:")
-print(np.sum(missing_data[:,0]))
+#print("Sites masked in ind1:")
+#print(np.sum(missing_data[:,0]))
 
 # %%
 # Calculate base frequencies
@@ -122,16 +122,16 @@ freq = counts_ref/(counts_ref + counts_alt)
 alt_is_major_allele = ma.where(freq < 0.5)
 freq[alt_is_major_allele] = 1 - freq[alt_is_major_allele]
 
-print("frequencies for ind1:")
+#print("frequencies for ind1:")
 x = freq[freq[:,0].mask == False, 0]
-print(x)
-print("Sites where alt is major allele in ind1")
-print(alt_is_major_allele[0][ma.where(alt_is_major_allele[1] == 0)])
+#print(x)
+#print("Sites where alt is major allele in ind1")
+#print(alt_is_major_allele[0][ma.where(alt_is_major_allele[1] == 0)])
 #freq_ref[alt_is_major_allele] = 1 - freq_ref[alt_is_major_allele]
 
 # %%
 # Sample
-print("Sampling random alleles")
+#print("Sampling random alleles")
 probs = np.random.sample(size = missing_data.shape)
 
 sampled = ma.less_equal(probs, freq)
