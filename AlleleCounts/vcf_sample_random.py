@@ -33,7 +33,7 @@ for opt, arg in options:
     elif opt in ('-c', '--counts_path'):
         counts_path = arg
     elif opt in ('-s', '--sampled_counts'):
-        sampled_counts = arg
+        path_out_sampled = arg
         
 
 # %%
