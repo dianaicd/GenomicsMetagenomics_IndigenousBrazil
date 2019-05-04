@@ -18,13 +18,14 @@ t_0 = time.time()
 vcf_path = 0
 counts_path = "out_counts.txt"
 path_out_sampled = "out_sampled.txt"
-
+assume_ancient = True
 
 print('ARGV      :', sys.argv[1:])
 
-options, remainder = getopt.getopt(sys.argv[1:], 'v:c:s:', ['vcf_path', 
-                                                         'counts_path',
-                                                         'sampled_counts'])
+options, remainder = getopt.getopt(sys.argv[1:], 'v:c:s:a', ['vcf_path=',
+                                                         'counts_path=',
+                                                         'sampled_counts=',
+                                                         'assume_modern'])
 print('OPTIONS   :', options)
 
 for opt, arg in options:
@@ -34,7 +35,9 @@ for opt, arg in options:
         counts_path = arg
     elif opt in ('-s', '--sampled_counts'):
         path_out_sampled = arg
-        
+    elif opt in ('a', '--assume_modern'):
+        assume_ancient = False
+
 
 # %%
 # vcf_path = "/Users/dcruz/Projects/Botocudos/Files/test/88ind_head.vcf"
@@ -73,10 +76,10 @@ if vcf_path:
         print("Number of lines starting with #")
         print(number_comments)
         counts.write(parse_genos(line))
-    
+
         [counts.write(parse_genos(line)) for line in vcf.readlines()]
-    
-    
+
+
     counts.close()
     end = time.time()
     print(end - start)
@@ -101,23 +104,24 @@ end = time.time()
 print(end - start)
 # %%
 # Find missing data
-print("Finding and masking missing data.")
-start = time.time()
-missing_data = np.logical_and(counts_ref==0, counts_alt==0)
+if assume_ancient:
+    print("Finding and masking missing data.")
+    start = time.time()
+    missing_data = np.logical_and(counts_ref==0, counts_alt==0)
 
 # %%
 # Find sites where there is only one allele
-only_one = np.logical_xor(counts_ref, counts_alt)
-lonely_alleles = counts_ref[np.where(only_one)] > 0
+    only_one = np.logical_xor(counts_ref, counts_alt)
+    lonely_alleles = counts_ref[np.where(only_one)] > 0
 
 # %%
 # Mask array where data are missing or there is only one allele
-to_mask = np.logical_or(only_one, missing_data)
-print(to_mask.shape)
-counts_ref[to_mask] = ma.masked
-counts_alt[to_mask] = ma.masked
-end = time.time()
-print(end - start)
+    to_mask = np.logical_or(only_one, missing_data)
+    print(to_mask.shape)
+    counts_ref[to_mask] = ma.masked
+    counts_alt[to_mask] = ma.masked
+    end = time.time()
+    print(end - start)
 # %%
 # Calculate base frequencies
 print("Calculating allele frequencies.")
@@ -133,7 +137,7 @@ print(end - start)
 # Sample
 print("Sampling alleles.")
 start = time.time()
-probs = np.random.sample(size = missing_data.shape)
+probs = np.random.sample(size = freqs.shape)
 
 sampled = ma.less(probs, freqs)
 sampled[alt_is_major_allele] = np.logical_not(sampled[alt_is_major_allele])
@@ -143,8 +147,11 @@ del freqs
 del alt_is_major_allele
 # %%
 alleles = np.empty(sampled.shape)
-alleles[:] = np.nan
-alleles[only_one] = lonely_alleles
+
+if assume_ancient:
+    alleles[:] = np.nan
+    alleles[only_one] = lonely_alleles
+
 alleles[np.where(ma.equal(sampled, True))] = 0
 alleles[np.where(ma.equal(sampled, False))] = 1
 end = time.time()
