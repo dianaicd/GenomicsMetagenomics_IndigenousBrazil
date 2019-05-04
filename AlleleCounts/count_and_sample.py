@@ -76,7 +76,7 @@ nInd = int((len(open(path_mpileup, 'r').readline().split("\t")) -3 ) / 3)
 #print(nInd)
 #%%
 
-print("Parsing and counting bases.")
+#print("Parsing and counting bases.")
 start = time.time()
 with open(path_mpileup, "r") as file:
     counts = np.array([parse_line(line, nInd) for line in file.readlines()])
@@ -86,7 +86,7 @@ np.savetxt(fname = path_out_counts, X = counts, fmt = "%1.f")
 
 # %%
 # Dimensions
-print("Subsetting reference and alternative alleles.")
+#print("Subsetting reference and alternative alleles.")
 start = time.time()
 nSites, nInd = counts.shape
 
@@ -115,7 +115,7 @@ counts_alt[missing_data] = ma.masked
 
 # %%
 # Calculate base frequencies
-print("Calculate base frequencies")
+#print("Calculate base frequencies")
 
 # Frequencies of the reference allele
 freq = counts_ref/(counts_ref + counts_alt)
