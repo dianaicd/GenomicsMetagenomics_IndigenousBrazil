@@ -10,6 +10,6 @@ all$sites <- paste(all$V1, all$V2, sep = "_")
 nSNP <- dim(all)[1]
 
 all <- all[!(all$sites %in% toRemove$sites),]
-nRemoved <- dim(all)[1]
+nRemoved <- nSNP - dim(all)[1]
 
 print(paste("Removed", nRemoved, "sites from", sample))
