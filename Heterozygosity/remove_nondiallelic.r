@@ -12,4 +12,5 @@ nSNP <- dim(all)[1]
 all <- all[!(all$sites %in% toRemove$sites),]
 nRemoved <- nSNP - dim(all)[1]
 
+write.table(all, sample, col.names = F, row.names = F, quote = F, sep = "\t")
 print(paste("Removed", nRemoved, "sites from", sample))
