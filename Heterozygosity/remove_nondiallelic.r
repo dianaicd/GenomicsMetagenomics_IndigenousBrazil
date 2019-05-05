@@ -12,4 +12,4 @@ nSNP <- dim(all)[1]
 all <- all[!(all$sites %in% toRemove$sites),]
 nRemoved <- dim(all)[1]
 
-print(paste("Removed", nRemoved, "sites from" sample))
+print(paste("Removed", nRemoved, "sites from", sample))
