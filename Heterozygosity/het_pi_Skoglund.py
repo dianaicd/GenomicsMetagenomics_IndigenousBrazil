@@ -141,7 +141,7 @@ j = 0
 
 for chr in np.unique(newSites[:, 0]):
     blockLimits = define_blocks(blockSize, chr, newSites)
-    print(chr)
+    #print(chr)
     currentChr = twoChrs[:, np.where(newSites[:,0] == chr)[0]]
     #print(pi_genome)
     for i in range(0, blockLimits.shape[0]-1):
