@@ -48,7 +48,7 @@ for opt, arg in options:
 
 #%%
 if seed:
-    numpy.random.seed(seed)
+    np.random.seed(seed)
 
 sampled = ma.array(np.loadtxt(path_sampled))
 sampled[np.isnan(sampled)] = ma.masked
