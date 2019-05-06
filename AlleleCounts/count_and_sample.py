@@ -10,18 +10,36 @@ import re
 import numpy as np
 import numpy.ma as ma
 import time
-import sys
-# %%
-path_mpileup = sys.argv[1]
-path_out_counts = sys.argv[2]
-path_out_sampled = sys.argv[3]
-path_sites = sys.argv[4]
-
+import sys, getopt
 #%%
 #path_mpileup = "/Users/dcruz/Projects/Botocudos/Files/test/1.mpileup"
 #path_out_counts = "/Users/dcruz/Projects/Botocudos/Files/test/test_counts.gz"
 #path_out_sampled = "/Users/dcruz/Projects/Botocudos/Files/test/test_sampled.gz"
 #path_sites = "/Users/dcruz/Projects/Botocudos/Files/test/sites.refalt"
+
+path_mpileup = 0
+path_out_counts = counts.txt
+path_out_sampled = sampled.txt
+path_sites = sites.refalt
+
+
+print('ARGV      :', sys.argv[1:])
+
+options, remainder = getopt.getopt(sys.argv[1:], 'm:c:s:r', ['mpileup=',
+                                                         'counts=',
+                                                         'sampled=',
+                                                         'refalt'])
+print('OPTIONS   :', options)
+
+for opt, arg in options:
+    if opt in ('-m', '--mpileup'):
+        path_mpileup = arg
+    elif opt in ('-c', '--counts'):
+        path_out_counts = arg
+    elif opt in ('-s', '--sampled'):
+        path_out_sampled = arg
+    elif opt in ('-r', '--refalt'):
+        path_sites = arg
 
 # %%
 base_column = {0:"A", 1:"C", 2:"G", 3:"T"}
@@ -72,21 +90,24 @@ with open(path_sites, 'r') as sites:
 
 # %%
 
-nInd = int((len(open(path_mpileup, 'r').readline().split("\t")) -3 ) / 3)
 #print(nInd)
 #%%
 
 #print("Parsing and counting bases.")
-start = time.time()
-with open(path_mpileup, "r") as file:
-    counts = np.array([parse_line(line, nInd) for line in file.readlines()])
-end = time.time()
-#print(end - start)
-np.savetxt(fname = path_out_counts, X = counts, fmt = "%1.f")
+if path_mpileup:
+    nInd = int((len(open(path_mpileup, 'r').readline().split("\t")) -3 ) / 3)
+
+    start = time.time()
+    with open(path_mpileup, "r") as file:
+        counts = np.array([parse_line(line, nInd) for line in file.readlines()])
+    end = time.time()
+    #print(end - start)
+    np.savetxt(fname = path_out_counts, X = counts, fmt = "%1.f")
 
 # %%
 # Dimensions
 #print("Subsetting reference and alternative alleles.")
+counts = np.loadtxt(path_out_counts)
 start = time.time()
 nSites, nInd = counts.shape
 
