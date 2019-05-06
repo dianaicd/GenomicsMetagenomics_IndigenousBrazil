@@ -20,7 +20,7 @@ path_sites = "/Users/dcruz/Projects/Botocudos/Files/test/Nigeria_B_Yoruba-3.refa
 basename = "/Users/dcruz/Projects/Botocudos/Files/test/out"
 blockSize = 5e6
 autosomes = False
-seed =np.random.randint()
+seed = 0
 print('ARGV      :', sys.argv[1:])
 
 options, remainder = getopt.getopt(sys.argv[1:], 'c:s:o:ab:r:', ['counts=',
@@ -47,7 +47,9 @@ for opt, arg in options:
 
 
 #%%
-numpy.random.seed(seed)
+if seed:
+    numpy.random.seed(seed)
+
 sampled = ma.array(np.loadtxt(path_sampled))
 sampled[np.isnan(sampled)] = ma.masked
 
