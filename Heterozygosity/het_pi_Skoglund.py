@@ -20,14 +20,15 @@ path_sites = "/Users/dcruz/Projects/Botocudos/Files/test/Nigeria_B_Yoruba-3.refa
 basename = "/Users/dcruz/Projects/Botocudos/Files/test/out"
 blockSize = 5e6
 autosomes = False
-
+seed =np.random.randint()
 print('ARGV      :', sys.argv[1:])
 
-options, remainder = getopt.getopt(sys.argv[1:], 'c:s:o:ab:', ['counts=',
+options, remainder = getopt.getopt(sys.argv[1:], 'c:s:o:ab:r:', ['counts=',
                                                          'sites=',
                                                          'output=',
                                                          'autosomes_only',
-                                                         'block_size='])
+                                                         'block_size=',
+                                                         'random_seed='])
 print('OPTIONS   :', options)
 
 for opt, arg in options:
@@ -41,9 +42,12 @@ for opt, arg in options:
         autosomes = True
     elif opt in ('-b', '--block_size'):
         blockSize = arg
+    elif opt in ('-r', '--random_seed'):
+        seed = arg
 
 
 #%%
+numpy.random.seed(seed)
 sampled = ma.array(np.loadtxt(path_sampled))
 sampled[np.isnan(sampled)] = ma.masked
 
