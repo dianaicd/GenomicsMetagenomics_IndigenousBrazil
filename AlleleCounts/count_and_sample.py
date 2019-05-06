@@ -28,7 +28,7 @@ print('ARGV      :', sys.argv[1:])
 options, remainder = getopt.getopt(sys.argv[1:], 'm:c:s:r', ['mpileup=',
                                                          'counts=',
                                                          'sampled=',
-                                                         'refalt'])
+                                                         'refalt='])
 print('OPTIONS   :', options)
 
 for opt, arg in options:
