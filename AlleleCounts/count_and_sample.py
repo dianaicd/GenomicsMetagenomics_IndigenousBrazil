@@ -17,18 +17,19 @@ import sys, getopt
 #path_out_sampled = "/Users/dcruz/Projects/Botocudos/Files/test/test_sampled.gz"
 #path_sites = "/Users/dcruz/Projects/Botocudos/Files/test/sites.refalt"
 
-path_mpileup = 0
+path_mpileup = False
 path_out_counts = "counts.txt"
 path_out_sampled = "sampled.txt"
 path_sites = "sites.refalt"
-
+ped = False
 
 print('ARGV      :', sys.argv[1:])
 
-options, remainder = getopt.getopt(sys.argv[1:], 'm:c:s:r', ['mpileup=',
+options, remainder = getopt.getopt(sys.argv[1:], 'm:c:s:rp', ['mpileup=',
                                                          'counts=',
                                                          'sampled=',
-                                                         'refalt='])
+                                                         'refalt=',
+                                                         'ped'])
 print('OPTIONS   :', options)
 
 for opt, arg in options:
@@ -40,6 +41,8 @@ for opt, arg in options:
         path_out_sampled = arg
     elif opt in ('-r', '--refalt'):
         path_sites = arg
+    elif opt in ('-p', '--ped'):
+        ped = True
 
 # %%
 base_column = {0:"A", 1:"C", 2:"G", 3:"T"}
@@ -81,9 +84,16 @@ def parse_line(pileup, nInd):
 def add_key(line):
     refalt[line.split()[0]] = [int(line.split()[1]), int(line.split()[2])]
 
+# %%
+# Parse 0 and 1 to nucleotides
+def int2nucleotide(line, nucleotides):
+    lineParsed = re.sub("0", nucleotides[0], line)
+    lineParsed = re.sub("1", nucleotides[1], lineParsed)
+    return(lineParsed)
+
 #print("Parsing and counting bases.")
 if path_mpileup:
-    # %%
+# %%
 # Get reference and alternative alleles
     with open(path_sites, 'r') as sites:
         [add_key(line) for line in sites.readlines()]
@@ -123,9 +133,6 @@ missing_data = np.logical_and(np.equal(counts_ref, 0),
 counts_ref[missing_data] = ma.masked
 counts_alt[missing_data] = ma.masked
 
-#print("Sites masked in ind1:")
-#print(np.sum(missing_data[:,0]))
-
 # %%
 # Calculate base frequencies
 #print("Calculate base frequencies")
@@ -137,9 +144,7 @@ freq[alt_is_major_allele] = 1 - freq[alt_is_major_allele]
 
 #print("frequencies for ind1:")
 x = freq[freq[:,0].mask == False, 0]
-#print(x)
-#print("Sites where alt is major allele in ind1")
-#print(alt_is_major_allele[0][ma.where(alt_is_major_allele[1] == 0)])
+
 #freq_ref[alt_is_major_allele] = 1 - freq_ref[alt_is_major_allele]
 
 # %%
@@ -168,6 +173,12 @@ alleles[:] = np.nan
 
 alleles[np.where(sampled == True)] = 0
 alleles[np.where(sampled == False)] = 1
+
+if ped:
+    nucleotides = [value for key,value in refalt.items()]
+    alleles = [int2nucleotide(np.array2string(alleles[i,:]), nucleotides[i,:]) 
+                for i in range(0, alleles.shape[0])]
+
 end = time.time()
 print(end - start)
 np.savetxt(fname = path_out_sampled, X = alleles, fmt = "%1.f")
