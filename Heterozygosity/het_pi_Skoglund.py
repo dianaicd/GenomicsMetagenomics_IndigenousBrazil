@@ -43,7 +43,7 @@ for opt, arg in options:
     elif opt in ('-b', '--block_size'):
         blockSize = arg
     elif opt in ('-r', '--random_seed'):
-        seed = arg
+        seed = np.int(arg)
 
 
 #%%
