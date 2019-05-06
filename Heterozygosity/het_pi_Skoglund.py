@@ -147,7 +147,9 @@ for chr in np.unique(newSites[:, 0]):
             )
         j += 1
 # %%
-
+np.savetxt(fname = basename+".pi.twochrs.txt", X=twoChrs, delimiter="\t",
+    fmt = ['%i', '%i'])
+    
 np.savetxt(fname = basename+".pi.txt", X=pi_genome, delimiter="\t",
            fmt = ['%i','%i','%i','%f'], header = 'chr\tstart\tend\tpi')
 # %%
