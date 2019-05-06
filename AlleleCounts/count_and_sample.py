@@ -18,9 +18,9 @@ import sys, getopt
 #path_sites = "/Users/dcruz/Projects/Botocudos/Files/test/sites.refalt"
 
 path_mpileup = 0
-path_out_counts = counts.txt
-path_out_sampled = sampled.txt
-path_sites = sites.refalt
+path_out_counts = "counts.txt"
+path_out_sampled = "sampled.txt"
+path_sites = "sites.refalt"
 
 
 print('ARGV      :', sys.argv[1:])
@@ -80,21 +80,13 @@ def parse_line(pileup, nInd):
 # Build dictionary with position as key
 def add_key(line):
     refalt[line.split()[0]] = [int(line.split()[1]), int(line.split()[2])]
-# %%
-# Get reference and alternative alleles
-with open(path_sites, 'r') as sites:
-    [add_key(line) for line in sites.readlines()]
-
-#print(refalt.keys())
-#print("we have "+str(len(refalt.keys()))+" keys. For example " + refalt.keys()[0])
-
-# %%
-
-#print(nInd)
-#%%
 
 #print("Parsing and counting bases.")
 if path_mpileup:
+    # %%
+# Get reference and alternative alleles
+    with open(path_sites, 'r') as sites:
+        [add_key(line) for line in sites.readlines()]
     nInd = int((len(open(path_mpileup, 'r').readline().split("\t")) -3 ) / 3)
 
     start = time.time()
