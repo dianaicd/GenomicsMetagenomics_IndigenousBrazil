@@ -93,7 +93,6 @@ def int2nucleotide(line, nucleotides):
 
 #print("Parsing and counting bases.")
 if path_mpileup:
-# %%
 # Get reference and alternative alleles
     with open(path_sites, 'r') as sites:
         [add_key(line) for line in sites.readlines()]
@@ -176,7 +175,7 @@ alleles[np.where(sampled == False)] = 1
 
 if ped:
     nucleotides = [value for key,value in refalt.items()]
-    alleles = [int2nucleotide(np.array2string(alleles[i,:]), nucleotides[i,:]) 
+    alleles = [int2nucleotide(np.array2string(alleles[i,:]), nucleotides[i]) 
                 for i in range(0, alleles.shape[0])]
 
 end = time.time()
