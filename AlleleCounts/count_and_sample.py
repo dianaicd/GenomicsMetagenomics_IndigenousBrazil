@@ -94,6 +94,8 @@ def int2nucleotide(line, nucleotides):
     lineParsed = re.sub("\[", "", lineParsed)
     lineParsed = re.sub("\]", "", lineParsed)
     lineParsed = re.sub("\n", "", lineParsed)
+    pattern = re.compile("\s{2,}")
+    lineParsed = re.sub(pattern, " ", lineParsed)
     return(lineParsed+"\n")
 
 # %%
