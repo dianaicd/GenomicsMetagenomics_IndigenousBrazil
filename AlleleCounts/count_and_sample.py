@@ -84,6 +84,7 @@ def parse_line(pileup, nInd):
 # Build dictionary with position as key
 def add_key(line):
     refalt[line.split()[0]] = [int(line.split()[1]), int(line.split()[2])]
+    return(line.split()[0])
 
 # %%
 # Parse 0 and 1 to nucleotides
@@ -106,12 +107,13 @@ def int2nucleotide(line, nucleotides):
 if path_mpileup:
 # Get reference and alternative alleles
     with open(path_sites, 'r') as sites:
-        [add_key(line) for line in sites.readlines()]
+        positions = [add_key(line) for line in sites.readlines()]
     nInd = int((len(open(path_mpileup, 'r').readline().split("\t")) -3 ) / 3)
 
     start = time.time()
     with open(path_mpileup, "r") as file:
-        counts = np.array([parse_line(line, nInd) for line in file.readlines()])
+        counts = np.array([parse_line(line, nInd) 
+                                        for line in file.readlines()])
     end = time.time()
     #print(end - start)
     np.savetxt(fname = path_out_counts, X = counts, fmt = "%1.f")
@@ -185,11 +187,11 @@ alleles[np.where(sampled == True)] = 0
 alleles[np.where(sampled == False)] = 1
 
 if ped:
-    nucleotides = [value for key,value in refalt.items()]
+    bases = [refalt[pos] for pos in positions]
     #alleles = 
     
     with gzip.open(path_out_sampled, "wt") as file:
-        file.writelines([int2nucleotide(np.array2string(alleles[i,:]), nucleotides[i]) 
+        file.writelines([int2nucleotide(np.array2string(alleles[i,:]), bases[i]) 
                 for i in range(0, alleles.shape[0])])
     file.close()
 else:
