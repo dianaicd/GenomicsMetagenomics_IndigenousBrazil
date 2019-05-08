@@ -87,10 +87,15 @@ def add_key(line):
 # %%
 # Parse 0 and 1 to nucleotides
 def int2nucleotide(line, nucleotides):
-    lineParsed = re.sub("0", nucleotides[0], line)
-    lineParsed = re.sub("1", nucleotides[1], lineParsed)
-    return(lineParsed)
+    lineParsed = re.sub("0.", base_column[nucleotides[0]], line)
+    lineParsed = re.sub("1.", base_column[nucleotides[1]], lineParsed)
+    lineParsed = re.sub("nan", "0", lineParsed)
+    lineParsed = re.sub("\[", "", lineParsed)
+    lineParsed = re.sub("\]", "", lineParsed)
+    lineParsed = re.sub("\n", "", lineParsed)
+    return(lineParsed+"\n")
 
+# %%
 #print("Parsing and counting bases.")
 if path_mpileup:
 # Get reference and alternative alleles
@@ -175,9 +180,14 @@ alleles[np.where(sampled == False)] = 1
 
 if ped:
     nucleotides = [value for key,value in refalt.items()]
-    alleles = [int2nucleotide(np.array2string(alleles[i,:]), nucleotides[i]) 
-                for i in range(0, alleles.shape[0])]
-
+    #alleles = 
+    
+    with open(path_out_sampled, "w") as file:
+        file.writelines([int2nucleotide(np.array2string(alleles[i,:]), nucleotides[i]) 
+                for i in range(0, alleles.shape[0])])
+    file.close()
+else:
+    np.savetxt(fname = path_out_sampled, X = alleles, fmt = "%1.f")
+    
 end = time.time()
 print(end - start)
-np.savetxt(fname = path_out_sampled, X = alleles, fmt = "%1.f")
