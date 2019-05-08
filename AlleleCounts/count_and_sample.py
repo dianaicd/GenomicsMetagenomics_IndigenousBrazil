@@ -11,6 +11,7 @@ import numpy as np
 import numpy.ma as ma
 import time
 import sys, getopt
+import gzip
 #%%
 #path_mpileup = "/Users/dcruz/Projects/Botocudos/Files/test/1.mpileup"
 #path_out_counts = "/Users/dcruz/Projects/Botocudos/Files/test/test_counts.gz"
@@ -182,7 +183,7 @@ if ped:
     nucleotides = [value for key,value in refalt.items()]
     #alleles = 
     
-    with open(path_out_sampled, "w") as file:
+    with gzip.open(path_out_sampled, "wt") as file:
         file.writelines([int2nucleotide(np.array2string(alleles[i,:]), nucleotides[i]) 
                 for i in range(0, alleles.shape[0])])
     file.close()
