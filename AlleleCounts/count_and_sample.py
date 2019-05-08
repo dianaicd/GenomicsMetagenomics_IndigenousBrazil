@@ -88,9 +88,12 @@ def add_key(line):
 # %%
 # Parse 0 and 1 to nucleotides
 def int2nucleotide(line, nucleotides):
-    lineParsed = re.sub("0.", base_column[nucleotides[0]], line)
-    lineParsed = re.sub("1.", base_column[nucleotides[1]], lineParsed)
-    lineParsed = re.sub("nan", "0", lineParsed)
+    # in ped, do it diploid
+    ref = base_column[nucleotides[0]] + " " + base_column[nucleotides[0]]
+    alt = base_column[nucleotides[1]] + " " + base_column[nucleotides[1]]
+    lineParsed = re.sub("0.", ref, line)
+    lineParsed = re.sub("1.", alt, lineParsed)
+    lineParsed = re.sub("nan", "0 0", lineParsed)
     lineParsed = re.sub("\[", "", lineParsed)
     lineParsed = re.sub("\]", "", lineParsed)
     lineParsed = re.sub("\n", "", lineParsed)
