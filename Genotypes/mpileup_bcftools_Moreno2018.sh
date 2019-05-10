@@ -20,7 +20,7 @@ do
         -f $ref --threads $nThreads -R ${panel}_${chr}_positions.txt | \
         bcftools call --threads $nThreads -c -V indels | \
         bcftools filter --threads $nThreads -e \
-        '( DP > (2*AVG(FORMAT/DP)) ) || (DP < (AVG(FORMAT/DP)/3) ) 
+        '( DP > (2*AVG(FMT/DP)) ) || (DP < (AVG(FMT/DP)/3) ) 
         || (SP > 40 ) 
         || (GT="het" & 
             (COUNT(GT="A")/COUNT(GT="R") < 0.4) ) 
