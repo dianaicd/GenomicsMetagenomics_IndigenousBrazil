@@ -17,17 +17,17 @@ if [ $retVal -ne 0 ]; then echo "something went wrong with args"; exit; fi
 eval set -- "$ARGS"
 while  [ $# -gt 0 ]; do
   case "$1" in
-    -p|--panel)         local panel=$2; shift;;
-    -b|--bamlist)       local bamlist=$2; shift;;
-    -h|--homozygous)    local homo=$2; shift;;
-    -r|--rmdamage)      local rmdamage=$2; shift;;
+    -p|--panel)          panel=$2; shift;;
+    -b|--bamlist)        bamlist=$2; shift;;
+    -h|--homozygous)     homo=$2; shift;;
+    -r|--rmdamage)       rmdamage=$2; shift;;
   esac 
   shift
 done
 
 # Directory where we can find the VCF panel
-local dir=$(dirname $panel)
-local type=$(echo $panel |rev |cut -f1 -d. |rev)
+ dir=$(dirname $panel)
+ type=$(echo $panel |rev |cut -f1 -d. |rev)
 panel=$(basename $panel .$type)
 # pass it as
 # MAke only homozygous sites? (usually no)
@@ -78,7 +78,7 @@ fi
 #------------------------------------------------------------------------------
 # Compute genotype likelihoods for the samples
 #
-local n=$(cat ${panel}_*_sites.txt | wc -l|cut -f1 -d ' ')
+ n=$(cat ${panel}_*_sites.txt | wc -l|cut -f1 -d ' ')
 if [ ! -e ${bamlist}_${n}_sites.beagle ]
 then
   CHRS=($(tail -n +2 $panel.beagle | cut -f1 -d'_' |sort |uniq))
