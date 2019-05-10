@@ -151,26 +151,30 @@ vcf_haploid(){
 #-----------------------------------------------------------------------------#
 # Make genotype likelihoods
 geno_like(){
+    SHORTOPTS="p:n:s:h:b:r"
+    LONGOPTS="panel: name: selected: homozygous: bampath: rmdamage:"
+    # This function uses my scripts
+    ARGS=$(getopt -s bash -o "$SHORTOPTS" -l "$LONGOPTS" -n "ERROR" -- "$@")
+    retVal=$?
+    if [ $retVal -ne 0 ]; then echo "something went wrong with args"; exit; fi
+
+    eval set -- "$ARGS"
+    while  [ $# -gt 0 ]; do
+        case "$1" in
+            -p|--panel)         panel=$2; shift;;
+            -n|--name)          name=$2; shift;;
+            -s|--selected)      selected=($(echo $2)); shift;;
+            -h|--homozygous)    homo=$2; shift;;
+            -b|--bampath)       bam_path=$2; shift;;
+            -r|--rmdamage)      rmdamage=$2; shift;;
+        esac 
+        shift
+    done
+
     if [ -e workflow_genolike.sh ]
     then
         ln -s ~/data/Git/Botocudos-scripts/GenoLike/workflow_genolike.sh ./
     fi
-
-    # Name of the panel
-    panel=$1
-    dir=$(dirname $panel)
-    # Name for the output
-    name=$2
-    # Selected individuals
-    # pass it as
-    # "$(echo ${selected[@]})"
-    selected=( "$3" ) #(MA2394 MA2387 MA2384 MA2400 MA2395 MA2402 MA2398 MA2399 MA2382 MA2392)
-    # MAke only homozygous sites? (usually no)
-    homo=$4
-    # Path to bam files
-    bam_path=$5
-    # remove damaged sites from the panel? (usually yes)
-    rmdamage=$7
 
     ./workflow_genolike.sh $dir $panel $name "$(echo ${selected[@]})" $homo $bam_path $rmdamage
 }
