@@ -13,9 +13,9 @@ gitpath=~/data/Git/Botocudos-scripts
 # Genotype likelihoods
 #-----------------------------------------------------------------------------#
 enough_jobs(){
-    maxJobs=$1
-    i=$2
-    launchedJobs=$(echo "($i + 1) % $maxJobs" |bc)
+    local maxJobs=$1
+    local i=$2
+    local launchedJobs=$(echo "($i + 1) % $maxJobs" |bc)
     if [ $launchedJobs = 0 ]
     then
         echo "Waiting... $i"
@@ -34,9 +34,9 @@ mpileup(){
     eval set -- "$ARGS"
     while  [ $# -gt 0 ]; do
         case "$1" in
-            -p|--panel)    panel=$2; shift;;
-            -b|--bamlist)  bamlist=$2; shift;;
-            -c|--chromosomes) chromosomes=($(echo $2)) ; shift ;;
+            -p|--panel)    local panel=$2; shift;;
+            -b|--bamlist)  local bamlist=$2; shift;;
+            -c|--chromosomes) local chromosomes=($(echo $2)) ; shift ;;
         esac 
         shift
     done
@@ -61,9 +61,9 @@ prepare_sites(){
     eval set -- "$ARGS"
     while  [ $# -gt 0 ]; do
         case "$1" in
-            -p|--panel)     panel=$2 ; shift ;;
-            -t|--type)   type=$2 ; shift ;;
-            -c|--chromosomes) chromosomes=($(echo $2)) ; shift ;;
+            -p|--panel)         local panel=$2 ; shift ;;
+            -t|--type)          local type=$2 ; shift ;;
+            -c|--chromosomes)   local chromosomes=($(echo $2)) ; shift ;;
         esac 
         shift
     done
@@ -97,7 +97,7 @@ prepare_sites(){
 #-----------------------------------------------------------------------------#
 # Count alleles and sample one base at random
 sample_mpileup(){
-    ped=""
+    local ped=""
 
     SHORTOPTS="p:b:Fc:"
     LONGOPTS="panel: bamlist: chromosomes: pedformat"
@@ -109,10 +109,10 @@ sample_mpileup(){
     eval set -- "$ARGS"
     while  [ $# -gt 0 ]; do
         case "$1" in
-            -p|--panel)    panel=$2; shift;;
-            -b|--bamlist)  bamlist=$2; shift;;
-            -c:--chromosomes) chromosomes=($(echo $2)); shift;;
-            -F|--pedformat) ped="--ped"; shift;;
+            -p|--panel)         local panel=$2; shift;;
+            -b|--bamlist)       local bamlist=$2; shift;;
+            -c:--chromosomes)   local chromosomes=($(echo $2)); shift;;
+            -F|--pedformat)     ped="--ped"; shift;;
         esac 
         shift
     done
@@ -161,12 +161,12 @@ geno_like(){
     eval set -- "$ARGS"
     while  [ $# -gt 0 ]; do
         case "$1" in
-            -p|--panel)         panel=$2; shift;;
-            -n|--name)          name=$2; shift;;
-            -s|--selected)      selected=($(echo $2)); shift;;
-            -h|--homozygous)    homo=$2; shift;;
-            -b|--bampath)       bam_path=$2; shift;;
-            -r|--rmdamage)      rmdamage=$2; shift;;
+            -p|--panel)         local panel=$2; shift;;
+            -n|--name)          local name=$2; shift;;
+            -s|--selected)      local selected=($(echo $2)); shift;;
+            -h|--homozygous)    local homo=$2; shift;;
+            -b|--bampath)       local bam_path=$2; shift;;
+            -r|--rmdamage)      local rmdamage=$2; shift;;
         esac 
         shift
     done
@@ -176,18 +176,19 @@ geno_like(){
         ln -s ~/data/Git/Botocudos-scripts/GenoLike/workflow_genolike.sh ./
     fi
 
-    ./workflow_genolike.sh $dir $panel $name "$(echo ${selected[@]})" $homo $bam_path $rmdamage
+    ./workflow_genolike.sh $dir $panel $name "$(echo ${selected[@]})" \
+        $homo $bam_path $rmdamage
 }
 #-----------------------------------------------------------------------------#
 # BED to tPED
 bed2tped(){
-    panel=$1
+    local panel=$1
     plink --recode transpose --bfile $panel --out $panel 
 }
 #-----------------------------------------------------------------------------#
 # BED to VCF
 BED2VCF(){
-    panel=$1
+    local panel=$1
     panel=$(basename $panel .bed)
     plink --recode vcf --bfile $panel --out $panel
 }
@@ -214,25 +215,25 @@ make_bamlist(){
     eval set -- "$ARGS"
     while  [ $# -gt 0 ]; do
         case "$1" in
-            -s|--samples) samples=$2; shift;;
-            -o|--output) output=$2; shift;;
+            -s|--samples) local samples=$2; shift;;
+            -o|--output) local output=$2; shift;;
         esac
         shift
     done
 
-    botoAll=~/archive/BAM/Botocudos/2018_10_26/link_final
-    Posth=~/archive/BAM/Posth
-    SGDP=~/scratch_monthly/Simons/*
-    Yana=~/archive/BAM/Yana
-    MalTa=~/archive/BAM/MalTa
-    MaanasaAncient=~/archive/Panels/Raghavan2015/www.cbs.dtu.dk/suppl/NativeAmerican/data/alignments/ancient
-    MaanasaNewWorld=~/archive/Panels/Raghavan2015/www.cbs.dtu.dk/suppl/NativeAmerican/data/alignments/newworld 
-    MaanasaOldWorld=~/archive/Panels/Raghavan2015/www.cbs.dtu.dk/suppl/NativeAmerican/data/alignments/oldworld 
-    MaanasaAll=~/archive/Panels/Raghavan2015/www.cbs.dtu.dk/suppl/NativeAmerican/data/alignments/*
-    Lindo=~/archive/Panels/Lindo2018
-    Scheib="pending"
-    fromVictorAncient=~/Project/Americas/fromVictor/Ancient 
-    fromVictorModern=~/Project/Americas/fromVictor/Modern 
+    local botoAll=~/archive/BAM/Botocudos/2018_10_26/link_final
+    local Posth=~/archive/BAM/Posth
+    local SGDP=~/scratch_monthly/Simons/*
+    local Yana=~/archive/BAM/Yana
+    local MalTa=~/archive/BAM/MalTa
+    local MaanasaAncient=~/archive/Panels/Raghavan2015/www.cbs.dtu.dk/suppl/NativeAmerican/data/alignments/ancient
+    local MaanasaNewWorld=~/archive/Panels/Raghavan2015/www.cbs.dtu.dk/suppl/NativeAmerican/data/alignments/newworld 
+    local MaanasaOldWorld=~/archive/Panels/Raghavan2015/www.cbs.dtu.dk/suppl/NativeAmerican/data/alignments/oldworld 
+    local MaanasaAll=~/archive/Panels/Raghavan2015/www.cbs.dtu.dk/suppl/NativeAmerican/data/alignments/*
+    local Lindo=~/archive/Panels/Lindo2018
+    local Scheib="pending"
+    local fromVictorAncient=~/Project/Americas/fromVictor/Ancient 
+    local fromVictorModern=~/Project/Americas/fromVictor/Modern 
 
     case "$samples" in 
         BotocudosAll)       ls $botoAll/*bam ;;     # Botocudos24, Botocudos22, BotocudosAll,
@@ -265,14 +266,14 @@ mergeBAM2BED(){
     eval set -- "$ARGS"
     while  [ $# -gt 0 ]; do
         case "$1" in
-            -p|--panel)     panel=$2; shift;;
-             -b|--bamlist)  bamlist=$2; shift;;
+            -p|--panel)     local panel=$2; shift;;
+             -b|--bamlist)  local bamlist=$2; shift;;
         esac 
         shift
     done
 
-    pathPanel=$(dirname $panel)
-    panel=$(basename $panel .bed)
+    local pathPanel=$(dirname $panel)
+    local panel=$(basename $panel .bed)
 
     if [ ! -e sampled_ped.pl ] ; then
         ln -s ~/data/Git/Botocudos-scripts/MDS/sample_ped.pl ./
@@ -282,7 +283,7 @@ mergeBAM2BED(){
 
 
     prepare_sites --panel $panel --type bed 
-    chromosomes=($(cut -f1 $panel.refalt |cut -f1 -d_| sort -n|uniq)); echo ${chromosomes[@]}
+    local chromosomes=($(cut -f1 $panel.refalt |cut -f1 -d_| sort -n|uniq)); echo ${chromosomes[@]}
 
     mpileup --panel $panel --bamlist $bamlist \
         --chromosomes "$(echo ${chromosomes[@]})"
@@ -321,14 +322,23 @@ mergeBAM2BED(){
     
     plink --recode transpose --file ${panel}.${bamlist}.haploid.fred \
         --out ${panel}.${bamlist}.haploid.fred
-    lastField=$(head -n1 ${panel}.${bamlist}.haploid.fred.tped|wc -w)
-    columns=$(echo $(seq 5 2 $lastField) | sed 's/ /,/g')
-    cut -f $columns -d' ' ${panel}.${bamlist}.haploid.fred.tped \
-     >${panel}.${bamlist}.haploid.fred
 
-    # plink --distance square gz 'flat-missing' \
-    #     --file ${panel}.${bamlist}.haploid.fred \
-    #     --out ${panel}.${bamlist}.haploid.fred
+
+    local mind=0.95
+    plink --tfile ${panel}.${bamlist}.haploid.fred --make-bed \
+    --mind $mind --out ${panel}.${bamlist}.haploid.fred.mind${mind}
+
+    bed2tped $panel.${bamlist}.haploid.fred.mind0.1
+
+    lastField=$(head -n1 ${panel}.${bamlist}.haploid.fred.mind0.1.tped|wc -w)
+    columns=$(echo $(seq 5 2 $lastField) | sed 's/ /,/g')
+
+    cut -f $columns -d ' ' ${panel}.${bamlist}.haploid.fred.mind${mind}.tped \
+     >${panel}.${bamlist}.haploid.fred.mind${mind}
+
+     plink --distance square gz 'flat-missing' \
+         --bfile ${panel}.${bamlist}.haploid.fred.mind${mind} \
+         --out ${panel}.${bamlist}.haploid.fred.mind${mind}
 
 }
 
