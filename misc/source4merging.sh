@@ -151,8 +151,8 @@ vcf_haploid(){
 #-----------------------------------------------------------------------------#
 # Make genotype likelihoods
 geno_like(){
-    SHORTOPTS="p:n:s:h:b:r"
-    LONGOPTS="panel: name: selected: homozygous: bampath: rmdamage:"
+    SHORTOPTS="p:h:b:r"
+    LONGOPTS="panel: homozygous: bamlist: rmdamage:"
     # This function uses my scripts
     ARGS=$(getopt -s bash -o "$SHORTOPTS" -l "$LONGOPTS" -n "ERROR" -- "$@")
     retVal=$?
@@ -162,10 +162,8 @@ geno_like(){
     while  [ $# -gt 0 ]; do
         case "$1" in
             -p|--panel)         local panel=$2; shift;;
-            -n|--name)          local name=$2; shift;;
-            -s|--selected)      local selected=($(echo $2)); shift;;
             -h|--homozygous)    local homo=$2; shift;;
-            -b|--bampath)       local bam_path=$2; shift;;
+            -b|--bamlist)       local bamlist=$2; shift;;
             -r|--rmdamage)      local rmdamage=$2; shift;;
         esac 
         shift
@@ -176,8 +174,8 @@ geno_like(){
         ln -s ~/data/Git/Botocudos-scripts/GenoLike/workflow_genolike.sh ./
     fi
 
-    ./workflow_genolike.sh $dir $panel $name "$(echo ${selected[@]})" \
-        $homo $bam_path $rmdamage
+    ./workflow_genolike.sh --panel $panel --homozygous $homo \
+    --bamlist $bamlist --rmdamage $rmdamage
 }
 #-----------------------------------------------------------------------------#
 # BED to tPED
@@ -328,9 +326,9 @@ mergeBAM2BED(){
     plink --tfile ${panel}.${bamlist}.haploid.fred --make-bed \
     --mind $mind --out ${panel}.${bamlist}.haploid.fred.mind${mind}
 
-    bed2tped $panel.${bamlist}.haploid.fred.mind0.1
+    bed2tped $panel.${bamlist}.haploid.fred.mind${mind}
 
-    lastField=$(head -n1 ${panel}.${bamlist}.haploid.fred.mind0.1.tped|wc -w)
+    lastField=$(head -n1 ${panel}.${bamlist}.haploid.fred.mind${mind}.tped|wc -w)
     columns=$(echo $(seq 5 2 $lastField) | sed 's/ /,/g')
 
     cut -f $columns -d ' ' ${panel}.${bamlist}.haploid.fred.mind${mind}.tped \

@@ -9,32 +9,37 @@
 #dir=/home/ubelix/iee/dcruz/data/Merged/500k
 #panel=America_Oceania
 
+SHORTOPTS="p:h:b:r"
+LONGOPTS="panel: bamlist: homozygous: rmdamage:"
+ARGS=$(getopt -s bash -o "$SHORTOPTS" -l "$LONGOPTS" -n "ERROR" -- "$@")
+retVal=$?
+if [ $retVal -ne 0 ]; then echo "something went wrong with args"; exit; fi
+eval set -- "$ARGS"
+while  [ $# -gt 0 ]; do
+  case "$1" in
+    -p|--panel)         local panel=$2; shift;;
+    -b|--bamlist)       local bamlist=$2; shift;;
+    -h|--homozygous)    local homo=$2; shift;;
+    -r|--rmdamage)      local rmdamage=$2; shift;;
+  esac 
+  shift
+done
+
 # Directory where we can find the VCF panel
-dir=$1
-# Name of the panel
-panel=$2
-# Name for the output
-name=$3
-# Selected individuals
+local dir=$(dirname $panel)
+local type=$(echo $panel |rev |cut -f1 -d. |rev)
+panel=$(basename $panel .$type)
 # pass it as
-# "$(echo ${selected[@]})"
-selected=( "$4" ) #(MA2394 MA2387 MA2384 MA2400 MA2395 MA2402 MA2398 MA2399 MA2382 MA2392)
 # MAke only homozygous sites? (usually no)
-homo=$5
 # Path to bam files
-bam_path=$6
 
 # remove damaged sites from the panel? (usually yes)
-rmdamage=$7
-#k=$4
 
 echo "Parameters:
   dir=$dir
   panel=$panel
   name=$name
-  selected=${selected[@]}
   homo=$homo
-  bam_path=$bam_path
   rmdamage=$rmdamage
 "
 
@@ -43,27 +48,16 @@ echo "Parameters:
 #
 if [ ! -e ${panel}.beagle ]
 then
-  perl ~/data/Git/Botocudos-scripts/vcftogenolike.pl -i ${dir}/$panel.vcf \
+  if [ $type == "bed" ] 
+  then plink --recode vcf --bfile $panel --out $panel 
+  fi
+  
+  perl ~/data/Git/Botocudos-scripts/vcftogenolike.pl -i $panel.vcf \
     -rmdamage $rmdamage \
   -o ${panel}.beagle
 fi
 
 echo "${panel}.beagle ready"
-
-#-------------------------------------------------------------------------
-# List with bam files
-#
-if [ ! -e $name.bam.list ]
-then
-  touch $name.bam.list
-  for i in ${selected[@]}
-    do
-    #
-    # Notice the complete name of your bam file
-    #
-    ls ${bam_path}/${i}.bam >>$name.bam.list
-  done
-fi
 
 #--------------------------------------------------------------------------
 # Sites file for ANGSD
@@ -84,49 +78,49 @@ fi
 #------------------------------------------------------------------------------
 # Compute genotype likelihoods for the samples
 #
-n=$(cat ${panel}_*_sites.txt | wc -l|cut -f1 -d ' ')
-if [ ! -e ${name}_${n}_sites.beagle ]
+local n=$(cat ${panel}_*_sites.txt | wc -l|cut -f1 -d ' ')
+if [ ! -e ${bamlist}_${n}_sites.beagle ]
 then
   CHRS=($(tail -n +2 $panel.beagle | cut -f1 -d'_' |sort |uniq))
   for chr in ${CHRS[@]}
   do
     angsd -GL 1 -out ${name}_${n}_${chr}_sites -doGlf 2 -doMajorMinor 3  \
-      -bam $name.bam.list -minQ 35 -minmapQ 30 -trim 5\
-      -sites ${panel}_${chr}_sites.txt -rf chr${chr}.txt \
+      -bam $bamlist.bam.list -minQ 35 -minmapQ 30 -trim 5\
+      -sites ${panel}_${chr}_sites.txt -rf chr${chr}.txt  -checkbamheaders 0 \
        -nThreads 4  >out_gl_${chr}.txt 2>err_gl_${chr}.txt& #-minInd 1
   done 
   { sleep 5; echo waking up after 5 seconds; } &
   { sleep 1; echo waking up after 1 second; } &
   wait
   echo all jobs are done!
-  cat ${name}_${n}_*_sites.beagle.gz >${name}_${n}_sites.beagle.gz
-  gunzip ${name}_${n}_sites.beagle.gz -c > ${name}_${n}_tmp.beagle
-  head -n1 ${name}_${n}_tmp.beagle > header_${name}_${n}.txt
-  sed -i '/marker/d' ${name}_${n}_tmp.beagle
-  cat header_${name}_${n}.txt ${name}_${n}_tmp.beagle >  ${name}_${n}_sites.beagle
-  rm header_${name}_${n}.txt ${name}_${n}_tmp.beagle ${name}_${n}_sites.beagle.gz 
-  #sed -i 's/chr//' ${name}_sites.beagle
+  cat ${bamlist}_${n}_*_sites.beagle.gz >${bamlist}_${n}_sites.beagle.gz
+  gunzip ${bamlist}_${n}_sites.beagle.gz -c > ${bamlist}_${n}_tmp.beagle
+  head -n1 ${bamlist}_${n}_tmp.beagle > header_${bamlist}_${n}.txt
+  sed -i '/marker/d' ${bamlist}_${n}_tmp.beagle
+  cat header_${bamlist}_${n}.txt ${bamlist}_${n}_tmp.beagle >  ${bamlist}_${n}_sites.beagle
+  rm header_${bamlist}_${n}.txt ${bamlist}_${n}_tmp.beagle ${bamlist}_${n}_sites.beagle.gz 
+  #sed -i 's/chr//' ${bamlist}_sites.beagle
 
 fi
 
-echo "${name}_${n}_sites.beagle ready"
+echo "${bamlist}_${n}_sites.beagle ready"
 
 #------------------------------------------------------------------------------
 # Merge genotype likelihoods (samples,panel)
 #
-if [ ! -e ${panel}_${name}.beagle ]
+if [ ! -e ${panel}_${bamlist}.beagle ]
 then
   echo "perl ~/data/Scripts/merge_genos.pl -g2 $panel.beagle \
-    -g1 ${name}_${n}_sites.beagle -id ${dir}/GenoLike/ids.txt \
-    -o ${panel}_${name}.beagle -homozygous $homo"
+    -g1 ${bamlist}_${n}_sites.beagle -id ${dir}/GenoLike/ids.txt \
+    -o ${panel}_${bamlist}.beagle -homozygous $homo"
 
   perl ~/data/Scripts/merge_genos.pl -g2 $panel.beagle \
-    -g1 ${name}_${n}_sites.beagle -id ${panel}_ids.txt \
-    -o ${panel}_${name}.beagle -homozygous $homo
+    -g1 ${bamlist}_${n}_sites.beagle -id ${panel}_ids.txt \
+    -o ${panel}_${bamlist}.beagle -homozygous $homo
 
 fi
 
-echo "Panel and samples merged to ${panel}_${name}.beagle"
+echo "Panel and samples merged to ${panel}_${bamlist}.beagle"
 
 #/home/ubelix/iee/dcruz/install/NGSadmix -likes ${panel}_8botocudos.beagle \
 #-K $k  -o ${panel}_8botocudos_k$k
