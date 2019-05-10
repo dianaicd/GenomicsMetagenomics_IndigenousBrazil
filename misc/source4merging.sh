@@ -314,6 +314,22 @@ mergeBAM2BED(){
     plink --distance square gz 'flat-missing' \
     --file ${panel}.${bamlist}.haploid \
     --out ${panel}.${bamlist}.haploid
+
+    # Recode for Fred's format
+    plink --recode 12 --file ${panel}.${bamlist}.haploid \
+        --out ${panel}.${bamlist}.haploid.fred
+    
+    plink --recode transpose --file ${panel}.${bamlist}.haploid.fred \
+        --out ${panel}.${bamlist}.haploid.fred
+    lastField=$(head -n1 ${panel}.${bamlist}.haploid.fred.tped|wc -w)
+    columns=$(echo $(seq 5 2 $lastField) | sed 's/ /,/g')
+    cut -f $columns -d' ' ${panel}.${bamlist}.haploid.fred.tped \
+     >${panel}.${bamlist}.haploid.fred
+
+    # plink --distance square gz 'flat-missing' \
+    #     --file ${panel}.${bamlist}.haploid.fred \
+    #     --out ${panel}.${bamlist}.haploid.fred
+
 }
 
 bam2plink(){
