@@ -52,9 +52,10 @@ then
   then plink --recode vcf --bfile $panel --out $panel 
   fi
   
-  perl ~/data/Git/Botocudos-scripts/vcftogenolike.pl -i $panel.vcf \
-    -rmdamage $rmdamage \
-  -o ${panel}.beagle
+  if [ ! -e vcftogenolike.pl ] 
+  then ln -s ~/data/Git/Botocudos-scripts/GenoLike/vcftogenolike.pl ./
+  fi
+  perl vcftogenolike.pl -i $panel.vcf  -rmdamage $rmdamage -o ${panel}.beagle
 fi
 
 echo "${panel}.beagle ready"
@@ -89,8 +90,6 @@ then
       -sites ${panel}_${chr}_sites.txt -rf chr${chr}.txt  -checkbamheaders 0 \
        -nThreads 4  >out_gl_${chr}.txt 2>err_gl_${chr}.txt& #-minInd 1
   done 
-  { sleep 5; echo waking up after 5 seconds; } &
-  { sleep 1; echo waking up after 1 second; } &
   wait
   echo all jobs are done!
   cat ${bamlist}_${n}_*_sites.beagle.gz >${bamlist}_${n}_sites.beagle.gz
@@ -114,7 +113,10 @@ then
     -g1 ${bamlist}_${n}_sites.beagle -id ${dir}/GenoLike/ids.txt \
     -o ${panel}_${bamlist}.beagle -homozygous $homo"
 
-  perl ~/data/Scripts/merge_genos.pl -g2 $panel.beagle \
+  if [ ! -e merge_genos.pl ]
+  then ln -s ~/Git/Botocudos-scripts/GenoLike/merge_genos.pl ./
+  fi 
+  perl merge_genos.pl -g2 $panel.beagle \
     -g1 ${bamlist}_${n}_sites.beagle -id ${panel}_ids.txt \
     -o ${panel}_${bamlist}.beagle -homozygous $homo
 
