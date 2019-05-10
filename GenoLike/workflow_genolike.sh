@@ -43,7 +43,8 @@ echo "Parameters:
 #
 if [ ! -e ${panel}.beagle ]
 then
-  perl ~/data/Scripts/vcftogenolike.pl -i ${dir}/$panel.vcf -rmdamage $rmdamage \
+  perl ~/data/Git/Botocudos-scripts/vcftogenolike.pl -i ${dir}/$panel.vcf \
+    -rmdamage $rmdamage \
   -o ${panel}.beagle
 fi
 
