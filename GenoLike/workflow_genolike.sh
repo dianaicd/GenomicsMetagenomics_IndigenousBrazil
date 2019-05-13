@@ -38,7 +38,7 @@ panel=$(basename $panel .$type)
 echo "Parameters:
   dir=$dir
   panel=$panel
-  name=$name
+  name=$bamlist
   homo=$homo
   rmdamage=$rmdamage
 "
@@ -85,8 +85,8 @@ then
   CHRS=($(tail -n +2 $panel.beagle | cut -f1 -d'_' |sort |uniq))
   for chr in ${CHRS[@]}
   do
-    angsd -GL 1 -out ${name}_${n}_${chr}_sites -doGlf 2 -doMajorMinor 3  \
-      -bam $bamlist.bam.list -minQ 35 -minmapQ 30 -trim 5\
+    angsd -GL 1 -out ${bamlist}_${n}_${chr}_sites -doGlf 2 -doMajorMinor 3  \
+      -bam $bamlist-minQ 35 -minmapQ 30 -trim 5\
       -sites ${panel}_${chr}_sites.txt -rf chr${chr}.txt  -checkbamheaders 0 \
        -nThreads 4  >out_gl_${chr}.txt 2>err_gl_${chr}.txt& #-minInd 1
   done 
