@@ -114,7 +114,7 @@ then
     -o ${panel}_${bamlist}.beagle -homozygous $homo"
 
   if [ ! -e merge_genos.pl ]
-  then ln -s ~/Git/Botocudos-scripts/GenoLike/merge_genos.pl ./
+  then ln -s ~/data/Git/Botocudos-scripts/GenoLike/merge_genos.pl ./
   fi 
   perl merge_genos.pl -g2 $panel.beagle \
     -g1 ${bamlist}_${n}_sites.beagle -id ${panel}_ids.txt \
