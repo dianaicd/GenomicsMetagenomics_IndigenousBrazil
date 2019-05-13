@@ -87,7 +87,7 @@ prepare_sites(){
 
     for chr in ${chromosomes[@]}
     do
-        cut -f 1,2 ${panel}.refalt |grep -P "^$chr_"| sed 's/_/\t/'|\
+        cut -f 1,2 ${panel}.refalt |grep -P "^$chr\_"| sed 's/_/\t/'|\
         awk '{print($1"\t"$2-1"\t"$2)}' >${panel}_${chr}_sites.bed &
 
         grep -P "^$chr\_" ${panel}.refalt > ${panel}_${chr}.refalt &
