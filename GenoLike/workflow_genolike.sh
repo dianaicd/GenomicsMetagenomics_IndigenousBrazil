@@ -63,7 +63,7 @@ echo "${panel}.beagle ready"
 #--------------------------------------------------------------------------
 # Sites file for ANGSD
 #
-if [ ! -e ${panel}_sites.txt ]
+if [ ! -e ${panel}_ids.txt ]
 then
   CHRS=($(tail -n +2 $panel.beagle | cut -f1 -d'_' |sort |uniq))
   for chr in ${CHRS[@]}
