@@ -169,7 +169,7 @@ geno_like(){
         shift
     done
 
-    if [ -e workflow_genolike.sh ]
+    if [ ! -e workflow_genolike.sh ]
     then
         ln -s ~/data/Git/Botocudos-scripts/GenoLike/workflow_genolike.sh ./
     fi
@@ -194,7 +194,7 @@ BED2VCF(){
 # Call genotypes for data with genome coverage > 10x
 genos_modern(){
     if [ ! -e mpileup_bcftools_Moreno2018.sh ] ; then
-        ln -s ~/data/Git/Botocudos-scripts/Genotype/mpileup_bcftools_Moreno2018.sh ./
+        ln -s ~/data/Git/Botocudos-scripts/Genotypes/mpileup_bcftools_Moreno2018.sh ./
     fi
     panel=$1
     bamfile=$2
@@ -223,15 +223,17 @@ make_bamlist(){
     local Posth=~/archive/BAM/Posth
     local SGDP=~/scratch_monthly/Simons/*
     local Yana=~/archive/BAM/Yana
+    local Malaspinas=~/archive/BAM/Malaspinas2018
     local MalTa=~/archive/BAM/MalTa
     local MaanasaAncient=~/archive/Panels/Raghavan2015/www.cbs.dtu.dk/suppl/NativeAmerican/data/alignments/ancient
     local MaanasaNewWorld=~/archive/Panels/Raghavan2015/www.cbs.dtu.dk/suppl/NativeAmerican/data/alignments/newworld 
     local MaanasaOldWorld=~/archive/Panels/Raghavan2015/www.cbs.dtu.dk/suppl/NativeAmerican/data/alignments/oldworld 
     local MaanasaAll=~/archive/Panels/Raghavan2015/www.cbs.dtu.dk/suppl/NativeAmerican/data/alignments/*
     local Lindo=~/archive/Panels/Lindo2018
-    local Scheib="pending"
+    local Scheib=~/scratch_monthly/Botocudos/BAM/Scheib/final 
     local fromVictorAncient=~/Project/Americas/fromVictor/Ancient 
     local fromVictorModern=~/Project/Americas/fromVictor/Modern 
+    local TeamAB=~/archive/BAM/Reich_A_B
 
     case "$samples" in 
         BotocudosAll)       ls $botoAll/*bam ;;     # Botocudos24, Botocudos22, BotocudosAll,
@@ -239,6 +241,7 @@ make_bamlist(){
         Posth)              ls $Posth/*bam  ;;      # Posth
         SGDP)               ls $SGDP/*bam ;;        # SGDP
         Yana)               ls $Yana/*bam ;;        # Yana
+        Malaspinas2014)     ls $Malaspinas/*bam ;;  # Malaspinas2014: Polynesians
         MalTa)              ls $MalTa/*bam ;;       # MaanasaAncient
         MaanasaAncient)     ls $MaanasaAncient/*bam ;;# MaanasaNewWorld
         MaanasaNewWorld)    ls $MaanasaNewWorld/*bam ;; # MaanasaOldWorld
@@ -248,6 +251,7 @@ make_bamlist(){
         Scheib)             ls $Scheib/*bam ;;          # Scheib
         fromVictorAncient)  ls $fromVictorAncient/*bam ;;# fromVictorModern
         fromVictorModern)   ls $fromVictorModern/*bam ;; # fromVictorAncient
+        TeamAB)             ls $TeamAB/*bam ;; # Team A, Team B
         ALL)    # ALL
     esac > $output 
 }
