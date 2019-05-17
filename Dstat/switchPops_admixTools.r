@@ -1,11 +1,12 @@
 # Fix ind file for AdmixTools
 library(plyr)
 args = commandArgs(trailingOnly=TRUE)
-panel <- args[1]
+panelName <- args[1]
 indName <- args[2]
 
 #indName <- "Maanasa_mask1_flip.B.P.ASM.VMAnc.ind"
 #panel <- read.table("~/archive/Panels/Magic.panel", header = T)
+panel <- read.table(panelName, header = T)
 ind <- read.table(indName)
 colnames(ind) <- c("indID", "U", "control")
 ind$control <- NULL
