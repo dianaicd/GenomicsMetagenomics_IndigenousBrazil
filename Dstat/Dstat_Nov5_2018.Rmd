@@ -1,0 +1,673 @@
+---
+title: "Dstat"
+author: "Cruz-Dávalos, Diana I."
+date: "5/11/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, cache = T)
+library(plyr)
+library(ggplot2)
+library(cowplot)
+library(colorspace)
+source("~/Projects/Botocudos/Scripts/Dstat/plot_dstat.R")
+```
+
+
+```{r}
+my_plot <- plot_dstat(directory = "~/Projects/Botocudos/Files/Dstat/2018_10_31/",
+                       fileName = "MN0008_rmtrans.txt",
+                       h3 = "French",
+                       h2 =  "Mixe", start = 0, end = 0.1, pval = 0.05, c)
+
+print(my_plot)
+```
+
+
+```{r}
+abba <- read.table("~/Projects/Botocudos/Files/Dstat/2019_03_08/Result.ErrorCorr.TransRem.txt",
+                   header = T, stringsAsFactors = F)
+
+
+plots <- list()
+pop <- "Mixe"
+for(pop in c("Botocudo","Mixe", "Surui", "LagoaSanta", "Karitiana")){
+  lagoa <- abba[(abba$H1 == pop |abba$H2 == pop) &
+                  (abba$H3 %in% c("Andaman", "Australian", "Han", "French", "Papuan")),]
+  switch <- lagoa$H1 == pop
+  lagoa$Z[switch] <- -lagoa$Z[switch]
+  h2 <- lagoa$H2[switch]
+  lagoa$H1[switch] <- h2
+  lagoa$H2[switch] <- pop
+  lagoa <- lagoa[!(lagoa$H1 %in% c("Andaman", "Australian", "Han", "French", "Papuan")),]
+  #lagoa$Z <- (lagoa$Z - mean(lagoa$Z))/(sd(lagoa$Z))
+
+  #sem <- sd(lagoa$Z)/sqrt(length(lagoa$Z))
+  #lagoa$Z <- lagoa$Z / sem
+  #lagoa$Z <- lagoa$Z/sd(lagoa$Z)
+  fake_pop <- lagoa[1,]
+  fake_pop[1, 1:8] <- 100
+  fake_pop[1,9:12] <- c(pop, pop, pop, pop)
+  lagoa <- rbind(lagoa, fake_pop)
+  lagoa$H1 <- factor(lagoa$H1, levels = rev(c("USR1", "Anzick", "Mixe", "Karitiana",
+                                          "Surui", "LagoaSanta", "Botocudo")),
+                     ordered = T)
+  lagoa$H3 <- factor(lagoa$H3, levels = c("Australian", "Andaman", "Han", "French", "Papuan", pop),
+                     ordered = T)
+  p <- ggplot(lagoa, aes(x = Z, y = H1, color = H3)) +
+    
+    coord_cartesian(xlim = c(-5,5)) +
+    scale_color_manual(values = c("blueviolet", "pink", 
+                                  "darkgoldenrod1", "deepskyblue1", 
+                                  "black"),
+                       breaks = c("Australian", "Andaman", 
+                                  "French", "Han")) +
+    geom_vline(xintercept = -3.3, lty = "dashed", col = "gray")+
+    geom_vline(xintercept = 3.3, lty = "dashed", col = "gray") +
+    geom_vline(xintercept = 0, lty = "dashed", col = "gray") +
+    geom_point(shape = 5, size = 3, stroke= 1) +
+    labs(x = paste("D-stat(", pop, ", H2; H3, Yoruba)"), title = pop) + 
+    theme(legend.position = "none")
+  plots[[length(plots)+1]] <- p
+}
+p <- p + theme(legend.position = "bottom")
+leyenda <- get_legend(p)
+
+pdf("~/Projects/Botocudos/Plots/Dstat/figS35_MorenoMayar_Botocudo.pdf",
+    width = 8, height = 9)
+plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], 
+          leyenda, ncol = 2)
+dev.off()
+
+```
+
+```{r}
+plot_dstat(directory = "~/Projects/Botocudos/Files/Dstat/2019_03_08/",
+                       fileName = "Result.ErrorCorr.TransRem.txt",
+                       h3 = "Andaman",
+                       h2 =  "Mixe", start = 0, end = 0.1, pval = 0.05, 
+           correctError = T)
+
+```
+
+## Downsampled Lagoa Santa
+
+```{r}
+abba <- read.table("~/Projects/Botocudos/Files/Dstat/2019_03_20/Result_downsampled.ErrorCorr.TransRem.txt",
+                   header = T, stringsAsFactors = F)
+
+
+plots <- list()
+
+
+pop <- "Mixe"
+for(pop in c("MN0008","Mixe", "LagoaSanta_1x", "LagoaSanta_4x", 
+             "LagoaSanta_low",
+             "LagoaSanta_15x", "Surui", "Karitiana")){
+  lagoa <- abba[(abba$H1 == pop |abba$H2 == pop) &
+                  (abba$H3 %in% c("Andaman", "Australian", "Han", "French")),]
+  switch <- lagoa$H1 == pop
+  lagoa$Z[switch] <- -lagoa$Z[switch]
+  h2 <- lagoa$H2[switch]
+  lagoa$H1[switch] <- h2
+  lagoa$H2[switch] <- pop
+  lagoa <- lagoa[!(lagoa$H1 %in% c("Andaman", "Australian", "Han", "French")),]
+  #lagoa$Z <- (lagoa$Z - mean(lagoa$Z))/(sd(lagoa$Z))
+
+  #sem <- sd(lagoa$Z)/sqrt(length(lagoa$Z))
+  #lagoa$Z <- lagoa$Z / sem
+  #lagoa$Z <- lagoa$Z/sd(lagoa$Z)
+  fake_pop <- lagoa[1,]
+  fake_pop[1, 1:8] <- 100
+  fake_pop[1,9:12] <- c(pop, pop, pop, pop)
+  lagoa <- rbind(lagoa, fake_pop)
+  lagoa <- lagoa[lagoa$H1 %in% c("USR1", "Anzick1", "Mixe", "Karitiana",
+                                          "Surui", "LagoaSanta", "MN0008", 
+                                 "Aconcagua", "AncKaweskar", "AncYamana", 
+                                 "Ayayema", "Aymara", "Chane", "TrailCreek", 
+                                 "Huichol", "Lovelock", "SouthWestOntario", 
+                                 "Maya", "Piapoco", "Pima", "PuntaSantaAna",
+                                 "Quechua", "SpiritCave", "Taino", "Yukpa"),]
+  lagoa$H1 <- factor(lagoa$H1, levels = rev(c("USR1", "Anzick1", "Mixe", "Karitiana",
+                                          "Surui", "LagoaSanta", "MN0008", 
+                                 "Aconcagua", "AncKaweskar", "AncYamana", 
+                                 "Ayayema", "Aymara", "Chane", "TrailCreek", 
+                                 "Huichol", "Lovelock", "SouthWestOntario", 
+                                 "Maya", "Piapoco", "Pima", "PuntaSantaAna",
+                                 "Quechua", "SpiritCave", "Taino", "Yukpa")))
+  #lagoa$H1 <- factor(lagoa$H1, levels = rev(c("USR1", "Anzick1", "Mixe", "Karitiana",
+#                                          "Surui", "LagoaSanta", "MN0008")),
+ #                    ordered = T)
+  lagoa$H3 <- factor(lagoa$H3, levels = c("Australian", "Andaman", "Han", "French", pop),
+                     ordered = T)
+  p <- ggplot(lagoa, aes(x = Z, y = H1, color = H3)) +
+    
+    coord_cartesian(xlim = c(-5,5)) +
+    scale_color_manual(values = c("blueviolet", "pink", 
+                                  "darkgoldenrod1", "deepskyblue1", 
+                                  "black"),
+                       breaks = c("Australian", "Andaman", 
+                                  "French", "Han")) +
+    geom_vline(xintercept = -3.3, lty = "dashed", col = "gray")+
+    geom_vline(xintercept = 3.3, lty = "dashed", col = "gray") +
+    geom_vline(xintercept = 0, lty = "dashed", col = "gray") +
+    geom_point(shape = 5, size = 3, stroke= 1) +
+    labs(x = paste("D-stat(", pop, ", H2; H3, Yoruba)"), title = pop) + 
+    theme(legend.position = "none")
+  plots[[length(plots)+1]] <- p
+}
+p <- p + theme(legend.position = "bottom")
+leyenda <- get_legend(p)
+
+
+png("~/Projects/Botocudos/Plots/Dstat/Zscore_downsampled.png", width = 10, height = 15, res = 300, units = "in")
+plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]], plots[[7]], plots[[8]],
+          leyenda, ncol = 2)
+dev.off()
+
+```
+
+## Visualize it with histograms
+
+```{r}
+
+plots <- list()
+pop <- "Mixe"
+par(mfrow = c(4,2))
+for(pop in c("MN0008","Mixe", "LagoaSanta_1x", "LagoaSanta_4x", 
+             "LagoaSanta_low",
+             "LagoaSanta_15x", "Surui", "Karitiana")){
+  lagoa <- abba[(abba$H1 == pop |abba$H2 == pop) &
+                  (abba$H3 %in% c("Andaman", "Australian", "Han", "French")),]
+  switch <- lagoa$H1 == pop
+  lagoa$Z[switch] <- -lagoa$Z[switch]
+  h2 <- lagoa$H2[switch]
+  lagoa$H1[switch] <- h2
+  lagoa$H2[switch] <- pop
+  lagoa <- lagoa[!(lagoa$H1 %in% c("Andaman", "Australian", "Han", "French")),]
+  #lagoa$Z <- (lagoa$Z - mean(lagoa$Z))/(sd(lagoa$Z))
+
+  #sem <- sd(lagoa$Z)/sqrt(length(lagoa$Z))
+  #lagoa$Z <- lagoa$Z / sem
+  #lagoa$Z <- lagoa$Z/sd(lagoa$Z)
+  fake_pop <- lagoa[1,]
+  fake_pop[1, 1:8] <- 100
+  fake_pop[1,9:12] <- c(pop, pop, pop, pop)
+  lagoa <- rbind(lagoa, fake_pop)
+  lagoa <- lagoa[lagoa$H1 %in% c("USR1", "Anzick1", "Mixe", "Karitiana",
+                                          "Surui", "LagoaSanta", "MN0008", 
+                                 "Aconcagua", "AncKaweskar", "AncYamana", 
+                                 "Ayayema", "Aymara", "Chane", "TrailCreek", 
+                                 "Huichol", "Lovelock", "SouthWestOntario", 
+                                 "Maya", "Piapoco", "Pima", "PuntaSantaAna",
+                                 "Quechua", "SpiritCave", "Taino", "Yukpa"),]
+  lagoa$H1 <- factor(lagoa$H1, levels = rev(c("USR1", "Anzick1", "Mixe", "Karitiana",
+                                          "Surui", "LagoaSanta", "MN0008", 
+                                 "Aconcagua", "AncKaweskar", "AncYamana", 
+                                 "Ayayema", "Aymara", "Chane", "TrailCreek", 
+                                 "Huichol", "Lovelock", "SouthWestOntario", 
+                                 "Maya", "Piapoco", "Pima", "PuntaSantaAna",
+                                 "Quechua", "SpiritCave", "Taino", "Yukpa")))
+  #lagoa$H1 <- factor(lagoa$H1, levels = rev(c("USR1", "Anzick1", "Mixe", "Karitiana",
+#                                          "Surui", "LagoaSanta", "MN0008")),
+ #                    ordered = T)
+  lagoa$H3 <- factor(lagoa$H3, levels = c("Australian", "Andaman", "Han", "French", pop),
+                     ordered = T)
+  colors <- c("blueviolet", "pink", 
+                                  "darkgoldenrod1", "deepskyblue1", 
+                                  "black")
+  austro <- c("Australian", "Andaman", 
+                                  "French", "Han")
+
+  hist(lagoa$Z[lagoa$H3 == austro[1]], breaks = 15, xlim = c(-4,4), border = NA,
+       col = alpha(colors[1], 0.6), main = pop)
+  for(i in 2:(length(colors)-1)){
+    hist(lagoa$Z[lagoa$H3 == austro[i]], breaks = 15, xlim = c(-4,4), border = NA,
+       col = alpha(colors[i], 0.6), add = T)
+  }
+}
+
+
+
+```
+
+
+## Whole D-stat for MN0008
+
+```{r}
+pop <- "MN0008"
+lagoa <- abba[(abba$H1 == pop |abba$H2 == pop),]
+switch <- lagoa$H1 == pop
+lagoa$Z[switch] <- -lagoa$Z[switch]
+h2 <- lagoa$H2[switch]
+lagoa$H1[switch] <- h2
+lagoa$H2[switch] <- pop
+lagoa <- lagoa[!(lagoa$H1 %in% c("French", "Han", "Andaman", "Australian")),]
+pdf("~/Projects/Botocudos/Plots/Dstat/Boto8_Dstat_pops.pdf", width = 6, height = 6)
+plots <- list()
+for(pop in unique(lagoa$H3)){
+  lagoa$is_lagoa <- "nop"
+  lagoa$is_lagoa[lagoa$H3 == pop] <- "yeah"
+  p <-ggplot(lagoa[#abs(lagoa$Z) > 3.3 & 
+    lagoa$H3 == pop,]
+             , aes(x = Z, y = H1, color = H3)) + 
+    coord_cartesian(xlim = c(-5,5)) + 
+    geom_vline(xintercept = -3.3, lty = "dashed", col = "gray")+
+    geom_vline(xintercept = 3.3, lty = "dashed", col = "gray") +
+    geom_vline(xintercept = 0, lty = "dashed", col = "gray") +
+    scale_y_discrete() +
+    geom_hline(yintercept = seq(1, length(unique(lagoa$H1))), lty = "dotted",
+               color = alpha("gray", 0.7)) +
+    geom_point(shape = 5, size = 3, stroke= 1) +
+    labs(title = pop) +
+    theme(legend.position = "none")
+  print(p)
+  plots[[length(plots) + 1]] <- p
+  
+}
+dev.off()
+
+```
+
+## 22 Botocudos as one population
+```{r}
+abba <- read.table("~/Projects/Botocudos/Files/Dstat/2019_03_20/Result_22boto.ErrorCorr.TransRem.txt",
+                   header = T, stringsAsFactors = F)
+
+
+plots <- list()
+
+
+pop <- "Mixe"
+for(pop in c("Botocudo","Mixe", "LagoaSanta_1x", "LagoaSanta_4x", 
+             "LagoaSanta_low",
+             "LagoaSanta_high", "Surui", "Karitiana")){
+  lagoa <- abba[(abba$H1 == pop |abba$H2 == pop) &
+                  (abba$H3 %in% c("Andaman", "Australian", "Han", "French")),]
+  switch <- lagoa$H1 == pop
+  lagoa$Z[switch] <- -lagoa$Z[switch]
+  h2 <- lagoa$H2[switch]
+  lagoa$H1[switch] <- h2
+  lagoa$H2[switch] <- pop
+  lagoa <- lagoa[!(lagoa$H1 %in% c("Andaman", "Australian", "Han", "French")),]
+  #lagoa$Z <- (lagoa$Z - mean(lagoa$Z))/(sd(lagoa$Z))
+
+  #sem <- sd(lagoa$Z)/sqrt(length(lagoa$Z))
+  #lagoa$Z <- lagoa$Z / sem
+  #lagoa$Z <- lagoa$Z/sd(lagoa$Z)
+  fake_pop <- lagoa[1,]
+  fake_pop[1, 1:8] <- 100
+  fake_pop[1,9:12] <- c(pop, pop, pop, pop)
+  lagoa <- rbind(lagoa, fake_pop)
+  lagoa <- lagoa[lagoa$H1 %in% c("USR1", "Anzick1", "Mixe", "Karitiana",
+                                          "Surui", "LagoaSanta", "Botocudo", 
+                                 "Aconcagua", "AncKaweskar", "AncYamana", 
+                                 "Ayayema", "Aymara", "Chane", "TrailCreek", 
+                                 "Huichol", "Lovelock", "SouthWestOntario", 
+                                 "Maya", "Piapoco", "Pima", "PuntaSantaAna",
+                                 "Quechua", "SpiritCave", "Taino", "Yukpa"),]
+  lagoa$H1 <- factor(lagoa$H1, levels = rev(c("USR1", "Anzick1", "Mixe", "Karitiana",
+                                          "Surui", "LagoaSanta", "Botocudo", 
+                                 "Aconcagua", "AncKaweskar", "AncYamana", 
+                                 "Ayayema", "Aymara", "Chane", "TrailCreek", 
+                                 "Huichol", "Lovelock", "SouthWestOntario", 
+                                 "Maya", "Piapoco", "Pima", "PuntaSantaAna",
+                                 "Quechua", "SpiritCave", "Taino", "Yukpa")))
+  #lagoa$H1 <- factor(lagoa$H1, levels = rev(c("USR1", "Anzick1", "Mixe", "Karitiana",
+#                                          "Surui", "LagoaSanta", "Botocudo")),
+ #                    ordered = T)
+  lagoa$H3 <- factor(lagoa$H3, levels = c("Australian", "Andaman", "Han", "French", pop),
+                     ordered = T)
+  p <- ggplot(lagoa, aes(x = Z, y = H1, color = H3)) +
+    
+    coord_cartesian(xlim = c(-5,5)) +
+    scale_color_manual(values = c("blueviolet", "pink", 
+                                  "darkgoldenrod1", "deepskyblue1", 
+                                  "black"),
+                       breaks = c("Australian", "Andaman", 
+                                  "French", "Han")) +
+    geom_vline(xintercept = -3.3, lty = "dashed", col = "gray")+
+    geom_vline(xintercept = 3.3, lty = "dashed", col = "gray") +
+    geom_vline(xintercept = 0, lty = "dashed", col = "gray") +
+    geom_point(shape = 5, size = 3, stroke= 1) +
+    labs(x = paste("D-stat(", pop, ", H2; H3, Yoruba)"), title = pop) + 
+    theme(legend.position = "none")
+  plots[[length(plots)+1]] <- p
+}
+p <- p + theme(legend.position = "bottom")
+leyenda <- get_legend(p)
+
+
+png("~/Projects/Botocudos/Plots/Dstat/Zscore_22botocudos.png", res = 300,
+    units = "in", width = 15, height = 20)
+plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]],
+          plots[[5]], plots[[6]], plots[[7]], plots[[8]],
+          leyenda, ncol = 2)
+dev.off()
+```
+
+## F3
+```{r}
+panel <- read.table("~/Projects/Botocudos/Files/ADMIX/2019_03_17/Maanasa_mask1_flip.panel", header = T)
+vi <- read.table("~/Projects/Botocudos/Files/ADMIX/2019_03_17/ind_pop_region.txt")
+colnames(vi) <- c("ID", "Pop", "Region")
+vi$Fam <- vi$ID
+panel <- rbind(panel, vi)
+```
+
+```{r}
+
+panel$Source2 <- panel$Pop
+subpanel <- unique(panel[,c("Pop", "Region")])
+subpanel$Source2 <- subpanel$Pop
+
+
+f3 <- read.table("~/Projects/Botocudos/Files/F3/2019_03_25/F3.txt")
+colnames(f3) <- c("Source1",  "Source2",   "Target", "f_3",  "std.err", "Z", "SNPs"  )
+f3 <- join(f3, subpanel, by = "Source2")
+
+f3 <- f3[order(f3$f_3),]
+
+f3$Source2 <- factor(f3$Source2, levels = f3$Source2, ordered = T)
+f3$Region[f3$Source2 == "Papuan"] <- "Oceania"
+
+png("~/Projects/Botocudos/Plots/F3.png",
+    width = 8, height = 8, res = 300, units = "in")
+ggplot(f3[f3$Region == "Americas", ], 
+       aes(x = Source2, y = f_3,
+           ymin = f_3 - std.err, ymax = f_3 + std.err)) +
+  geom_point() +
+  geom_errorbar() +
+  theme(axis.text.y = element_text(angle = 0, size = 16)) +
+  coord_flip()
+dev.off()
+
+```
+
+
+# Try to make panel B
+
+```{r}
+pop <- "Botocudo"
+plots <- list()
+for(pop in c("Botocudo", "LagoaSanta")){
+path <- paste("~/Projects/Botocudos/Files/Dstat/2019_03_20/h/dstat_", pop, ".txt", sep = "")
+dstat <- read.table(path)
+colnames(dstat) <- c( "Pop1",  "Pop2", "Pop3", "Pop4",
+                      "Dstat",	"Z",	"BABA",	"ABBA", "SNPs")
+panel$Pop3 <- panel$Pop
+
+subpanel <- join(dstat, unique(panel[, c("Region", "Pop3")]),
+                 by = "Pop3")
+
+
+
+
+subpanel <- subpanel[subpanel$Region != "Americas", ]
+subpanel <- subpanel[subpanel$Region != "Africa", ]
+subpanel$Region <- factor(subpanel$Region, levels = c("Africa", "Europe", "Siberia",
+                             "EastAsia",  "SoutheastAsia",
+                             "NearEast", "Caucasus","SouthAsia",
+                             "Oceania"), ordered = T)
+
+subpanel$Oceania <- "No"
+subpanel$Oceania[subpanel$Region == "Oceania"] <- "Yes"
+subpanel <- subpanel[order(subpanel$Oceania),]
+p <- ggplot(subpanel[subpanel$Pop2 %in% panel$Pop[panel$Region == "Americas"],],
+       aes(x = Z, y = Pop2, color = Oceania)) +
+    coord_cartesian(xlim = c(-5,5)) +
+    geom_vline(xintercept = -3.3, lty = "dashed", col = "gray")+
+    geom_vline(xintercept = 3.3, lty = "dashed", col = "gray") +
+    geom_vline(xintercept = 0, lty = "dashed", col = "gray") +
+    geom_point(shape = 5, size = 3, stroke= 1) +
+  scale_color_manual(values = c("gray", "violet")) +
+  labs(title = pop)
+leyenda <- get_legend(p)
+p <- p + theme(legend.position = "none")
+plots[[length(plots)+1]] <- p
+}
+
+plot_grid(plots[[1]], plots[[2]], leyenda, ncol = 2)
+
+```
+
+```{r}
+
+#---------------------------------------------------------------------
+# Maanasa panel
+
+pop <- "Mixe"
+plots <- list()
+for(pop in c("Botocudo", "LagoaSanta", "Surui", "Mixe")){
+path <- paste("~/Projects/Botocudos/Files/Dstat/2019_03_20/dstat_", pop, ".txt", sep = "")
+dstat <- read.table(path)
+colnames(dstat) <- c( "Pop1",  "Pop2", "Pop3", "Pop4",
+                      "Dstat",	"Z",	"BABA",	"ABBA", "SNPs")
+subpanel <- join(dstat, unique(panel[, c("Region", "Pop3")]),
+                 by = "Pop3")
+
+subpanel <- subpanel[subpanel$Region != "Americas", ]
+subpanel <- subpanel[subpanel$Region != "Africa", ]
+subpanel$Region <- factor(subpanel$Region, levels = c("Africa", "Europe", "Siberia",
+                             "EastAsia",  "SoutheastAsia",
+                             "NearEast", "Caucasus","SouthAsia",
+                             "Oceania"), ordered = T)
+subpanel$Oceania <- "No"
+subpanel$Oceania[subpanel$Region == "Oceania"] <- "Yes"
+subpanel <- subpanel[order(subpanel$Oceania),]
+
+p <- ggplot(subpanel[subpanel$Pop2 %in% panel$Pop[panel$Region == "Americas"],], aes(x = Z, y = Pop2, color = Oceania)) +
+    coord_cartesian(xlim = c(-5,5)) +
+    geom_vline(xintercept = -3.3, lty = "dashed", col = "gray")+
+    geom_vline(xintercept = 3.3, lty = "dashed", col = "gray") +
+    geom_vline(xintercept = 0, lty = "dashed", col = "gray") +
+  scale_color_manual(values = c("gray", "violet")) +
+    geom_point(shape = 5, size = 3, stroke= 1) +
+  labs(title = pop)
+leyenda <- get_legend(p)
+p <- p + theme(legend.position = "none")
+plots[[length(plots)+1]] <- p
+}
+
+plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], leyenda, ncol = 2)
+
+
+```
+
+### Build D
+```{r}
+
+s12 <- read.csv("~/Projects/Botocudos/Files/Panels/TableS12_Moreno2018.csv")
+s12 <- s12[,1:2]
+s12$Pop3 <- s12$Pop
+
+POP <- c( "Botocudo", "Boto8", "LagoaSta", "LagoaSanta_bam", "LagoaSanta_4x",
+          "LagoaSanta_1x","Surui", "Karitiana","Aymara", "Huichol")
+D <- data.frame()
+for(pop in POP){
+  path <- paste("~/Projects/Botocudos/Files/Dstat/2019_03_20/h/dstat_h2mixe_", pop, ".txt", sep = "")
+  dstat <- read.table(path)
+  colnames(dstat) <- c( "Pop1",  "Pop2", "Pop3", "Pop4",
+                        "Dstat",	"Z",	"BABA",	"ABBA", "SNPs")
+
+  tmp <- data.frame(Pop3 = dstat$Pop3, Dstat = dstat$Z)
+  colnames(tmp) <- c("Pop3", pop)
+  if(dim(D)[1]){
+      D <- join(D, tmp, by = "Pop3")
+  }else{
+    D <- tmp
+  }
+
+  
+}
+D <- join(D, unique(s12[, c("Region", "Pop3")]),
+                 by = "Pop3")
+
+D$Region <- sub("Pd", "", D$Region)
+D$Region <- factor(D$Region, levels = c( "Siberia", 
+                                         "CentralAsia", "Europe",
+                                         "EastAsia", "SouthAsia", "SEAsia", "Caucasus",
+                                         "Oceania"), ordered = T)
+
+
+```
+
+
+```{r}
+
+
+myComb <- combn(POP, 2)
+D$Oceania <- "No"
+D$Oceania[D$Region %in% c("SEAsia", "Oceania")] <- "Yes"
+D <- D[order(D$Oceania),]
+D$Oceania[D$Oceania == "Yes"] <- "lightseagreen"
+D$Oceania[D$Oceania == "No"] <- "mistyrose4"
+D$Oceania[D$Region == "Europe"] <- "red"
+plots <- list()
+lims <- c(-5,5)
+
+
+png("~/Projects/Botocudos/Plots/Dstat/Pairwise_Zscore_Mixe.png", width = 20, height = 25,
+    res = 300, units = "in")
+par(mfrow = c(length(POP), length(POP)))
+for(h in 1:length(POP)){
+  for(k in 1:length(POP)){
+  j <- h + 1#which(colnames(D) == myComb[1,k])
+  i <- k + 1#which(colnames(D) == myComb[2,k])
+  
+  if(j < i){
+  plot(D[,i], D[,j], type = "n", bty = "n", 
+       xlab = colnames(D)[i], ylab = colnames(D)[j], xlim = lims, ylim = lims)
+  abline(a = 0, b = 1, lty = "dashed", col = "gray")
+  points(D[,i], D[,j], pch = 5, col = D$Oceania, cex= 1, lwd = 1)
+        correlation_eu <- cor(D[eurasian,i], D[eurasian,j])
+    correlation_oc <- cor(D[oceania,i], D[oceania,j])
+    correlation_all <- cor(D[,i], D[,j])
+  text(x = -4, y = 4, round(correlation_all,3), font = 2)
+  text(x = -4, y = 3, round(correlation_eu,3), font = 2, col = "gray70")
+  text(x = -4, y = 2, round(correlation_oc,3), font = 2, col = "lightseagreen")
+  }else{
+    plot(1, type="n", axes=F, xlab="", ylab="")
+  }
+
+}
+}
+dev.off()
+
+```
+
+```{r}
+
+ggplot(D, aes(x = LagoaSta, y = Botocudo, color = Region)) +
+  coord_cartesian(xlim = lims, ylim = lims) +
+    geom_abline(slope = 1, lty = "dashed", col = "gray") +
+  #scale_color_manual(values = c("gray", "violet")) +
+    geom_point(shape = 5, size = 3, stroke= 1) +
+  labs(title = pop)
+
+```
+
+## Plot for Conference
+
+```{r}
+
+s12 <- read.csv("~/Projects/Botocudos/Files/Panels/TableS12_Moreno2018.csv")
+s12 <- s12[,1:2]
+s12$Pop3 <- s12$Pop
+
+POP <- c( "LagoaSta", "Botocudo","Surui","Aymara","Huichol")
+D <- data.frame()
+for(pop in POP){
+  path <- paste("~/Projects/Botocudos/Files/Dstat/2019_03_20/h/dstat_h2mixe_", pop, ".txt", sep = "")
+  dstat <- read.table(path)
+  colnames(dstat) <- c( "Pop1",  "Pop2", "Pop3", "Pop4",
+                        "Dstat",	"Z",	"BABA",	"ABBA", "SNPs")
+
+  tmp <- data.frame(Pop3 = dstat$Pop3, Dstat = dstat$Dstat)
+  colnames(tmp) <- c("Pop3", pop)
+  if(dim(D)[1]){
+      D <- join(D, tmp, by = "Pop3")
+  }else{
+    D <- tmp
+  }
+
+  
+}
+D <- join(D, unique(s12[, c("Region", "Pop3")]),
+                 by = "Pop3")
+
+D$Region <- sub("Pd", "", D$Region)
+D$Region <- factor(D$Region, levels = c( "Siberia", 
+                                         "CentralAsia", "Europe",
+                                         "EastAsia", "SouthAsia", "SEAsia", "Caucasus",
+                                         "Oceania"), ordered = T)
+
+
+```
+
+
+```{r}
+
+colnames(D) <- sub("LagoaSta", "Lagoa Santa", colnames(D))
+POP <- sub("LagoaSta", "Lagoa Santa", POP)
+myComb <- combn(POP, 2)
+D$Oceania <- "No"
+D$Oceania[D$Region %in% c("SEAsia", "Oceania") ] <- "Yes"
+D <- D[order(D$Oceania),]
+D$Oceania[D$Oceania == "Yes"] <- "aquamarine3"
+D$Oceania[D$Oceania == "No"] <- "gray70"
+#D$Oceania[D$Region == "Europe"] <- "red"
+plots <- list()
+lims <- c(-0.03, 0.03)
+
+
+#png("~/Projects/Botocudos/Plots/Dstat/Pairwise_Zscore_subset.png", width = 10, height = 10,
+#     res = 300, units = "in", bg = NA)
+eurasian <- which(!D$Region %in% c("SEAsia", "Oceania"))
+oceania <- which(D$Region %in% c("SEAsia", "Oceania"))
+#par(mfrow = c(length(POP), length(POP)))
+for(h in 1:length(POP)){
+  for(k in 1:length(POP)){
+    j <- h + 1
+    i <- k + 1
+    png(paste("~/Projects/Botocudos/Plots/Dstat/miniplots/",
+              colnames(D)[i], "_",colnames(D)[j], ".png", sep = ""),
+        width = 3, height = 3, res = 300, units = "in",bg = NA)
+    par(mar = c(5, 5, 1, 1))
+
+    # correlation_eu <- cor(D[eurasian,i], D[eurasian,j])
+    # correlation_oc <- cor(D[oceania,i], D[oceania,j])
+    # correlation_all <- cor(D[,i], D[,j])
+    #if(j > i){
+      plot(D[,i], D[,j], type = "n", bty = "n", 
+           ylab =NA, xlab = NA, xlim = lims, ylim = lims,
+           cex.lab = 2)
+      #if(i == 2){
+        title(ylab = paste("H2 =", colnames(D)[j]),  cex.lab = 1.2)
+     # }
+     # if(j == length(POP)+1){
+        title(xlab = paste("H2 =", colnames(D)[i]), cex.lab = 1.2)
+     # }
+      points(D[,i], D[,j], type = "n", bty = "n", 
+             xlab = NA, ylab = NA, xlim = lims, ylim = lims,
+             cex.lab = 2)
+      
+      #abline(a = 0, b = 1, lty = "dashed", col = "gray")
+      points(D[,i], D[,j], pch = 5, col = D$Oceania, cex= 1, lwd = 2)
+      points(x = rep(lims[1], length(D[,j])), y = D[,j], pch = 15,
+             col = D$Oceania, cex= 2, lwd = 3)
+      points(y = rep(lims[1], length(D[,i])), x = D[,i], pch = 15,
+             col = D$Oceania, cex= 2, lwd = 3)
+    #}else{
+    #  plot(1, type="n", axes=F, xlab="", ylab="")
+    #}
+    dev.off()
+    #text(x = -3.5, y = 4, paste("r =", round(correlation_all,2)), font = 1, cex = 1.5)
+    #text(x = -4, y = 3, round(correlation_eu,3), font = 2, col = "gray70")
+    #text(x = -4, y = 2, round(correlation_oc,3), font = 2, col = "mediumspringgreen")
+  }
+}
+#dev.off()
+
+```
