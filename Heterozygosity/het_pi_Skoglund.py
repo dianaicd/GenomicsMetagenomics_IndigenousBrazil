@@ -15,7 +15,7 @@ from astropy.stats import jackknife_resampling
 from astropy.stats import jackknife_stats
 # %%
 
-path_sampled = "/Users/dcruz/Projects/Botocudos/Files/test/Botocudos.counts.sampled.txt"
+path_sampled = "/Users/dcruz/Projects/Botocudos/Files/test/Ami.counts.txt"
 path_sites = "/Users/dcruz/Projects/Botocudos/Files/test/Nigeria_B_Yoruba-3.refalt"
 basename = "/Users/dcruz/Projects/Botocudos/Files/test/out"
 blockSize = 5e6
@@ -110,15 +110,17 @@ def define_blocks(bllockSize, chr, sites):
 # Get sites with data for at least 2 individuals
 # and sample two alleles
 def sample_from2ind(Block, sites):
-    counts = ma.count(Block, axis = 1) #np.array([ma.count(Block[x,]) for x in range(0,Block.shape[0])])
+    counts = ma.count(Block, axis = 1)
     # we must have data for 4 chromosomes
     index2alleles = ma.where(np.equal(counts, 4))[0]
 
     counts = counts[index2alleles]
     Block = Block[index2alleles, :].reshape(counts.shape[0], Block.shape[1])
-    # get an index [0 or 1] to sample an allele for the first ind
-    indexFirst = np.array(np.round(np.random.sample(size = counts.shape)), dtype = np.int)
-    indexSecond = np.array(np.round(np.random.sample(size = counts.shape)), dtype = np.int) + 2
+    # get an index to sample an allele for the first ind
+    indexFirst = np.array(np.round(np.random.sample(size = counts.shape)), 
+                          dtype = np.int)
+    indexSecond = np.array(np.round(np.random.sample(size = counts.shape)), 
+                           dtype = np.int) + 2
     firstChr = []
     secondChr = []
     for i in range(0, Block.shape[0]):
@@ -131,20 +133,12 @@ def sample_from2ind(Block, sites):
 #%%
 # Sample exclusively 2 individuals
 if(calledGeno):
-    firstInd = np.int(np.round(np.random.sample(1)*sampled.shape[1]-1))
-    if firstInd % 2:
-        indexes1 = [firstInd, firstInd+1]
-    else:
-        indexes1 = [firstInd-1, firstInd]
-        
-    secondInd = np.int(np.round(np.random.sample(1)*sampled.shape[1]-1))
-    if secondInd % 2:
-        indexes2 = [secondInd, secondInd+1]
-    else:
-        indexes2 = [secondInd-1, secondInd]
-        
-    twoIndividuals = sampled[:, [indexes1, indexes2]]
-    
+    # Sample two indices without replacement
+    index = np.random.choice(range(np.int(sampled.shape[1]/2)), 
+                               size = 2, replace=False)*2
+                               
+    twoIndividuals = sampled[:, [index[0], index[0]+1,
+                                 index[1], index[1]+1]]  
 else:
 
     nNonMasked = ma.count(sampled, axis = 0)
