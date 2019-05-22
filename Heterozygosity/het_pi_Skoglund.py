@@ -137,7 +137,7 @@ if(calledGeno):
     else:
         indexes1 = [firstInd-1, firstInd]
         
-    secondInd = np.int(np.round(np.random.sample(1)*sampled.shape[1]))
+    secondInd = np.int(np.round(np.random.sample(1)*sampled.shape[1]-1))
     if secondInd % 2:
         indexes2 = [secondInd, secondInd+1]
     else:
