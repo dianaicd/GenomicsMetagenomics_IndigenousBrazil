@@ -131,13 +131,13 @@ def sample_from2ind(Block, sites):
 #%%
 # Sample exclusively 2 individuals
 if(calledGeno):
-    firstInd = np.int(np.round(np.sample.random(1)*sampled.shape[1]))
+    firstInd = np.int(np.round(np.random.sample(1)*sampled.shape[1]))
     if firstInd % 2:
         indexes1 = [firstInd, firstInd+1]
     else:
         indexes1 = [firstInd-1, firstInd]
         
-    secondInd = np.int(np.round(np.sample.random(1)*sampled.shape[1]))
+    secondInd = np.int(np.round(np.random.sample(1)*sampled.shape[1]))
     if secondInd % 2:
         indexes2 = [secondInd, secondInd+1]
     else:
