@@ -21,14 +21,17 @@ basename = "/Users/dcruz/Projects/Botocudos/Files/test/out"
 blockSize = 5e6
 autosomes = False
 seed = 0
+calledGeno = False
 print('ARGV      :', sys.argv[1:])
 
-options, remainder = getopt.getopt(sys.argv[1:], 'c:s:o:ab:r:', ['counts=',
-                                                         'sites=',
-                                                         'output=',
-                                                         'autosomes_only',
-                                                         'block_size=',
-                                                         'random_seed='])
+options, remainder = getopt.getopt(sys.argv[1:], 
+                                   'c:s:o:ab:r:g', ['counts=',
+                                                   'sites=',
+                                                   'output=',
+                                                   'autosomes_only',
+                                                   'block_size=',
+                                                   'random_seed=',
+                                                   'called_genotypes'])
 print('OPTIONS   :', options)
 
 for opt, arg in options:
@@ -43,7 +46,9 @@ for opt, arg in options:
     elif opt in ('-b', '--block_size'):
         blockSize = arg
     elif opt in ('-r', '--random_seed'):
-        seed = np.int(arg)
+       seed = np.int(arg)
+    elif opt in ('-g', '--called_genotypes'):
+        calledGeno = True
 
 
 #%%
@@ -104,32 +109,52 @@ def define_blocks(bllockSize, chr, sites):
 # %%
 # Get sites with data for at least 2 individuals
 # and sample two alleles
-def sample_2ind(Block, sites):
-    counts = np.array([ma.count(Block[x,]) for x in range(0,Block.shape[0])])
-    index2alleles = ma.where(np.greater_equal(counts, 2))[0]
+def sample_from2ind(Block, sites):
+    counts = ma.count(Block, axis = 1) #np.array([ma.count(Block[x,]) for x in range(0,Block.shape[0])])
+    # we must have data for 4 chromosomes
+    index2alleles = ma.where(np.equal(counts, 4))[0]
 
     counts = counts[index2alleles]
     Block = Block[index2alleles, :].reshape(counts.shape[0], Block.shape[1])
-
-    probs = np.random.sample(size = counts.shape)
-    index2sampled = np.array(probs*counts, dtype = np.int)
+    # get an index [0 or 1] to sample an allele for the first ind
+    indexFirst = np.array(np.round(np.random.sample(size = counts.shape)), dtype = np.int)
+    indexSecond = np.array(np.round(np.random.sample(size = counts.shape)), dtype = np.int) + 2
     firstChr = []
+    secondChr = []
     for i in range(0, Block.shape[0]):
-        firstChr.append(Block[i,~Block[i,:].mask][index2sampled[i]])
-        Block[i,~Block[i,:].mask].mask[index2sampled[i]] = True
-
-    counts = counts - 1
-    probs = np.random.sample(size = counts.shape)
-    index2sampled = np.array(probs*counts, dtype = np.int)
-    secondChr = [Block[i,~Block[i,:].mask][index2sampled[i]]
-                    for i in range(0, Block.shape[0])]
+        firstChr.append(Block[i,indexFirst[i]])
+        secondChr.append(Block[i,indexSecond[i]])
 
     twoChrs = np.array((firstChr, secondChr), dtype=np.int)
 
     return(twoChrs, sites[index2alleles])
 #%%
+# Sample exclusively 2 individuals
+if(calledGeno):
+    firstInd = np.int(np.round(np.sample.random(1)*sampled.shape[1]))
+    if firstInd % 2:
+        indexes1 = [firstInd, firstInd+1]
+    else:
+        indexes1 = [firstInd-1, firstInd]
+        
+    secondInd = np.int(np.round(np.sample.random(1)*sampled.shape[1]))
+    if secondInd % 2:
+        indexes2 = [secondInd, secondInd+1]
+    else:
+        indexes2 = [secondInd-1, secondInd]
+        
+    twoIndividuals = sampled[:, [indexes1, indexes2]]
+    
+else:
 
-twoChrs, newSites = sample_2ind(sampled, sites)
+    nNonMasked = ma.count(sampled, axis = 0)
+    bestInd = np.argsort(nNonMasked)[-2:]
+    bestInd = [bestInd[0], bestInd[0], bestInd[1], bestInd[1]]
+    twoIndividuals = sampled[:, bestInd]
+
+
+#%%
+twoChrs, newSites = sample_from2ind(twoIndividuals, sites)
 
 # %%
 blockGenome = np.hstack([define_blocks(blockSize, chr, newSites)
