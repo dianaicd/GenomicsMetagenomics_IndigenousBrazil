@@ -137,6 +137,73 @@ sample_mpileup(){
     done
 }
 #-----------------------------------------------------------------------------#
+# Use angsd to count alleles and sample one base at random
+# the best strategy is to split calculations by individuals
+# trim 5 bases by default
+angsd_haploid(){
+    local ped=""
+    local trim=5
+    local nThreads=2
+    local rmtrans=1
+    SHORTOPTS="p:b:Fc:"
+    LONGOPTS="panel: bamlist: chromosomes: pedformat"
+    ARGS=$(getopt -s bash -o "$SHORTOPTS" -l "$LONGOPTS" -n "ERROR" -- "$@")
+    retVal=$?
+    if [ $retVal -ne 0 ]; then echo "something went wrong with args"; exit; fi
+
+    eval set -- "$ARGS"
+    while  [ $# -gt 0 ]; do
+        case "$1" in
+            -p|--panel)         local panel=$2; shift;;
+            -b|--bamlist)       local bamlist=$2; shift;;
+            -c:--chromosomes)   local chromosomes=($(echo $2)); shift;;
+            -F|--pedformat)     ped="--ped"; shift;;
+        esac 
+        shift
+    done
+
+    # Prepare sites for angsd
+    cut -f1,4-6 $panel.bim |sort -nk1,2 >$panel.sites 
+    angsd sites index $panel.sites
+
+    # Sample a read per site per individual
+    nLines=$(wc -l $bamlist |cut -f1 -d ' ')
+
+    if [ ! -d log ] ; then mkdir log ; fi 
+    for i in $(seq 1 $nLines)
+    do
+        bamdir=$(dirname $(sed -n ${i}p $bamlist))
+        ind=$(basename $(sed -n ${i}p $bamlist ) .bam)
+
+        if [ ! -d $ind ] ; then mkdir $ind ; fi 
+
+        angsd -i $bamdir/$ind.bam -doHaploCall 1 -sites $panel.sites \
+            -minQ 20 -minMapQ 30 -trim $trim -doCounts 1 -out $ind/$ind \
+            -howOften 5000 -nThreads $nThreads -maxMis 2 -doMajorMinor 3 \
+            > log/angsd.$ind.out 2> log/angsd.$ind.err &
+     
+    done ; wait 
+
+    # Merge files
+
+
+    for chr in ${chromosomes[@]}
+    do
+        python count_and_sample.py --mpileup ${bamlist}_${chr}.mpileup \
+            --counts ${bamlist}_${chr}.counts.gz \
+            --sampled ${bamlist}_${chr}.sampled.gz \
+            --refalt ${panel}_${chr}.refalt $ped &
+    done
+    wait
+
+    if [ -e $bamlist.counts.sampled.txt ];
+     then rm $bamlist.counts.sampled.txt ; fi
+    for chr in ${chromosomes[@]}
+    do
+        gunzip -c ${bamlist}_${chr}.sampled.gz >> $bamlist.counts.sampled.txt
+    done
+}
+#-----------------------------------------------------------------------------#
 # Convert VCF to haploid counts
 vcf_haploid(){
     if [ ! -e vcf_sample_random.py ]
@@ -219,11 +286,11 @@ make_bamlist(){
         shift
     done
 
-    local botoAll=~/archive/BAM/Botocudos/2018_10_26/link_final
-    local Posth=~/archive/BAM/Posth
+    local botoAll=~/Project/Botocudos/BAM
+    local Posth=~/Project/Americas/Posth/BAM
     local SGDP=~/scratch_monthly/Simons/*
     local Yana=~/archive/BAM/Yana
-    local Malaspinas=~/archive/BAM/Malaspinas2018
+    local Malaspinas=~/Project/Botocudos/Malaspinas2014/
     local MalTa=~/archive/BAM/MalTa
     local MaanasaAncient=~/archive/Panels/Raghavan2015/www.cbs.dtu.dk/suppl/NativeAmerican/data/alignments/ancient
     local MaanasaNewWorld=~/archive/Panels/Raghavan2015/www.cbs.dtu.dk/suppl/NativeAmerican/data/alignments/newworld 
@@ -304,7 +371,8 @@ mergeBAM2BED(){
     done < $bamlist
 
     plink --recode --make-bed --tfile $panel.$bamlist --out $panel.$bamlist 
-
+    awk 'BEGIN{DOF="\t"} {print $1,$2,$3,$4,$5,1}' \
+            $panel.$bamlist.fam >tmp.fam ; mv tmp.fam $panel.$bamlist.fam 
     # Sample a random allele for the whole panel, making it as if it were haploid;
     # this is useful to do an MDS
     plink --recode --bfile ${panel}.${bamlist} --out ${panel}.${bamlist}
@@ -314,10 +382,13 @@ mergeBAM2BED(){
 
     cp ${panel}.${bamlist}.map ${panel}.${bamlist}.haploid.map
 
-    plink --distance square gz 'flat-missing' \
-    --file ${panel}.${bamlist}.haploid \
-    --out ${panel}.${bamlist}.haploid
-
+    for mind in 05 $(seq 10 5 95)
+    do
+        plink --distance square gz 'flat-missing' \
+            --file ${panel}.${bamlist}.haploid \
+            --mind 0.$mind \
+            --out ${panel}.${bamlist}.mind0.$mind.haploid &
+    done ;wait
     # Recode for Fred's format
     plink --recode 12 --file ${panel}.${bamlist}.haploid \
         --out ${panel}.${bamlist}.haploid.fred
@@ -385,4 +456,51 @@ bam2plink(){
     do
         mv $extendedPanel.$ext ${panel}_${bamlist}.$ext
     done
+}
+
+#-----------------------------------------------------------------------------#
+# Make par file for convertf
+make_par(){
+    SHORTOPTS="p:c:"
+    LONGOPTS="panel: conversion:"
+    # This function uses my scripts
+    ARGS=$(getopt -s bash -o "$SHORTOPTS" -l "$LONGOPTS" -n "ERROR" -- "$@")
+    retVal=$?
+    if [ $retVal -ne 0 ]; then echo "something went wrong with args"; exit; fi
+
+    eval set -- "$ARGS"
+    while  [ $# -gt 0 ]; do
+        case "$1" in
+            -p|--panel)         local panel=$2; shift;;
+            -c|--conversion)    local conversion=$2; shift;;
+        esac 
+        shift
+    done
+    
+    if [ -e ${panel}_${conversion}.par ] ; then rm ${panel}_${conversion}.par ; fi
+
+    if [ $conversion == "ped2eigenstrat" ] ; then
+        argument=(genotype snpname indivname outputformat genotypeoutname \
+                    snpoutname indivoutname familynames)
+
+        options=($panel.ped $panel.bim $panel.ped EIGENSTRAT $panel.eigenstratgeno \
+                $panel.snp $panel.ind YES)
+        
+        for i in $(seq 0 7)
+        do 
+          echo "${argument[$i]}: ${options[$i]}" >> ${panel}_${conversion}.par
+        done
+
+    elif [ $conversion == "eigenstrat2ped" ] ; then 
+        argument=(genotype snpname indivname outputformat genotypeoutname \
+                    snpoutname indivoutname)
+
+        options=($panel.eigenstratgeno $panel.snp $panel.ind PED $panel.ped \
+                $panel.pedsnp $panel.pedind)
+
+        for i in $(seq 0 7)
+        do 
+          echo "${argument[$i]}: ${options[$i]}" >> ${panel}_${conversion}.par
+        done
+    fi 
 }
