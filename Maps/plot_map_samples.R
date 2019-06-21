@@ -22,23 +22,26 @@ brMap = gBuffer(brMap, width=0, byid=TRUE) #correct problem with Polygons - Topo
 brMapDF
 
 pdf("../Plots/Brazil_map.pdf")
-png("~/Projects/Botocudos/Plots/Brazil_map_points.png", res = 200, width = 4, height = 4, units = "in")
-map("worldHires","Brazil", col="black", fill=TRUE,
-    bg = "azure",
+pdf("~/Projects/Botocudos/Plots/Map/Brazil_MidThesis.pdf",# res = 200,
+    width = 4, height = 4#, units = "in"
+    )
+map("worldHires","Brazil", col="white", fill=TRUE,
+    bg = "cadetblue3", border=F,
     xlim = c(-75, -35), ylim = c(-35, 10), mar = c(0,0,0,0)
+    
     #xlim = c(-52, -38), ylim = c(-25, -13)
     )
 plot(minas, add=TRUE, 
      col=alpha("firebrick1", 0.7), 
      border=F)
 plot(espirito, add = T, 
-     col = alpha("darkolivegreen1", 0.6), 
+     col = alpha("slateblue4", 0.6), 
      border = F)
 plot(scatarina, add = T, 
-     col = alpha("hotpink1", 0.6),
+     col = alpha("springgreen3", 0.6),
      border = F)
 plot(bahia, add = T, 
-     col = alpha("gold", 0.6),
+     col = alpha("tan1", 0.6),
      border = F)
 points(x = c(-45, -41, -50, -42), 
        y = c(-19, -20, -27, -12), 
@@ -49,17 +52,18 @@ points(x = c(-45, -41, -50, -42),
        cex = c(10/8,14/8, 5/8,5/8), pch = 16)
 dev.off()
 
-map("worldHires","venezuela", col="gray95",fill=TRUE, add=TRUE, border = F)  #add the adjacent parts of the US; can't forget my homeland
-map("worldHires","chile", col="gray95",fill=TRUE, add=TRUE, border = F)
-map("worldHires","colombia", col="gray95",fill=TRUE, add=TRUE, border = F)
-map("worldHires","guyana", col="gray95", fill=TRUE, add=TRUE, border = F)
-map("worldHires","surinam", col="gray95", fill=TRUE, add=TRUE, border = F)
-map("worldHires","peru", col="gray95", fill=TRUE, add=TRUE, border = F)
-map("worldHires","bolivia", col="gray95", fill=TRUE, add=TRUE, border = F)
-map("worldHires","paraguay", col="gray95", fill=TRUE, add=TRUE, border = F)
-map("worldHires","argentina", col="gray95", fill=TRUE, add=TRUE, border = F)
-map("worldHires","uruguay", col="gray95", fill=TRUE, add=TRUE, border = F)
-map("worldHires","french guiana", col="gray95", fill=TRUE, add=TRUE, border = F)
+myCol <- "snow3"
+map("worldHires","venezuela", col=myCol,fill=TRUE, add=TRUE, border = F)  #add the adjacent parts of the US; can't forget my homeland
+map("worldHires","chile", col=myCol,fill=TRUE, add=TRUE, border = F)
+map("worldHires","colombia", col=myCol,fill=TRUE, add=TRUE, border = F)
+map("worldHires","guyana", col=myCol, fill=TRUE, add=TRUE, border = F)
+map("worldHires","surinam", col=myCol, fill=TRUE, add=TRUE, border = F)
+map("worldHires","peru", col=myCol, fill=TRUE, add=TRUE, border = F)
+map("worldHires","bolivia", col=myCol, fill=TRUE, add=TRUE, border = F)
+map("worldHires","paraguay", col=myCol, fill=TRUE, add=TRUE, border = F)
+map("worldHires","argentina", col=myCol, fill=TRUE, add=TRUE, border = F)
+map("worldHires","uruguay", col=myCol, fill=TRUE, add=TRUE, border = F)
+map("worldHires","french guiana", col=myCol, fill=TRUE, add=TRUE, border = F)
 dev.off()
 
 add.pie(z=c(1), x=-44, y=-18, radius=sqrt(10), col=alpha("gold", 0.6), labels="")
@@ -99,34 +103,34 @@ add.pie(z=c(1), x=-44, y=-18, radius=sqrt(3),
 
 
 #### Nicer map
-png("~/Projects/Botocudos/Plots/map_CIG.png",
+png("~/Projects/Botocudos/Plots/map_4Heidelberg.png",
     width = 7, height = 7, res = 350, units = "in")
 
-map("worldHires","Brazil", col="black", fill=TRUE,
-    bg = "cornflowerblue",
-    xlim = c(-95, -25), ylim = c(-35, 20), mar = c(0,0,0,0)
+map("worldHires","Brazil", col="cornsilk2", fill=T,
+    bg = "azure3",
+    xlim = c(-95, -25), ylim = c(-35, 20), mar = c(0,0,0,0), border = NA
     #xlim = c(-52, -38), ylim = c(-25, -13)
 )
 
 plot(minas, add=TRUE, 
-     col=alpha("firebrick1", 0.7), 
+     col=alpha("cyan3", 0.7), 
      border=F)
 plot(espirito, add = T, 
-     col = alpha("darkolivegreen1", 0.6), 
+     col = alpha("blue", 0.6), 
      border = F)
-plot(scatarina, add = T, 
-     col = alpha("hotpink1", 0.6),
-     border = F)
+# plot(scatarina, add = T, 
+#      col = alpha("blueviolet", 0.6),
+#      border = F)
 plot(bahia, add = T, 
-     col = alpha("gold", 0.6),
+     col = alpha("chartreuse2", 0.6),
      border = F)
-points(x = c(-45, -41, -50, -42), 
-       y = c(-19, -20, -27, -12), 
-       col = c(alpha("white",0.7), 
-               alpha("white", 0.6), 
-               alpha("white", 0.6),
-               alpha("white", 0.6)),
-       cex = c(10/8,14/8, 5/8,5/8), pch = 16)
+# points(x = c(-45, -41, -50, -42),
+#        y = c(-19, -20, -27, -12),
+#        col = c(alpha("white",0.7),
+#                alpha("white", 0.6),
+#                alpha("white", 0.6),
+#                alpha("white", 0.6)),
+#       cex = c(10/8,14/8, 5/8,5/8), pch = 16)
 map("worldHires","venezuela", col="gray95",fill=TRUE, add=TRUE, border = F)  #add the adjacent parts of the US; can't forget my homeland
 map("worldHires","chile", col="gray95",fill=TRUE, add=TRUE, border = F)
 map("worldHires","colombia", col="gray95",fill=TRUE, add=TRUE, border = F)
@@ -144,3 +148,10 @@ map("worldHires","costa rica", col="gray95", fill=TRUE, add=TRUE, border = F)
 map("worldHires","nicaragua", col="gray95", fill=TRUE, add=TRUE, border = F)
 map("worldHires","honduras", col="gray95", fill=TRUE, add=TRUE, border = F)
 dev.off()
+
+map_poly_obj <- map("worldHires", plot=FALSE, 
+                    fill=TRUE)
+place <- "Koufonisi"
+
+grep(place, map_poly_obj$names)
+
