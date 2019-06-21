@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+e#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Mon Jan 21 11:04:03 2019
@@ -13,18 +13,19 @@ import operator
 import re
 # %%
 # Read in distance file and labels
-dist_path = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/Botocudos_fromVictor.Maanasa_americas_reheaded_filtered.dist"
+#dist_path = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/Botocudos_fromVictor.Maanasa_americas_reheaded_filtered.dist"
 
 #botocudos = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/bam.filelist"
 #botocudos = "/Users/dcruz/Projects/Botocudos/Files/Panels/Maanasa_pop.txt"
 #botocudos = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/Maanasa_americas.inds"
-botocudos = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/Botocudos_fromVictor_Maanasa.ind"
+#botocudos = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_02_05/Botocudos_fromVictor_Maanasa.ind"
+botocudos = "/Users/dcruz/Desktop/test/Maanasa_81ind.panel"
 
 f = open(botocudos)
 label_given = []
 
 for x in f:
-    label_given.append(x.strip())
+    label_given.append(x.strip().split("\t")[8])
 
 #%%
 # Colors for the plot
@@ -47,7 +48,7 @@ if not dist.shape[0] == dist.shape[1]:
 plt.imshow(dist, vmin = 0, vmax = 1)
 plt.colorbar()
 
-# %%
+e # %%
 # Remove nan
 
 empty = np.where(np.isnan(dist))
@@ -102,6 +103,9 @@ for index_label, label in enumerate(labelUnique):
 	position = np.where(np.array(label_given) == label)
 	plt.scatter(vect[position,0], vect[position,1], c = colors[index_label],
              label = label)
+plt.legend(labelUnique)
+
+# %%
 position = np.where(np.array(label_given) == "Karitiana")
 plt.scatter(vect[position,0], vect[position,1], c = "green",
              label = label )
