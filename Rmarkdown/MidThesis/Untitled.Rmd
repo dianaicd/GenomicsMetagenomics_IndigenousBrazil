@@ -1,0 +1,411 @@
+---
+title: "MDS_midthesis"
+author: "DI Cruz Dávalos"
+date: "5/15/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(plyr)
+library(RColorBrewer)
+```
+
+```{r}
+other <- read.table("~/Projects/Botocudos/Files/Panels/Magic.panel", header = T)
+
+h <- read.table("~/Projects/Botocudos/Files/Panels/h/h.panel", header = T)
+h <- rbind(h, other)
+maanasa <- read.table("~/Projects/Botocudos/Files/Panels/Maanasa/Maanasa_mask1_flip.panel", header = T)
+maanasa <- rbind(maanasa, other)
+wollstein <- read.table("~/Projects/Botocudos/Files/Panels/Wollstein/Wollstein.panel", header = T)
+wollstein <- rbind(wollstein, other)
+
+panel <- read.table("~/Projects/Botocudos/Files/Panels/Magic.panel", header = T)
+```
+
+## "h" panel
+
+```{r}
+ind <- read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/h.B.P.ASM.VMAnc.mind0.90.haploid.dist.id")
+colnames(ind) <- c("indID", "x")
+panel_h <- join(ind, panel, by = "indID")
+
+hDist <- as.matrix(read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/h.B.P.ASM.VMAnc.mind0.90.haploid.dist.gz"))
+
+#res <- cmdscale(dist(hDist), k = nrow(hDist)-1, eig = T)
+#save(res, file="~/Projects/Botocudos/Files/MDS/2019_05_15/mds_h.Rda")
+load("~/Projects/Botocudos/Files/MDS/2019_05_15/mds_h.Rda")
+points <- as.data.frame(res_h$points)
+points <- cbind(points, panel_h)
+
+ggplot(NULL, aes(x = V1, y = V2, color=region,  shape=region, size = 4)) +
+  geom_point(data=points) +
+  geom_point(data= points[points$region == "Botocudos",], color = "black") +
+  scale_shape_manual(values=1:49)
+
+```
+
+
+## "h" panel: Americas
+
+```{r}
+ind <- read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/h.B.P.ASM.VMAnc.mind0.90.haploid.dist.id")
+colnames(ind) <- c("indID", "x")
+myPanel <- join(ind, panel, by = "indID") ; table(myPanel$region);dim(myPanel) 
+index <- which(myPanel$region %in% c("Americas", "Botocudos") & 
+                 !(myPanel$population %in% c("Botocudos2014", 
+                                             "Saqqaq", "LaGalgadaHighlands", 
+                                             "Inuit", "LauricochaHighlands", 
+                                             "Lovelock", "Lovelock2",
+                                             "Lovelock3", "Yukpa", 
+                                             "PuntaSantaAna", "Athabascan", "LagoaSanta", "SpiritCave"))
+                   & !( myPanel$indID %in% c("USR1",
+                                             "LagoaSta", "Ayayema")))
+myPanel <- myPanel[index,]
+Dist <- as.matrix(read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/h.B.P.ASM.VMAnc.mind0.90.haploid.dist.gz"))
+
+res <- cmdscale(dist(Dist[index, index]), k = dim(Dist[index,])[1]-1, eig = T)
+points <- as.data.frame(res$points)
+points <- cbind(points, myPanel)
+
+png("~/Projects/Botocudos/Plots/MDS/preliminar_h.png",
+    width = 7, height=7, res=300, units = "in")
+ggplot(NULL, aes(x = V1, y = V2, color=population,  shape=population, size = 4)) +
+  geom_point(data=points) +
+  geom_point(data= points[points$region == "Botocudos",], color = "black") +
+  scale_shape_manual(values=1:59)
+dev.off()
+#table(myPanel$population)
+```
+
+
+
+## "Maanasa" panel
+
+```{r}
+ind <- read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Maanasa_mask1_flip.B.P.ASM.VMAnc.mind0.95.haploid.dist.id")
+Dist <- as.matrix(read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Maanasa_mask1_flip.B.P.ASM.VMAnc.mind0.95.haploid.dist.gz"))
+
+colnames(ind) <- c("indID", "x")
+myPanel <- join(ind, panel, by = "indID")
+#res <- cmdscale(dist(Dist), k = dim(Dist)[1]-1, eig = T)
+#save(res, file="~/Projects/Botocudos/Files/MDS/2019_05_15/mds_maansa.Rda")
+load("~/Projects/Botocudos/Files/MDS/2019_05_15/mds_maansa.Rda")
+points <- as.data.frame(res$points)
+points <- cbind(points, myPanel)
+
+ggplot(NULL, aes(x = V1, y = V2, color=region,  shape=region, size = 4)) +
+  geom_point(data=points) +
+  geom_point(data= points[points$region == "Botocudos",], color = "black") +
+  scale_shape_manual(values=1:49)
+```
+
+```{r}
+nGroups <- length(unique(myPanel$region))
+myColor <- brewer.pal(nGroups, "Paired")
+myShape <- 1:nGroups
+aesthetics <- data.frame(region = unique(myPanel$region),
+                         color = myColor,
+                         shape = myShape)
+aesthetics$color <- as.character(aesthetics$color)
+aesthetics$color[which(aesthetics$region == "Botocudos")] <- "black"
+pointsWColor <- join(points, aesthetics, by = "region")
+
+x <- 1
+y <- 2
+
+# png("~/Projects/Botocudos/Plots/MDS/50dim_Maanasa.png",
+#     width = 15, height = 30, res = 300, units = "in")
+# 
+# par(mfrow = c(10,5))
+# for(i in seq(1,49)){
+#   x <- i ; y <- x + 1
+  plot(x = pointsWColor[,x], y = pointsWColor[,y],
+       col = as.character(pointsWColor$color),
+       pch = points$shape, bty = "n",
+       xlab = x, ylab = y)
+#}
+plot(x  = 1:10, y = 1:10, type = "n", bty = "n",
+     axes = F, xlab = "", ylab = "")
+legend(x = 5, y=8,legend = aesthetics$region,
+       pch = aesthetics$shape,
+       col = as.character(aesthetics$color), bty = "n")
+# 
+# dev.off()
+
+```
+
+Botocudos are forming one group at dimensions: 19 - 22
+
+Let's gray out the populations out of the Americas
+
+
+```{r}
+# RColorBrewer::display.brewer.all()
+aesthetics <- myPanel
+# Make them really ugly
+aesthetics$color <- "gray"
+aesthetics$shape <- 39
+
+# But not the Americas
+aesthetics$color[aesthetics$region == "Americas"] <- "turquoise" 
+aesthetics$shape[aesthetics$region == "Americas"] <- 19 
+aesthetics$color <- as.character(aesthetics$color)
+
+# Do it by language family
+americas <- read.table("~/Projects/Botocudos/Files/Panels/Maanasa/Maanasa.americas.Moreno_names.txt",
+                       header = F, stringsAsFactors = F)
+
+colnames(americas) <- c("population", "language")
+colnames(ind) <- c("indID", "x")
+aesthetics <- join(aesthetics, americas, by = "population")
+aesthetics$language <- as.character(aesthetics$language)
+
+# Color in a gradient
+languages <- c("Eskimo", "NaDene","Saqqaq","CentralAmerind", "Andean",
+               "EcuatorialTucanoan", "EskimoAleut", "NorthernAmerind", "Mexican",
+               "ChibchanPaezan", "Ge-PanoCaribean", "Clovis")
+
+cols <- brewer.pal(3, "BuPu")
+pal <- colorRampPalette(cols)
+blues <-pal(12)
+
+for(i in 1:12){
+  index <- which(aesthetics$language == languages[i])
+  aesthetics$color[index] <- blues[i]
+}
+
+# Give special color to some populations
+pops <- c("Karitiana", "LagoaSanta", "Surui")
+cols <- c("chocolate", "cyan2", "brown1")
+for(i in 1:length(pops)){
+  aesthetics$color[which(aesthetics$population == pops[i])] <- cols[i]
+}
+
+
+aesthetics$color[which(aesthetics$region == "Botocudos")] <- "black"
+aesthetics$shape[which(aesthetics$region == "Botocudos")] <- 16
+
+aesthetics <- aesthetics[,c("indID", "shape", "color", "language")]
+aesthetics <- unique(aesthetics)
+pointsWColor <- join(points, aesthetics, by = "indID")
+
+aesthetics <- aesthetics[,c("shape", "color", "language")]
+aesthetics <- unique(aesthetics)
+
+x <- 1
+y <- 2
+
+par(mfrow = c(1,2))
+  plot(x = pointsWColor[,x], y = pointsWColor[,y], 
+       col = as.character(pointsWColor$color), 
+       pch = pointsWColor$shape, bty = "n",
+       xlab = x, ylab = y)
+  
+  plot(x  = 1:10, y = 1:10, type = "n", bty = "n", 
+     axes = F, xlab = "", ylab = "")
+legend(x = 5, y=8,legend = aesthetics$language,
+       pch = aesthetics$shape, 
+       col = as.character(aesthetics$color), bty = "n")
+
+```
+
+```{r}
+
+png("~/Projects/Botocudos/Plots/MDS/50dim_Maanasa.png",
+    width = 30, height = 15, res = 300, units = "in")
+
+par(mfrow = c(5,10))
+for(i in seq(1,49)){
+  x <- i ; y <- x + 1
+  plot(x = pointsWColor[,x], y = pointsWColor[,y],
+       col = as.character(pointsWColor$color),
+       pch = points$shape, bty = "n",
+       xlab = x, ylab = y)
+}
+
+plot(x  = 1:10, y = 1:10, type = "n", bty = "n", 
+     axes = F, xlab = "", ylab = "")
+legend(x = 5, y=8,legend = aesthetics$language,
+       pch = aesthetics$shape, 
+       col = as.character(aesthetics$color), bty = "n")
+
+dev.off()
+```
+
+
+### Maanasa Americas
+
+```{r}
+ind <- read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Maanasa_mask1_flip.B.P.ASM.VMAnc.mind0.95.haploid.dist.id", stringsAsFactors = F)
+
+Dist <- as.matrix(read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Maanasa_mask1_flip.B.P.ASM.VMAnc.mind0.95.haploid.dist.gz"))
+
+americas <- read.table("~/Projects/Botocudos/Files/Panels/Maanasa/Maanasa.americas.Moreno_names.txt",
+                       header = F, stringsAsFactors = F)
+
+colnames(americas) <- c("population", "language")
+colnames(ind) <- c("indID", "x")
+myPanel <- join(ind, panel, by = "indID")
+table(myPanel$region)
+
+index <- which(myPanel$region %in% c("Americas", "Botocudos"))
+myPanel <- myPanel[index,]
+myPanel <- join(myPanel, americas, by = "population")
+myPanel[myPanel$population=="Botocudos",]$language <- "Botocudos"
+myPanel[myPanel$population %in% c("Clovis", "Anzick1", "Aconcagua", 
+                                "AncientKaweskar", "AncientYamana", "Ayayema",
+                                "Lovelock", "Saqqaq", 
+                                "SpiritCave", "TrailCreek", "PuntaSantaAna",
+                                "SouthWesternOntario"),]$language <- "Quite old samples n = 1"
+myPanel[is.na(myPanel$language),]$language <- as.character(
+  myPanel[is.na(myPanel$language),]$label )
+unique(myPanel$language)
+# Remove some populations we do not need
+# index <- which(!(myPanel$language %in% c("ChibchanPaezan", "EskimoAleut", 
+#                                          "NaDene", "Mexican", "Botocudos2014",
+#                                          "NorthernAmerind", "Andean", "CentralAmerind", "Ge-PanoCaribean", "EcuatorialTucanoan", "LateCentralAndes")) & index)
+# myPanel <- myPanel[index,]
+
+#res <- cmdscale(dist(Dist[index,index]), k = dim(Dist[index,index])[1]-1, eig = T)
+#save(res, file = "~/Projects/Botocudos/Files/MDS/2019_05_15/mds_maanasa_americas.Rda")
+load("~/Projects/Botocudos/Files/MDS/2019_05_15/mds_maanasa_americas.Rda")
+points <- as.data.frame(res$points)
+points <- cbind(points, myPanel)
+
+# png("~/Projects/Botocudos/Plots/MDS/preliminar_Maanasa_Reich.png", 
+#     width = 7, height=7, res=300, units = "in")
+ggplot(NULL, aes(x = V17, y = V16, color=language,  shape=language, size = 4)) +
+  geom_point(data=points) +
+  geom_point(data= points[points$language == "Botocudos",], color = "black") +
+  scale_shape_manual(values=1:49)
+#dev.off()
+
+ggplot(NULL, aes(x = V3, y = V2, color=language,  shape=language, size = 4)) +
+  geom_point(data=points) +
+  geom_point(data= points[points$language == "Botocudos",], color = "black") +
+  scale_shape_manual(values=1:49)
+
+```
+
+Try to make a nice plot within the Americas
+```{r}
+load("~/Projects/Botocudos/Files/MDS/2019_05_15/mds_maanasa_americas.Rda")
+points <- res$points ; dim(points)
+ind <- read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Maanasa_mask1_flip.B.P.ASM.VMAnc.haploid.fred.mind0.95.dist.id")
+colnames(ind) <- c("indID", "x")
+
+myPanel <- join(ind, panel, by = "indID")
+languages <- read.table("~/Projects/Botocudos/Files/Panels/Maanasa/Maanasa.americas.Moreno_names.txt", header = F)
+colnames(languages) <- c("population", "language")
+myPanel <- join(myPanel, languages, by = "population")
+myPanel$language <- as.character(myPanel$language)
+index <- is.na(myPanel$language)
+myPanel[index,]$language <- as.character(myPanel[index,]$label)
+
+index <- which(myPanel$region %in% c("Botocudos", "Americas"))
+myPanel <- myPanel[index,] ; dim(myPanel)
+
+pops <- c("EskimoAleut","CentralAmerind", "Andean",  "NaDene",
+           "NorthernAmerind", "Mexican", "ChibchanPaezan", 
+          "Ge-PanoCaribean", "Saqqaq", "Clovis", 
+           "EarlyAndes", "LateCentralAndes", "Southern_Cone",
+          "Belize", "Aconcagua", "AncientKaweskar", "AncientYamana", 
+          "Anzick1", "Ayayema", "TrailCreek", "Lovelock", 
+          "SouthWesternOntario", "PuntaSantaAna", "SpiritCave", "USR1",
+          "Taino", "Brazil", "EcuatorialTucanoan", "LagoaSanta", "Botocudos")
+
+myColor <- c(rep("gray", 25), "red", "blue", "green", "orange", "black")
+myShape <- c(1:25, rep(16, 5))
+aesthetics <- data.frame(language = factor(pops, level = pops, ordered = T), 
+                         color = as.character(myColor), shape = myShape)
+
+pointsWColor <- cbind(points, myPanel)
+pointsWColor <- join(pointsWColor, aesthetics, by = "language")
+pointsWColor$language <- factor(pointsWColor$language, level = pops, ordered = T)
+pointsWColor <- pointsWColor[order(pointsWColor$language, decreasing = F),]
+
+x <- 7
+y <- 8
+plot(pointsWColor[,x], pointsWColor[,y], col = as.character(pointsWColor$color),
+     pch = pointsWColor$shape)
+
+png("~/Projects/Botocudos/Plots/MDS/50dim_Maanasa_americas.png",
+    width = 30, height = 15, res = 300, units = "in")
+
+par(mfrow = c(5,10))
+for(i in seq(1,49)){
+  x <- i ; y <- x + 1
+  plot(x = pointsWColor[,x], y = pointsWColor[,y],
+       col = as.character(pointsWColor$color),
+       pch = pointsWColor$shape, bty = "n",
+       xlab = x, ylab = y)
+}
+
+par(mar = c(0,0,0,0))
+plot(x  = 1:10, y = 1:10, type = "n", bty = "n", 
+     axes = F, xlab = "", ylab = "")
+legend(x = 2, y=10,legend = aesthetics$language,
+       pch = aesthetics$shape, 
+       col = as.character(aesthetics$color), bty = "n", ncol = 2)
+
+dev.off()
+
+```
+
+
+## "Wollstein" panel
+
+```{r}
+ind <- read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/")
+Dist <- as.matrix(read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Jorde_Wollstein_hg19_final_noseconddegree_geno01.B.P.ASM.VMAnc.mind0.90.haploid.dist.gz"))
+
+colnames(ind) <- c("x", "indID")
+myPanel <- join(ind, panel, by = "indID")
+res <- cmdscale(dist(Dist), k = dim(Dist)[1]-1, eig = T)
+
+points <- as.data.frame(res$points)
+points <- cbind(points, myPanel)
+
+ggplot(points, aes(x = V1, y = V2, color=region)) +
+  geom_point()
+
+```
+
+
+```{r}
+ind <- read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Jorde_Wollstein_hg19_final_noseconddegree_geno01.B.P.ASM.VMAnc.mind0.80.haploid.dist.id")
+colnames(ind) <- c("indID", "x")
+myPanel <- join(ind, panel, by = "indID") ; table(myPanel$region);dim(myPanel) 
+index <- which(myPanel$region %in% c("Americas", "Botocudos") & 
+                 !(myPanel$population %in% c("Botocudos2014"#, 
+                                             # "Saqqaq", "LaGalgadaHighlands", 
+                                             # "Inuit", "LauricochaHighlands", 
+                                             # "Lovelock", "Lovelock2",
+                                             # "Lovelock3", "Yukpa", 
+                                             # "PuntaSantaAna", "Athabascan", "LagoaSanta", "SpiritCave"
+                                             ))
+                   #& !( myPanel$indID %in% c("USR1",
+                    #                         "LagoaSta", "Ayayema"))
+)
+myPanel <- myPanel[index,]
+Dist <- as.matrix(read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Jorde_Wollstein_hg19_final_noseconddegree_geno01.B.P.ASM.VMAnc.mind0.80.haploid.dist.gz"))
+
+res <- cmdscale(dist(Dist[index, index]), k = dim(Dist[index,])[1]-1, eig = T)
+points <- as.data.frame(res$points)
+points <- cbind(points, myPanel)
+
+png("~/Projects/Botocudos/Plots/MDS/preliminar_wollstein.png",
+     width = 7, height=7, res=300, units = "in")
+ggplot(NULL, aes(x = V1, y = V2, color=label,  shape=label, size = 4)) +
+  geom_point(data=points) +
+  geom_point(data= points[points$region == "Botocudos",], color = "black") +
+  scale_shape_manual(values=1:59)
+dev.off()
+```
+
