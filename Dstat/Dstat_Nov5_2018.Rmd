@@ -440,34 +440,34 @@ plot_grid(plots[[1]], plots[[2]], leyenda, ncol = 2)
 pop <- "Mixe"
 plots <- list()
 for(pop in c("Botocudo", "LagoaSanta", "Surui", "Mixe")){
-path <- paste("~/Projects/Botocudos/Files/Dstat/2019_03_20/dstat_", pop, ".txt", sep = "")
-dstat <- read.table(path)
-colnames(dstat) <- c( "Pop1",  "Pop2", "Pop3", "Pop4",
-                      "Dstat",	"Z",	"BABA",	"ABBA", "SNPs")
-subpanel <- join(dstat, unique(panel[, c("Region", "Pop3")]),
-                 by = "Pop3")
-
-subpanel <- subpanel[subpanel$Region != "Americas", ]
-subpanel <- subpanel[subpanel$Region != "Africa", ]
-subpanel$Region <- factor(subpanel$Region, levels = c("Africa", "Europe", "Siberia",
-                             "EastAsia",  "SoutheastAsia",
-                             "NearEast", "Caucasus","SouthAsia",
-                             "Oceania"), ordered = T)
-subpanel$Oceania <- "No"
-subpanel$Oceania[subpanel$Region == "Oceania"] <- "Yes"
-subpanel <- subpanel[order(subpanel$Oceania),]
-
-p <- ggplot(subpanel[subpanel$Pop2 %in% panel$Pop[panel$Region == "Americas"],], aes(x = Z, y = Pop2, color = Oceania)) +
+  path <- paste("~/Projects/Botocudos/Files/Dstat/2019_03_20/dstat_", pop, ".txt", sep = "")
+  dstat <- read.table(path)
+  colnames(dstat) <- c( "Pop1",  "Pop2", "Pop3", "Pop4",
+                        "Dstat",	"Z",	"BABA",	"ABBA", "SNPs")
+  subpanel <- join(dstat, unique(panel[, c("Region", "Pop3")]),
+                   by = "Pop3")
+  
+  subpanel <- subpanel[subpanel$Region != "Americas", ]
+  subpanel <- subpanel[subpanel$Region != "Africa", ]
+  subpanel$Region <- factor(subpanel$Region, levels = c("Africa", "Europe", "Siberia",
+                                                        "EastAsia",  "SoutheastAsia",
+                                                        "NearEast", "Caucasus","SouthAsia",
+                                                        "Oceania"), ordered = T)
+  subpanel$Oceania <- "No"
+  subpanel$Oceania[subpanel$Region == "Oceania"] <- "Yes"
+  subpanel <- subpanel[order(subpanel$Oceania),]
+  
+  p <- ggplot(subpanel[subpanel$Pop2 %in% panel$Pop[panel$Region == "Americas"],], aes(x = Z, y = Pop2, color = Oceania)) +
     coord_cartesian(xlim = c(-5,5)) +
     geom_vline(xintercept = -3.3, lty = "dashed", col = "gray")+
     geom_vline(xintercept = 3.3, lty = "dashed", col = "gray") +
     geom_vline(xintercept = 0, lty = "dashed", col = "gray") +
-  scale_color_manual(values = c("gray", "violet")) +
+    scale_color_manual(values = c("gray", "violet")) +
     geom_point(shape = 5, size = 3, stroke= 1) +
-  labs(title = pop)
-leyenda <- get_legend(p)
-p <- p + theme(legend.position = "none")
-plots[[length(plots)+1]] <- p
+    labs(title = pop)
+  leyenda <- get_legend(p)
+  p <- p + theme(legend.position = "none")
+  plots[[length(plots)+1]] <- p
 }
 
 plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], leyenda, ncol = 2)
@@ -478,7 +478,7 @@ plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], leyenda, ncol = 2)
 ### Build D
 ```{r}
 
-s12 <- read.csv("~/Projects/Botocudos/Files/Panels/TableS12_Moreno2018.csv")
+s12 <- read.csv("~/Projects/Botocudos/Files/Panels/Moreno/TableS12_Moreno2018.csv")
 s12 <- s12[,1:2]
 s12$Pop3 <- s12$Pop
 

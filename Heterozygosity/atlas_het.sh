@@ -3,7 +3,7 @@
 # Suggested pipeline in ATLAS
 
 #ln -s ~/install/atlas/atlas ./
-ln -s ~/data/Git/Botocudos-scripts/Heterozygosity/plot_theta_altas.R ./ 
+ln -s ~/data/Git/Botocudos-scripts/Heterozygosity/plot_theta_atlas.R ./ 
 ref=/archive/unibe/eg/amalaspi/group/genomes/reference_human/hs.build37.1/hs.build37.1.fa
 conserved=~/archive/ConservedSites/UCNE/Conserved_Homo_Sapiens_Vertebrata_Human_69_all.bed
 bam=MN0008.bam 
@@ -57,7 +57,7 @@ atlas_het()
     # atlas task=estimateTheta bam=$bam pmdFile=${name}_PMD_input_Empiric.txt \
     # verbose recal=${name}_recalibrationEM.txt logFile=${name}_estimateTheta.log
 
-    Rscript plot_theta_altas.R 1:22 $name
+    Rscript plot_theta_atlas.R 1:22 $name
 
     atlas task=estimateTheta bam=$bam pmdFile=${name}_PMD_input_Empiric.txt \
         thetaGenomeWide minCoverage=2 recal=${name}_recalibrationEM.txt \
