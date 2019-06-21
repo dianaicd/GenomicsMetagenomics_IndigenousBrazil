@@ -1,0 +1,260 @@
+---
+title: "F3_Maanasa"
+author: "DI Cruz Dávalos"
+date: "3/25/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(plyr)
+library(maps)
+library(colorspace)
+```
+
+```{r}
+f3 <- read.csv("/Users/dcruz/Projects/Botocudos/Files/F3/2019_03_25/F3.txt",
+               sep = "\t", strip.white = T, header = F)
+dim(f3)
+colnames(f3) <- c(NA, "Source1",  "Source2",   "Target", "f_3",  "std.err", "Z", "SNPs"  )
+f3[,1] <- NULL
+head(f3)
+
+panel <- read.table("~/Projects/Botocudos/Files/ADMIX/2019_03_17/Maanasa_0.01_minind_americas_Botocudos_fromVictor.panel",
+                    header = T)
+panel$Source2 <- panel$Pop
+```
+
+```{r}
+f3 <- join(f3, panel, by = "Source2")
+for(i in seq(8,11)){
+  levels(f3[,i]) <- c(levels(f3[,i]), as.character(f3[is.na(f3[,i]),2]))
+  f3[is.na(f3[,i]),i] <- f3[is.na(f3[,i]),2]
+}
+f3 <- f3[order(f3$f_3), ]
+f3$Source2<- factor(unique(f3$Source2), levels = f3$Source2, ordered = T)
+
+ggplot(f3,#[f3$Region == "Americas" | f3$Pop == "LagoaSta" | f3$Pop == "LS6" |f3$Pop == "LS4" |f3$Pop == "LS8" |f3$Pop == "LS7" ,], 
+       aes( x = Source2, y = f_3, ymin = f_3 - std.err, ymax = f_3+std.err)) +
+  geom_point(position = position_dodge(width = 0.5)) +
+  geom_errorbar(position = position_dodge(width = 0.5)) + 
+  theme(axis.text.x = element_text(angle = 90))
+
+
+ggplot(f3[f3$Region == "Americas" | f3$Pop == "LagoaSta" | f3$Pop == "LS6" |f3$Pop == "LS4" |f3$Pop == "LS8" |f3$Pop == "LS7" ,], 
+       aes( x = Pop, y = Z)) +
+  geom_point(position = position_dodge(width = 0.5)) +
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+## Wollstein panel
+
+```{r}
+woll <- read.csv("~/Projects/Botocudos/Files/F3/2019_05_17/Wollstein.Botocudos.txt", 
+                 sep = "\t", strip.white = T, stringsAsFactors = F)
+woll <- woll[,3:9]
+colnames(woll) <- c( "Source1",  "Source2",   "Target", "f_3",  "std.err", "Z", "SNPs"  )
+
+for(i in 4:9){
+  woll[,i] <- as.numeric(woll[,i])
+}
+
+
+```
+
+### Polynesians
+
+```{r}
+panel <- read.table("~/Projects/Botocudos/Files/Panels/Magic.panel", header = T)
+pol <- woll[which(woll$Source1 == "Botocudos"),]
+myPanel <- unique(panel[,c("population", "region")])
+pol$population <- pol$Source2
+pol <- join(pol, myPanel, by = "population")
+
+pol <- pol[order(pol$f_3, decreasing = T),]
+```
+
+```{r}
+ggplot(pol, aes(x = f_3, y = Source2)) +
+  geom_point(color = "blue")
+
+
+```
+
+## Maanasa panel
+
+```{r}
+panel <- read.table("~/Projects/Botocudos/Files/Panels/Magic.panel", header = T)
+f3 <- read.table("~/Projects/Botocudos/Files/F3/2019_05_17/boto_maanasa.txt",
+                 header = T)
+myCoor <- read.table("~/Projects/Botocudos/Files/Maps/Magic.coordinates", header = F)
+colnames(myCoor) <- c("Source2", "lat", "long", "type")
+f3$Source2 <- sub("Conchal.*", "ConchaliSantiagoRM", f3$Source2)
+f3 <- join(f3, myCoor, by = "Source2")
+f3 <- f3[f3$SNPs >10000,]
+
+f3$population <- f3$Source2
+myPanel <- unique(panel[,c("population", "region")])
+f3 <- join(f3, myPanel, by = "population")
+```
+
+```{r}
+myPalette <- choose_palette()
+```
+
+### Color by F3 value
+
+```{r}
+f3 <- f3[f3$region == "Americas",]
+f3 <- f3[order(f3$f_3, decreasing = T),]
+myColor <- myPalette(nrow(f3))[rank(f3$f_3, "max")]
+myColor <- myPalette((max(f3$f_3)-min(f3$f_3))*1e6)[(f3$f_3-min(f3$f_3))*1e6]
+
+myBg <- myColor
+myColor[f3$type=="Ancient"] <- "black"
+f3$shape <- 16
+f3$shape[f3$type == "Ancient"] <- 21
+
+topHits <- f3[1:20,c("population", "type", "lat", "long")]
+rownames(topHits) <- 1:20
+ pdf("~/Projects/Botocudos/Plots/F3/Maanasa_F3_americas.pdf",
+      width = 8, height = 8)
+layout(matrix(seq(1, 3), byrow = F, nrow = 1, ncol = 3),
+       widths = c(1,2,6), heights = c(6))
+
+
+barplot(cbind(seq(min(f3$f_3), max(f3$f_3), length.out = 100)),
+        border = NA,
+        col = myPalette(100), yaxt="n", horiz = F)
+axis(2, at = seq(0, 25, length.out = 10), 
+     las = 2,
+     labels = round(seq(min(f3$f_3), max(f3$f_3), length.out = 10), 3))
+
+nBreaks <- 50
+x <- hist(x=f3$f_3, breaks = nBreaks, border = NA, 
+          col = myPalette(20), plot = F)
+
+barplot(x$counts, horiz = T, col = myPalette(length(x$breaks)), beside = T, axes = F,
+        border = NA)
+par(fg = NULL)
+map('world', fill = T, col = "gray90",
+    xlim=c(-168,-10), ylim = c(-60, 100),
+    border="white", lforce = "e")
+
+
+topHits$offx <- 0
+topHits$offx[topHits$long > -55] <- 10
+topHits$offx[topHits$long < -70] <- -10
+
+topHits$offy <- 0
+topHits$offy[topHits$lat > 0] <- 10
+topHits$offy[topHits$lat < -25] <- -10
+
+text(x = topHits$offx + topHits$long, y = topHits$lat + topHits$offy, 
+     labels = rownames(topHits),
+     adj = 1)
+segments(x0 = topHits$long + topHits$offx, 
+         x1 = topHits$long,
+          y0 = topHits$lat + topHits$offy,
+         y1 = topHits$lat)
+
+points(x = f3$long, y = f3$lat, 
+       col = alpha(myColor, 0.8), 
+       bg = alpha(myBg, 0.8),
+       pch=f3$shape, cex = 1.5, lwd = 1
+       )
+text(x = -150, y = -6*as.integer(rownames(topHits))+50, 
+     labels = paste(rownames(topHits),
+                    topHits$population),
+     adj = 0)
+
+offset <- 10
+
+
+dev.off()
+
+```
+
+### Color by Z score
+
+```{r}
+f3 <- f3[order(f3$Z, decreasing = T),]
+myColor <- myPalette(nrow(f3))[rank(f3$Z, "max")]
+myColor <- myPalette((max(f3$Z)-min(f3$Z))*1e3)[(f3$Z-min(f3$Z))*1e3]
+
+myBg <- myColor
+myColor[f3$type=="Ancient"] <- "black"
+f3$shape <- 16
+f3$shape[f3$type == "Ancient"] <- 21
+# png("~/Projects/Botocudos/Plots/F3/Maanasa_F3.png",
+#     width = 10, height = 6, res = 200, units = "in")
+par(fg = NULL)
+map('world', fill = T, col = "gray90",
+    xlim=c(-180,180), ylim = c(-70, 90),
+    border="white", lforce = "e")
+points(x = f3$long, y = f3$lat, 
+       col = alpha(myColor, 0.8), 
+       bg = alpha(myBg, 0.8),
+       pch=f3$shape, cex = 1.5, lwd = 1
+       )
+# dev.off()
+
+```
+
+
+
+
+```{r}
+oceania <- f3[f3$region == "Oceania",] 
+```
+
+### Check Botocudos2014
+```{r}
+panel <- read.table("~/Projects/Botocudos/Files/Panels/Magic.panel", header = T)
+f3 <- read.table("~/Projects/Botocudos/Files/F3/2019_05_17/boto14_maanasa.txt",
+                 header = T)
+myCoor <- read.table("~/Projects/Botocudos/Files/Maps/Magic.coordinates", header = F)
+colnames(myCoor) <- c("Source2", "lat", "long", "type")
+f3$Source2 <- sub("Conchal.*", "ConchaliSantiagoRM", f3$Source2)
+f3 <- join(f3, myCoor, by = "Source2")
+f3 <- f3[f3$SNPs >10000,]
+
+f3$population <- f3$Source2
+myPanel <- unique(panel[,c("population", "region")])
+f3 <- join(f3, myPanel, by = "population")
+```
+
+```{r}
+americas <- f3[f3$region %in% c("Botocudos", "Americas"),] 
+
+```
+
+```{r}
+americas <- americas[order(americas$f_3, decreasing = T),]
+myColor <- myPalette(nrow(americas))[rank(americas$f_3, "max")]
+myColor <- myPalette((max(americas$f_3)-min(americas$f_3))*1e6)[(americas$f_3-min(americas$f_3))*1e6]
+
+myBg <- myColor
+myColor[americas$type=="Ancient"] <- "black"
+americas$shape <- 16
+americas$shape[americas$type == "Ancient"] <- 22
+png("~/Projects/Botocudos/Plots/F3/Maanasa_F3_boto2014.png",
+    width = 10, height = 6, res = 200, units = "in")
+par(fg = NULL)
+map('world', fill = T, col = "gray90",
+    xlim=c(-160,-10), ylim = c(-70, 90),
+    border="white", lforce = "e")
+points(x = americas$long, y = americas$lat, 
+       col = alpha(myColor, 0.8), 
+       bg = alpha(myBg, 0.8),
+       pch=americas$shape, cex = 1.5, lwd = 1
+       )
+dev.off()
+
+```
+

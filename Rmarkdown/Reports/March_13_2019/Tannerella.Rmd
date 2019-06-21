@@ -1,0 +1,154 @@
+---
+title: "Tannerella"
+author: "DI Cruz Dávalos"
+date: "4/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# require(scales)
+# library(ggplot2)
+# library(cowplot)
+library(plyr)
+
+```
+
+```{r}
+magic_path <- "~/Projects/Botocudos/Files/Microbiome/Tannerella/2019_04_04/"
+
+genome <- read.table(paste(magic_path, "MN00119.genomecov.gz", sep = ""))
+colnames(genome) <- c("chr", "Start", "Cov")
+
+protein <- read.table(paste(magic_path, "Tannerella_ProteinTable.txt", sep = ""),
+                      header = T, sep = "\t")
+protein <- protein[-length(protein$Start),]
+bedgraph <- read.table(paste(magic_path, "MN00119.bedgraph.gz", sep = ""))
+colnames(bedgraph) <- c("chr", "Start", "Stop", "Cov")
+#protein <- protein[-grep("hypothetical", protein$Protein.name, value = F),]
+
+```
+
+```{r}
+
+# png("~/Projects/Botocudos/Plots/Microbiome/Tannerella_cov.png", res = 10, 
+#     width  =10, height = 5, units = "in")
+# plot(genome$Start, genome$Cov, 
+#      type = "n" , bty = "n",
+#      main = "Tannerella forsythia",
+#      xlab = "Position (bp)", ylab = "Genome coverage")
+# points(genome$Start, genome$Cov, pch = "-", col = "blue")
+# dev.off()
+
+```
+
+
+```{r}
+# plot(bedgraph$Start, bedgraph$Cov, type = "n", bty = "n")
+# segments(x0 = bedgraph$Start, x1 = bedgraph$Stop, y0 = bedgraph$Cov, col = "blue")
+
+```
+
+```{r}
+
+calc_cov <- function(Start, Stop,genome){
+  index1 <- which(genome$Start == Start)
+  index2 <- which(genome$Start == Stop)
+  coverage <- mean(genome$Cov[index1:index2])
+  return(coverage)
+}
+
+protein$Coverage <- sapply(1:length(protein$Start), function(x) calc_cov(protein$Start[x], protein$Stop[x], genome))
+#rm(genome)
+```
+
+```{r}
+# hist(protein$Coverage, breaks = 20)
+# 
+# plot(x = protein$Stop, y = protein$Coverage, bty = "n", type = "n",
+#      xlab = "Position (bp)", ylab = "Coverage", main = "Tannerella forsythia")
+# 
+# segments(x0 = protein$Start, x1 = protein$Stop, y0 = protein$Coverage)
+```
+
+```{r}
+
+
+```
+
+```{r}
+# Test whether mean coverage is different from 0
+calc_signif <- function(Start, Stop,genome){
+  index1 <- which(genome$Start == Start)
+  index2 <- which(genome$Start == Stop)
+  pval <- t.test(rep(0, index2-index1), 
+                 genome$Cov[index1:index2], alternative = "l")
+  if(is.na(pval$p.val)){
+    pval$p.val <- 1
+  }
+  return(pval$p.val)
+}
+
+protein$pval <- sapply(1:length(protein$Start), function(x) calc_signif(protein$Start[x], protein$Stop[x], genome))
+
+absent <- protein[protein$pval > 0.95,]
+absent <- absent[-grep("hypothetical", 
+                       absent$Protein.name, 
+                       value = F, fixed = F, ignore.case = T),]
+
+for(f in c("transposase", "integrase", "excision", "transfer", "rte ", "tetracycline", "synthesis", "transporter", "synthase")){
+  n <- length(grep(f, absent$Protein.name))
+  print(f)
+  print(n)
+
+}
+
+absent[grep("resist", absent$Protein.name, ignore.case = T),]
+```
+
+```{r}
+genome$stops <- -100
+genome$stops[genome$Cov == 0] <- 0
+
+genome$stops <- genome$stops[which(stops == 0)]
+
+startSize <- data.frame()
+gapStarting <- 0
+for(i in 2:nrow(genome)){
+  if(abs(genome$stops[i]) - abs(genome$stops[i-1])){
+    if(gapStarting){
+      tmp <- data.frame(start = genome$Start[i],
+                        size = genome$Start[i] - prevStop)
+      prevStop <- genome$Start[i]
+      startSize <- rbind(startSize, tmp)
+      gapStarting <- 0
+    }else{
+      prevStop <- genome$Start[i]
+      gapStarting <- 1
+    }
+
+    #print(c("Stop at", genome$Start[i]))
+  }
+}
+
+head(startSize[order(startSize$size, decreasing = T),])
+
+hist(startSize$size[startSize$size > 1000], freq = T, breaks = 20)
+m <- mean(startSize$size)
+lines(x = seq(1, max(startSize$size)),
+      y = m*exp(-m*seq(1, max(startSize$size))))
+
+head(startSize[order(startSize$size, decreasing = T),])
+
+x1 <- startSize$start[order(startSize$size, decreasing = T)][1:168]
+x2 <- x1 + startSize$size[order(startSize$size, decreasing = T)][1:168]
+
+for(i in 1:10){
+  bigGaps <- absent[which(absent$Start >= x1[i] & absent$Start <= x2[i]),]
+  print(bigGaps$Protein.name)
+}
+```
+

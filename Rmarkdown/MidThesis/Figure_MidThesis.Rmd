@@ -1,0 +1,1728 @@
+---
+title: "Figures_MidThesis"
+author: "Cruz-Dávalos, Diana I."
+date: "5/20/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(plyr)
+library(RColorBrewer)
+library(colorspace)
+library(maps)
+```
+
+```{r}
+# Read in some files I will use for most of the figures
+panel <- read.table("~/Projects/Botocudos/Files/Panels/Magic.panel", header = T)
+panel$cd
+coordinates <- read.table("~/Projects/Botocudos/Files/Maps/Magic.coordinates", header = F)
+colnames(coordinates) <- c("population", "lat", "long", "type")
+head(panel) ; head(coordinates)
+languages <- read.table("~/Projects/Botocudos/Files/Panels/Maanasa/Maanasa.americas.Moreno_names.txt", header = F)
+colnames(languages) <- c("population", "language")
+
+```
+```{r cmyk and colors}
+#' assumes integer input for CMYK
+cmyk <- function(C,M,Y,K) {
+
+  C <- C / 100.0
+  M <- M / 100.0
+  Y <- Y / 100.0
+  K <- K / 100.0
+
+  n.c <- (C * (1-K) + K)
+  n.m <- (M * (1-K) + K)  
+  n.y <- (Y * (1-K) + K)
+
+  r.col <- ceiling(255 * (1-n.c))
+  g.col <- ceiling(255 * (1-n.m))
+  b.col <- ceiling(255 * (1-n.y))
+
+  x <- col2rgb(sprintf("#%02s%02s%02s",
+                     as.hexmode(r.col), 
+                     as.hexmode(g.col), 
+                     as.hexmode(b.col)))
+
+return(rgb(t(x)/255))
+}
+
+# Choose 11 colors
+# 3 colors for the Asias
+cobaltGreen <- cmyk(42,0,42,0) 
+rainetteGreen<-cmyk(42,20,62,28) ; salviaBlue<-cmyk(41,25,10,0)
+# Europe, neareast and caucasus
+grayishLavender<-cmyk(28,28,0,0)
+helvetiaBlue <- cmyk(100,62,19,10) ; aconiteViolet <-cmyk(39,68,5,0)
+# 
+blue <-cmyk(95,54, 0,0) ; yellowOrange <-cmyk(0,33,100,0)
+benzolGreen <- cmyk(100,15,55,0); seashellPink<-cmyk(0,19,23,0)
+
+```
+
+```{r cmyk function}
+x <- 1
+y <- 2
+
+plotwclus <- function(x,y){
+  
+  smallClus <- find2clus(points = points[,c(x,y)])
+  
+  categories <- c("indID", "population", "language", "region")
+  i <- 0
+  nGroups <- 20
+  while(nGroups > 10){
+    i <- i+1
+    nGroups <- length(unique(points[smallClus, categories[i]]))
+  }
+  
+  points$color <- "gray"
+  j <- 1
+  myColors <- rainbow(nGroups)
+  for(g in unique(points[smallClus, categories[i]])){
+    points$color[points[,categories[i]] == g] <- myColors[j]
+    j <- j+1
+  }
+  points$color[points$population == "Botocudos"] <- "black"
+  plot(x = points[,x]/2e5, y = points[,y]/2e5, col = alpha(points$color, 0.5), 
+       pch = 16, cex = 2, bty = "n", xlab = x, ylab = y)
+  legend(bty = "n", x = 0, y = 0, pch = 16, cex = 1, col = myColors,
+         legend = unique(points[smallClus, categories[i]]))
+}
+```
+
+```{r define colors}
+# Give color and shape to 30!!! groups
+
+# Saqqaq, NaDene, EskimoAleut
+apricotYellow <- cmyk(0,10,100,0)
+
+# SpiritCave, Clovis, TrailCreek, USR1, Lovelock, Anzick1
+oliveYellow <- cmyk(40,30,80,0)
+
+# SouthWesternOntario, NorthernAmerind
+benzolGreen <- cmyk(100,15,55,0)
+
+# Belize, CentralAmerind, Mexican, ChibchanPaezan
+oldRose <- cmyk(15, 70, 40, 0)
+
+# Andean, EarlyAndes, LateCentralAndes, Southern_Cone, HistoricalAndean
+ivoryBuff <- cmyk(8,15,40,0)
+
+# Brazil, LagoaSanta, Taino, EcuatorialTucanoan, Ge-PanoCaribean
+spectrumRed <-cmyk(5,100,100,0)
+
+# Aconcagua, PuntaSantaAna, AncientYamana, Ayayema, AncientKaweskar
+rainetteGreen<-cmyk(42,20,62,28)
+
+# Botocudos
+dullVioletBlack <- cmyk(100,90,38,50)
+
+# Other groups 
+lightBrownDrab <- cmyk(8, 30, 20, 25)
+nileBlue <- cmyk(25, 0, 10, 0)
+rawSienna <- cmyk(18, 58, 100, 12)
+
+paleRawUmber <- cmyk(46, 63, 87, 32)
+sulphurYellow <- cmyk(4, 4, 28, 0)
+ochraceousSalmon <- cmyk(15, 38, 55, 0)
+slateColor <- cmyk(85, 70, 62, 30)
+```
+
+# Heterozygosity
+
+```{r}
+simons <- read.table("~/Projects/Botocudos/Files/Panels/SGDP/Simons_sample_pop_region_country.txt",
+                    header = T, sep = "\t")
+
+```
+
+```{r}
+path_to_pi <- "~/Projects/Botocudos/Files/Heterozygosity/2019_05_22/"
+files <- list.files(path_to_pi, pattern = ".*.pi.*")
+
+pops <- unique(sub("\\.pi.*", "", files))
+
+pi <- data.frame()
+
+for(p in pops){
+  current_pi <- read.table(paste(path_to_pi, p, ".pi.stats.txt", sep = ""))
+  colnames(current_pi) <- c('estimate','bias','stderror','confint1','confint2')
+  current_pi$Population.ID <- p
+  if(dim(pi)[1] == 0){
+    pi <- current_pi
+  }else{
+    pi <- rbind(pi, current_pi)
+  }
+}
+
+pi <- join(pi, unique(simons[,c("Population.ID", "Region")]),
+           by = "Population.ID")
+levels(pi$Region) <- c(levels(pi$Region), "Botocudos")
+pi$Region[!(complete.cases(pi))] <- "Botocudos"
+
+popsize <- data.frame(table(simons$Population.ID)) 
+colnames(popsize) <- c("Population.ID", "popsize")
+pi <- join(pi, popsize, by = "Population.ID")
+pi$label <- paste(pi$Population.ID, "(n=", pi$popsize, ")", sep="")
+
+```
+
+
+```{r}
+pi_B <- pi
+
+regionOrder <- sapply(levels(pi_B$Region), 
+                      function(x) c(x, mean(pi_B$estimate[pi_B$Region == x])) )
+regionOrder <- data.frame(Region = regionOrder[1,], mean = regionOrder[2,])
+
+pi_B <- join(pi_B, regionOrder, by = "Region")
+pi_B <- pi_B[order(pi_B$mean, pi_B$estimate),]
+pi_B$Population.ID <- factor(pi_B$Population.ID, 
+                             levels = unique(pi_B$Population.ID), ordered = T)
+
+pi_B <- pi_B[-which(pi_B$Population.ID == "Yoruba"),]
+pdf("~/Projects/Botocudos/Plots/Het/condHet.pdf",
+    width = 19, height = 12)
+ggplot(pi_B, aes(x = Population.ID, y = estimate, ymin = confint1, 
+               ymax = confint2, color = Region, interaction = Region)) +
+  geom_point() +
+  geom_errorbar() +
+  #scale_x_discrete( breaks = pi_B$Population.ID, labels= pi_B$label) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, size = 12),
+        legend.position = c(0.1,0.7), legend.text = element_text(size = 14),
+        title = element_text(size = 20)
+        ) + 
+  labs(title = "Conditional heterozygosity", 
+       x = NULL, y = "Estimate") +
+  scale_color_discrete(name = NULL)
+dev.off()
+```
+
+Heterozygosity per chromosomes
+
+```{r}
+boto <- read.table("~/Projects/Botocudos/Files/Heterozygosity/2019_05_22/Botocudos.pi.txt")
+surui <- read.table("~/Projects/Botocudos/Files/Heterozygosity/2019_05_22/Surui.pi.txt")
+refalt <- read.table("~/Projects/Botocudos/Files/Heterozygosity/2019_05_22/Boto/Nigeria_B_Yoruba-3.refalt")
+colnames(refalt) <- c("chr", "start")
+
+colnames(boto) <- c("chr", "start", "end", "pi")
+colnames(surui) <- colnames(boto)
+
+chr<-1
+
+layout(matrix(seq(1, 24), byrow = T, nrow = 4, ncol = 6),
+       widths = rep(2,6), heights = rep(1,4))
+
+for(chr in 1:22){
+  refChr <- refalt[refalt$chr == chr,]
+  myChr <- boto[boto$chr == chr,]
+  myChr$start <- refChr$start[myChr$start+1]
+  myChr$end <- refChr$start[myChr$end+1]
+  
+  su <- surui[surui$chr == chr,]
+  su$start <- refChr$start[su$start+1]
+  su$end <- refChr$start[su$end+1]
+  plot(bty = "n",# xlim = c(min(myChr$start), max(myChr$end)),
+       ylim = c(0,max(c(su$pi, myChr$pi))), xlim = c(0, 2.5e8),
+       type = "n", x = 0, y = 0, xlab = NA, ylab = NA,
+       main = chr)
+  #segments(x0 = su$start, x1 = su$end, y0 = su$pi, lwd = 1.2)
+  #segments(x0 = myChr$start, x1 = myChr$end, y0 = myChr$pi, lwd = 1.2, col = "red")
+  points(x = su$start, y = su$pi, lwd = 1.2, type = "b")
+  points(x = myChr$start, y = myChr$pi, lwd = 1.2, col = "red", type = "b")
+  
+}
+```
+
+
+
+
+# MDS
+## "Maanasa" panel
+
+```{r}
+ind <- read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Maanasa_mask1_flip.B.P.ASM.VMAnc.mind0.95.haploid.dist.id")
+#Dist <- as.matrix(read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Maanasa_mask1_flip.B.P.ASM.VMAnc.mind0.95.haploid.dist.gz"))
+
+colnames(ind) <- c("indID", "x")
+myPanel <- join(ind, panel, by = "indID")
+#res <- cmdscale(dist(Dist), k = dim(Dist)[1]-1, eig = T)
+#save(res, file="~/Projects/Botocudos/Files/MDS/2019_05_15/mds_maansa.Rda")
+load("~/Projects/Botocudos/Files/MDS/2019_05_15/mds_maansa.Rda")
+points <- as.data.frame(res$points)
+points <- cbind(points, myPanel)
+```
+
+### Make a 'simple' plot
+
+
+```{r assign colors}
+myColors <- c(blue,  yellowOrange, benzolGreen,
+              seashellPink, cobaltGreen, rainetteGreen, salviaBlue,
+              grayishLavender,
+              helvetiaBlue, aconiteViolet)
+points$color <- "black"
+regions <- c("Africa", "Europe", "Caucasus", "NearEast", 
+             "EastAsia", "SouthAsia", "SoutheastAsia",
+             "Siberia", "Oceania", "Americas")
+
+for(i in 1:length(regions)){
+  points$color[points$region == regions[i]] <- myColors[i]
+}
+
+myColors <- c(myColors, "black")
+regions <- c(regions, "Botocudos")
+
+wholeMaanasa <- points
+```
+
+```{r make the plot}
+layout(matrix(seq(1, 2), byrow = T, nrow = 1, ncol = 2),
+       widths = c(2,1), heights = c(1))
+
+plot(bty = "n", x = points[,1]/2e5,
+     y = points[,2]/2e5, col = alpha(points$color,0.7),
+     pch = 16,  xlab = NA, ylab = NA, lwd = 2, cex = 2,
+     main = "Multidimensional scaling")
+points(x = points[points$region == "Botocudos",1]/2e5,
+     y = points[points$region == "Botocudos",2]/2e5,
+     col = alpha(points$color[points$region == "Botocudos"],0.7),
+     cex = 2, pch = 16)
+points(x = points[points$population == "Botocudos2014",1]/2e5,
+     y = points[points$population == "Botocudos2014",2]/2e5,
+     bg = alpha(points$color[points$population == "Botocudos2014"],0.7),
+     cex = 2, pch = 23, col ="black")
+
+plot(1:10, 1:10, type = "n", bty = "n", axes = F, xlab=NA, ylab=NA)
+legend(legend = c(regions[1:9], "Botocudos 2014", regions[10:11]), 
+       col = c(myColors[1:9], "black", myColors[10:11]),
+       x = 1, y = 9, bty = "n", pch = c(rep(16,9), 23, 16),
+       pt.bg = c(rep(NA, 9), myColors[9], NA, NA),
+       cex = 1.5)
+
+```
+
+#### play with clusters
+
+```{r, eval = F}
+ind <- read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Maanasa_mask1_flip.B.P.ASM.VMAnc.mind0.95.haploid.dist.id")
+
+Dist <- as.matrix(read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Maanasa_mask1_flip.B.P.ASM.VMAnc.mind0.95.haploid.dist.gz"))
+colnames(Dist) <- ind$indID
+fit <- hclust(as.dist(Dist), method="ward") 
+plot(fit) # display dendogram
+groups <- cutree(fit, k=5) # cut tree into 5 clusters
+# draw dendogram with red borders around the 5 clusters 
+rect.hclust(fit, k=5, border="red")
+```
+
+```{r}
+wss <- (nrow(Dist)-1)*sum(sapply(Dist[,1],var))
+for (i in 2:15) wss[i] <- sum(kmeans(Dist[,1], 
+   centers=i)$withinss)
+plot(1:15, wss, type="b", xlab="Number of Clusters",
+  ylab="Within groups sum of squares")
+
+# K-Means Cluster Analysis
+fit <- kmeans(Dist, 5) # 5 cluster solution
+# get cluster means 
+x <- aggregate(Dist,by=list(fit$cluster),FUN=mean)
+# append cluster assignment
+mydata <- data.frame(Dist, fit$cluster)
+```
+
+```{r}
+find2clus <- function(points){
+  # find smallest cluster on two dimensions
+  wss <- (nrow(points)-1)*sum(apply(points,2,var))
+  for (i in 2:15) wss[i] <- sum(kmeans(points, 
+                                       centers=i)$withinss)
+  # plot(1:15, wss, type="b", xlab="Number of Clusters",
+  #      ylab="Within groups sum of squares")
+
+  # K-Means Cluster Analysis
+  fit <- kmeans(points, 3) # 5 cluster solution
+  # get cluster means 
+  aggregate(points,by=list(fit$cluster),FUN=mean)
+  smallClus <- names(table(fit$centers))[2:3]
+  # append cluster assignment
+  return(which(fit$cluster %in% smallClus[1:2]))
+}
+```
+
+```{r}
+# Get some data
+ind <- read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Maanasa_mask1_flip.B.P.ASM.VMAnc.mind0.95.haploid.dist.id", stringsAsFactors = F)
+
+Dist <- as.matrix(read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Maanasa_mask1_flip.B.P.ASM.VMAnc.mind0.95.haploid.dist.gz"))
+colnames(Dist) <- ind$indID
+
+americas <- read.table("~/Projects/Botocudos/Files/Panels/Maanasa/Maanasa.americas.Moreno_names.txt",
+                       header = F, stringsAsFactors = F)
+
+colnames(americas) <- c("population", "language")
+colnames(ind) <- c("indID", "x")
+```
+
+```{r}
+png("~/Projects/Botocudos/Plots/MDS/50dim_Maanasa_americas_clus.png",
+    width = 20, height = 20, res =250, units = "in")
+par(mfrow = c(7,7))
+for(i in 1:48){
+  plotwclus(i, i+1)
+}
+dev.off()
+```
+
+
+### Maanasa Americas
+
+Try to make a nice plot within the Americas
+
+```{r load coordinate files}
+load("~/Projects/Botocudos/Files/MDS/2019_05_15/mds_maanasa_americas.Rda")
+points <- res$points ; dim(points)
+ind <- read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Maanasa_mask1_flip.B.P.ASM.VMAnc.haploid.fred.mind0.95.dist.id")
+colnames(ind) <- c("indID", "x")
+
+# Add "language" label
+myPanel <- join(ind, panel, by = "indID")
+
+
+myPanel <- join(myPanel, languages, by = "population")
+myPanel$language <- as.character(myPanel$language)
+myPanel <- join(myPanel, coordinates, by = "population")
+
+# If not "language" label given, take the population name
+index <- is.na(myPanel$language)
+myPanel[index,]$language <- as.character(myPanel[index,]$label)
+print(unique(myPanel$language[myPanel$region %in% c("Americas", "Botocudos") & myPanel$type == "Ancient"]))
+
+# Select populations in the Americas
+index <- which(myPanel$region %in% c("Botocudos", "Americas"))
+myPanel <- myPanel[index,] ; dim(myPanel)
+
+```
+
+```{r function to assign color, shape}
+giveMeAesthetics <- function(pops, color, shapes, myPanel){
+  myPanel$color[myPanel$language %in% pops] <- color
+  for(i in 1:length(shapes)){
+    myPanel$shape[myPanel$language %in% pops[i]] <- shapes[i]
+  }
+  return(myPanel)
+}
+
+```
+
+
+```{r define colors per group}
+# Give color and shape to 30!!! groups
+myPanel$color <- "gray"
+myPanel$shape <- 16
+myPanel$bg <- "black"
+popLevels <- c()
+
+# Saqqaq, NaDene, EskimoAleut
+apricotYellow <- cmyk(0,10,100,0)
+shapes <- c(21,16,17)
+pops <- c("Saqqaq", "NaDene", "EskimoAleut")
+myPanel <- giveMeAesthetics(pops, apricotYellow, shapes, myPanel)
+popLevels <- c(popLevels, pops)
+
+# SpiritCave, Clovis, TrailCreek, USR1, Lovelock, Anzick1
+oliveYellow <- cmyk(40,30,80,0)
+pops <- c("SpiritCave", "Clovis", "TrailCreek", "USR1", "Lovelock", "Anzick1")
+shapes <- c(21,22,23,22,24,25)
+myPanel <- giveMeAesthetics(pops, oliveYellow, shapes, myPanel)
+popLevels <- c(popLevels, pops)
+
+# SouthWesternOntario, NorthernAmerind
+benzolGreen <- cmyk(100,15,55,0)
+pops <- c("SouthWesternOntario", "NorthernAmerind")
+shapes <- c(21, 16)
+myPanel <- giveMeAesthetics(pops, benzolGreen, shapes, myPanel)
+popLevels <- c(popLevels, pops)
+
+# Belize, CentralAmerind, Mexican, ChibchanPaezan
+oldRose <- cmyk(15, 70, 40, 0)
+shapes <- c(21, 16, 17, 18)
+pops <- c("Belize", "CentralAmerind", "Mexican", "ChibchanPaezan")
+myPanel <- giveMeAesthetics(pops, oldRose, shapes, myPanel)
+popLevels <- c(popLevels, pops)
+
+# Andean, EarlyAndes, LateCentralAndes, Southern_Cone, HistoricalAndean
+ivoryBuff <- cmyk(8,15,40,0)
+pops <-  c("Andean", "EarlyAndes", "LateCentralAndes", 
+           "Southern_Cone", "HistoricalAndean")
+shapes <- c(16, 22, 21, 23, 24)
+myPanel <- giveMeAesthetics(pops, ivoryBuff, shapes, myPanel)
+popLevels <- c(popLevels, pops)
+
+# Brazil, LagoaSanta, Taino, EcuatorialTucanoan, Ge-PanoCaribean
+spectrumRed <-cmyk(5,100,100,0)
+pops <- c("Brazil", "LagoaSanta", "Taino", "EcuatorialTucanoan", "Ge-PanoCaribean")
+shapes <- c(22,21,23,16,17)
+myPanel <- giveMeAesthetics(pops, spectrumRed, shapes, myPanel)
+popLevels <- c(popLevels, pops)
+
+# Aconcagua, PuntaSantaAna, AncientYamana, Ayayema, AncientKaweskar
+rainetteGreen<-cmyk(42,20,62,28)
+pops <- c("Aconcagua", "PuntaSantaAna", "AncientYamana", "Ayayema", "AncientKaweskar")
+shapes <- c(21:25)
+myPanel <- giveMeAesthetics(pops, rainetteGreen, shapes, myPanel)
+popLevels <- c(popLevels, pops)
+
+# Botocudos
+dullVioletBlack <- cmyk(100,90,38,50)
+pops <- c("Botocudos")
+shapes <- c(16)
+myPanel <- giveMeAesthetics(pops, dullVioletBlack, shapes, myPanel)
+myPanel[myPanel$language == "USR1", c("bg", "color")] <- "turquoise"
+popLevels <- c(popLevels, pops)
+
+```
+
+```{r join colors, shapes to coordinates}
+pointsWColor <- cbind(points, myPanel)
+
+ancient <- which(pointsWColor$type == "Ancient")
+modern <- which(pointsWColor$type == "PresentDay")
+pointsWColor$bg <- NA
+pointsWColor$bg[ancient] <- pointsWColor$color[ancient]
+pointsWColor$color[ancient] <- "black"
+pointsWColor <- pointsWColor[-which(pointsWColor$population == "Anzick1"),]
+pointsWColor <- pointsWColor[-which(pointsWColor$population == "Mexican"),]
+
+pointsWColor$language <- factor(pointsWColor$language,
+                                levels = popLevels, ordered = T)
+pointsWColor <- pointsWColor[order(pointsWColor$language),]
+
+myLegend <- unique(pointsWColor[,c("language", "color", "shape", "bg")])
+myLegend <- myLegend[order(myLegend$language),]
+
+  
+americasMaanasa <- pointsWColor
+```
+
+
+```{r plot 50 dimensions}
+
+png("~/Projects/Botocudos/Plots/MDS/50dim_Maanasa_americas.png",
+    width = 45, height = 25, res = 200, units = "in")
+layout(matrix(seq(1, 45), byrow = T, nrow = 5, ncol = 9))
+
+for(i in seq(1,44)){
+  name <- paste("~/Projects/Botocudos/Plots/MDS/mini/", i, ".png", sep = "")
+  png(name, width = 4, height = 4, res = 200, units = "in", bg = NA)
+  par(mar = rep(4,4))
+  if(i %%2){
+      x <- i ; y <- i+1
+  }else{
+    x <- i + 1; y <- i
+  }
+
+  plot(bty = "n", xlab = x, ylab = y,
+       x = pointsWColor[, x]/2e5, y = pointsWColor[, y]/2e5,
+       pch = pointsWColor$shape, 
+       col = alpha(pointsWColor$color, 0.9), 
+       bg = pointsWColor$bg, cex = 2, lwd = 1.2)
+  
+  points(x = pointsWColor[pointsWColor$population == "Botocudos", x]/2e5, 
+         y = pointsWColor[pointsWColor$population == "Botocudos", y]/2e5,
+         pch = pointsWColor$shape[pointsWColor$population == "Botocudos"], 
+         bg = alpha(pointsWColor$color[pointsWColor$population == "Botocudos"], 0.9), 
+         cex = 2, lwd = 2)
+  # points(x = pointsWColor[pointsWColor$population == "Karitiana", x]/2e5, 
+  #        y = pointsWColor[pointsWColor$population == "Karitiana", y]/2e5,
+  #        pch = 4, col = "black",
+  #        cex = 1)
+    # points(x = pointsWColor[pointsWColor$population == "Surui", x]/2e5, 
+    #      y = pointsWColor[pointsWColor$population == "Surui", y]/2e5,
+    #      pch = 1, col = "black",
+    #      cex = 1)
+    dev.off()
+}
+
+plot(1:10, 1:10, axes = F, xlab=NA, ylab=NA, type = "n", bty = "n")
+legend(x = 2, y = 9, bty = "n", ncol = 2, legend = myLegend$language,
+       pt.bg = myLegend$bg,
+       pch = myLegend$shape,
+       col = myLegend$color, pt.lwd = 1.2, cex = 1.2)
+
+dev.off()
+```
+
+
+Plot desired coordinates/populations
+```{r put.fig.letter}
+put.fig.letter <- function(label, location="topleft", x=NULL, y=NULL, 
+                           offset=c(0, 0), ...) {
+  if(length(label) > 1) {
+    warning("length(label) > 1, using label[1]")
+  }
+  if(is.null(x) | is.null(y)) {
+    coords <- switch(location,
+                     topleft = c(0.015,0.98),
+                     topcenter = c(0.5525,0.98),
+                     topright = c(0.985, 0.98),
+                     bottomleft = c(0.015, 0.02), 
+                     bottomcenter = c(0.5525, 0.02), 
+                     bottomright = c(0.985, 0.02),
+                     c(0.015, 0.98) )
+  } else {
+    coords <- c(x,y)
+  }
+  this.x <- grconvertX(coords[1] + offset[1], from="nfc", to="user")
+  this.y <- grconvertY(coords[2] + offset[2], from="nfc", to="user")
+  text(labels=label[1], x=this.x, y=this.y, xpd=T, ...)
+}
+```
+
+
+
+```{r}
+nCol <- 3
+nRow <- 3
+legendCol <- 2
+
+# pdf("~/Projects/Botocudos/Plots/MDS/MDS_midThesis.pdf",
+#    width = 9, height = 9)
+png("~/Projects/Botocudos/Plots/MDS/MDS_midThesis.png",
+   width = 9, height = 9, res = 300, units = "in", bg = "NA")
+layout(matrix(seq(1, nRow*nCol), byrow = T, nrow = nRow, ncol = nCol),
+       widths = c(rep(2, nCol-1 ), 2.5), heights = rep(2, nRow))
+
+#------------------------------------------------------------------------------#
+# All the panel
+
+for(i in 1:2){
+par(xpd = NA)
+plot(bty = "n", x = wholeMaanasa[,i]/2e5,
+     y = wholeMaanasa[,i+1]/2e5, col = alpha(wholeMaanasa$color,0.7),
+     pch = 16,  xlab = i, ylab = i+1, lwd = 2, cex = 2,
+     main = "MDS, all populations")
+points(x = wholeMaanasa[wholeMaanasa$region == "Botocudos",i]/2e5,
+     y = wholeMaanasa[wholeMaanasa$region == "Botocudos",i+1]/2e5,
+     col = alpha(wholeMaanasa$color[wholeMaanasa$region == "Botocudos"],0.7),
+     cex = 2, pch = 16)
+points(x = wholeMaanasa[wholeMaanasa$population == "Botocudos2014",1]/2e5,
+     y = wholeMaanasa[wholeMaanasa$population == "Botocudos2014",2]/2e5,
+     bg = alpha(wholeMaanasa$color[wholeMaanasa$population == "Botocudos2014"],0.7),
+     cex = 2, pch = 23, col ="black")
+put.fig.letter(LETTERS[i], location = "topleft", font = 2)
+}
+par(xpd = NA)
+plot(1:10, 1:10, type = "n", bty = "n", axes = F, xlab=NA, ylab=NA, xpd = T)
+legend(legend = c(regions[1:9], "Botocudos 2014", regions[10:11]), 
+       col = c(myColors[1:9], "black", myColors[10:11]),
+       x = 0, y = 10, bty = "n", pch = c(rep(16,9), 23, 16),
+       pt.bg = c(rep(NA, 9), myColors[9], NA, NA),
+       cex = 1.2, ncol = 2)
+
+#------------------------------------------------------------------------------#
+# Only the Americas
+
+j <- 2
+i <- 3
+for(x in c(1,5,6,7)){
+  y <- x + 1
+  plot(bty = "n", xlab = x, ylab = y,
+       x = pointsWColor[, x]/2e5, y = pointsWColor[, y]/2e5,
+       pch = pointsWColor$shape, 
+       col = alpha(pointsWColor$color, 0.9), 
+       bg = pointsWColor$bg, cex = 2, lwd = 1.2,
+       main = "MDS, Native Americans")
+  
+  points(x = pointsWColor[pointsWColor$population == "Botocudos", x]/2e5, 
+         y = pointsWColor[pointsWColor$population == "Botocudos", y]/2e5,
+         pch = pointsWColor$shape[pointsWColor$population == "Botocudos"], 
+         bg = alpha(pointsWColor$color[pointsWColor$population == "Botocudos"],
+                    0.9), 
+         cex = 2, lwd = 2)
+  put.fig.letter(LETTERS[i], "topleft", font = 2) ; i <- i+1
+  if(j %% nCol == 0){
+    plot(1:10, 1:10, axes = F, xlab=NA, ylab=NA, type = "n", bty = "n")
+    par(xpd=TRUE)
+    legend(x = 0, y = 12, bty = "n", ncol = legendCol, legend = myLegend$language,
+           pt.bg = myLegend$bg,
+           pch = myLegend$shape,
+           col = myLegend$color, pt.lwd = 1, cex = 1.2)
+    #plot(1:10, 1:10, type = "n", bty = "n", axes = F, xlab=NA, ylab=NA)
+  }
+    j <- j + 1
+}
+
+
+    
+dev.off()
+```
+
+```{r}
+
+myR <- unique(wholeMaanasa$region)
+i <-1
+for(r in myR){
+  name <- paste("~/Projects/Botocudos/Plots/MDS/mini/", r, ".png", sep = "")
+  png(name, width = 4, height = 4, res = 300, units = "in", bg = NA)
+  par(mar = rep(2,4))
+  plot(bty = "n", x = wholeMaanasa[,i]/2e5,
+       y = wholeMaanasa[,i+1]/2e5, col = alpha(wholeMaanasa$color,0.7),
+       pch = 16,  xlab = i, ylab = i+1, lwd = 2, cex = 2,
+       main = "MDS, all populations", type = "n")
+  
+  points(x = wholeMaanasa[wholeMaanasa$population == r,i]/2e5,
+         y = wholeMaanasa[wholeMaanasa$population == r,i+1]/2e5,
+         col = alpha(wholeMaanasa$color[wholeMaanasa$population == r],0.7),
+         cex = 2, pch = 16)
+  dev.off()
+}
+
+
+  points(x = wholeMaanasa[wholeMaanasa$region == "Botocudos",i]/2e5,
+     y = wholeMaanasa[wholeMaanasa$region == "Botocudos",i+1]/2e5,
+     col = alpha(wholeMaanasa$color[wholeMaanasa$region == "Botocudos"],0.7),
+     cex = 2, pch = 16)
+points(x = wholeMaanasa[wholeMaanasa$population == "Botocudos2014",1]/2e5,
+     y = wholeMaanasa[wholeMaanasa$population == "Botocudos2014",2]/2e5,
+     bg = alpha(wholeMaanasa$color[wholeMaanasa$population == "Botocudos2014"],0.7),
+     cex = 2, pch = 23, col ="black")
+```
+
+
+# Plot a Map
+
+```{r}
+#pdf("~/Projects/Botocudos/Plots/Map/MDS_map.pdf", width = 6, height = 8)
+png("~/Projects/Botocudos/Plots/Map/MDS_map.png", width = 6, height = 8,
+    res = 300, units = "in")
+
+par(fg = NULL)
+map('world', fill = T, col = "gray90",
+    xlim=c(-168,-10), ylim = c(-60, 100),
+    border="white", lforce = "e")
+
+points(x = pointsWColor$long, y = pointsWColor$lat, pch = pointsWColor$shape,
+       col = pointsWColor$color, bg = pointsWColor$bg, cex = 1.2)
+
+dev.off()
+```
+
+
+
+
+## Make plot individual by individual
+
+```{r}
+ind <- read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Maanasa_mask1_flip.B.P.ASM.VMAnc.haploid.dist.id")
+Dist <- as.matrix(read.table("~/Projects/Botocudos/Files/MDS/2019_05_15/Maanasa_mask1_flip.B.P.ASM.VMAnc.haploid.dist.gz"))
+
+colnames(ind) <- c("indID", "x")
+myPanel <- join(ind, panel, by = "indID")
+boto <- ind[grep("MN", ind$indID),]
+
+for(i in 1:nrow(boto)){
+  myInd <- ind
+  toKeep <- boto[i,1]
+  print(toKeep)
+  idToRemove <- boto$indID[which(!(boto$indID %in% toKeep))]
+  myIndex <- which(!(ind$indID %in% idToRemove) & 
+                     !(is.na(Dist[, which(ind$indID == toKeep)])))
+  myDist <- Dist[myIndex, myIndex]
+  myInd <- myInd[myIndex,]
+  myIndex <- sapply(1:ncol(myDist), function(x) sum(is.na(Dist[,x])))
+  while(sum(myIndex)){
+    idToRemove <- which(myIndex == max(myIndex))[1]
+    print(paste("removing", myInd[idToRemove,1], myIndex[idToRemove], max(myIndex)))
+    myInd <- myInd[-idToRemove,]
+    myDist <- myDist[-idToRemove, -idToRemove]
+    myIndex <- sapply(1:ncol(myDist), function(x) sum(is.na(myDist[,x])))
+
+  }
+  #res <- cmdscale(dist(myDist), k = dim(myDist)[1]-1, eig = T)
+  f <- paste("~/Projects/Botocudos/Files/MDS/2019_05_15/mds_maansa_",
+             toKeep,".ind", sep = "")
+  print(paste("Saving to ", f))
+  #save(myInd, file=f)
+  write.table(myInd, file = f, col.names = F, row.names = F, quote = F, sep  ="\t")
+}
+
+#)
+
+#load("~/Projects/Botocudos/Files/MDS/2019_05_15/mds_maansa_ALL.Rda")
+#points <- as.data.frame(res$points)
+#points <- cbind(points, myPanel)
+```
+
+```{r}
+pdf("~/Projects/Botocudos/Plots/MDS/24Boto.pdf",
+   width = 16, height = 19)
+
+nRow <- 9
+nCol <- 6
+layout(matrix(seq(1, nRow*nCol), byrow = T, nrow = nRow, ncol = nCol),
+       widths = c(rep(2, nCol-1 ), 2.5), heights = rep(2, nRow))
+
+for(j in 1:nrow(boto)){
+  if(!(j-1)%%3){
+    name <- paste("~/Projects/Botocudos/Plots/MDS/2019_05_15/", j, "_", j+2,
+                  ".pdf", sep = "")
+    pdf(name, width = 8, height = 12)
+    layout(matrix(seq(1, 6), byrow = T, nrow = 3, ncol = 2),
+       widths = c(rep(2, 2 )), heights = rep(2, 3))
+    
+  }
+  name <- paste("~/Projects/Botocudos/Files/MDS/2019_05_15/mds_maansa_", boto[j, 1],
+  ".Rda", sep = "")
+  load(name)
+  points <- res$points ; dim(points)
+  name <- sub("Rda", "ind", name)
+  ind <- read.table(name)
+  colnames(ind) <- c("indID", "x")
+  
+  # Add "language" label
+  myPanel <- join(ind, panel, by = "indID")
+  points <- cbind(points, myPanel)
+  
+  myColors <- c(blue,  yellowOrange, benzolGreen,
+                seashellPink, cobaltGreen, rainetteGreen, salviaBlue,
+                grayishLavender,
+                helvetiaBlue, aconiteViolet)
+  
+  points$color <- "black"
+  
+  regions <- c("Africa", "Europe", "Caucasus", "NearEast", 
+               "EastAsia", "SouthAsia", "SoutheastAsia",
+               "Siberia", "Oceania", "Americas")
+  
+  for(i in 1:length(regions)){
+    points$color[points$region == regions[i]] <- myColors[i]
+  }
+  
+  myColors <- c(myColors, "black")
+  regions <- c(regions, "Botocudos")
+  
+  wholeMaanasa <- points
+  for(i in 1:2){
+    par(xpd = NA)
+    plot(bty = "n", x = wholeMaanasa[,i]/2e5,
+         y = wholeMaanasa[,i+1]/2e5, col = alpha(wholeMaanasa$color,0.7),
+         pch = 16,  xlab = i, ylab = i+1, lwd = 2, cex = 2,
+         main =boto[j,1])
+    points(x = wholeMaanasa[wholeMaanasa$region == "Botocudos",i]/2e5,
+           y = wholeMaanasa[wholeMaanasa$region == "Botocudos",i+1]/2e5,
+           col = alpha(wholeMaanasa$color[wholeMaanasa$region == "Botocudos"],0.7),
+           cex = 2, pch = 16)
+    points(x = wholeMaanasa[wholeMaanasa$population == "Botocudos2014",1]/2e5,
+           y = wholeMaanasa[wholeMaanasa$population == "Botocudos2014",2]/2e5,
+           bg = alpha(wholeMaanasa$color[wholeMaanasa$population == "Botocudos2014"],0.7),
+           cex = 2, pch = 23, col ="black")
+    #put.fig.letter(LETTERS[i], location = "topleft", font = 2)
+  }
+  if(!j%%3){
+    dev.off()
+  }
+}
+
+par(xpd = NA)
+plot(1:10, 1:10, type = "n", bty = "n", axes = F, xlab=NA, ylab=NA, xpd = T)
+legend(legend = c(regions[1:9], "Botocudos 2014", regions[10:11]), 
+       col = c(myColors[1:9], "black", myColors[10:11]),
+       x = 0, y = 10, bty = "n", pch = c(rep(16,9), 23, 16),
+       pt.bg = c(rep(NA, 9), myColors[9], NA, NA),
+       cex = 1.2, ncol = 2)
+
+dev.off()
+
+```
+
+
+
+
+# Admixture
+
+```{r}
+"2_26,21,81,61,41,1,81,61,41,41,1,81,72,81"
+"for(k in paste(seq(2, 15 ), c( 26,21,81,61,41,1,81,61,41,41,1,81,72,81 ), sep = '_'))" 
+
+```
+
+```{r}
+preffix <- "~/Projects/Botocudos/Files/ADMIX/2019_05_19/subset_maanasa_k"
+suffix <- ".qopt"
+
+ind <- read.table("~/Projects/Botocudos/Files/ADMIX/2019_05_19/B.P.ASM.VMAnc")
+ind$V1 <- sub(".*/", "", ind$V1)
+ind$V1 <- sub(".bam", "", ind$V1)
+
+p <- read.table("~/Projects/Botocudos/Files/ADMIX/2019_05_19/Maanasa_mask1_flip.fam", stringsAsFactors = F)
+
+
+x <- read.csv("~/Projects/Botocudos/Files/ADMIX/2019_05_19/columns2cut_maanasa.txt", header = F, stringsAsFactors = F)
+x[1,] <- sub("-.*", "", x[1,])
+
+x <- x[1,-1]
+x <- as.integer(x[1,])
+x <- (x -1)/3
+
+
+myPanel <-  data.frame(indID = c(ind$V1, p$V1)[x])
+myPanel <- join(myPanel, panel, by = "indID")
+
+languages <- read.table("~/Projects/Botocudos/Files/Panels/Maanasa/Maanasa.americas.Moreno_names.txt", header = F)
+colnames(languages) <- c("population", "language")
+
+myPanel <- join(myPanel, languages, by = "population")
+myPanel$language <- as.character(myPanel$language)
+myPanel <- join(myPanel, coordinates, by = "population")
+
+# If not "language" label given, take the population name
+index <- is.na(myPanel$language)
+myPanel[index,]$language <- as.character(myPanel[index,]$label)
+print(unique(myPanel$language[myPanel$region %in% c("Americas", "Botocudos") & 
+                                myPanel$type == "Ancient"]))
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+# Aesthetics
+# Widths
+myPanel$width <- .2
+myPanel$width[myPanel$region != "Americas"] <- 1.5
+myPanel$width[myPanel$language %in% c("Yorubas", "Papuans","French",
+                                                        "Botocudos2014",
+                                                        "Dai", "Sindhi", "Koryaks", "USR1",
+                                                        "Saqqaq", 
+                                                        "TrailCreek", 
+                                                        "Anzick1", "Clovis", "SpiritCave", "Lovelock",
+                                                        "SouthWesternOntario", "Taino",
+                                                        "Belize", 
+                                                        "EarlyAndes", "LateCentralAndes", "HistoricalAndean",
+                                                        "Ayayema", "AncientKaweskar", "AncientYamana",
+                                                        "Aconcagua", "PuntaSantaAna",
+                                                        "Southern_Cone",  "Brazil",
+                                                        "LagoaSanta", "Botocudos")] <- 1.5
+myPanel$width[myPanel$population == "Botocudos"] <- 4
+myPanel$width[myPanel$population == "Botocudos2014"] <- 4
+
+# Order things
+myPanel$region <- factor(myPanel$region, levels = c("Africa", "Europe", "Oceania",
+                                                    "EastAsia", "SouthAsia",
+                                                    "SoutheastAsia", "Siberia",
+                                                    "Americas", 
+                                                    "Botocudos"), 
+                         ordered  = T)
+
+myPanel$language <- factor(myPanel$language, levels = c("Yorubas", "Papuans","French",
+                                                        "Botocudos2014",
+                                                        "Dai", "Sindhi", 
+                                                        "Koryaks", "EskimoAleut", 
+                                                        "Saqqaq", "USR1",
+                                                        "TrailCreek", 
+                                                        "Anzick1", "Clovis", "SpiritCave", "Lovelock",
+                                                        "SouthWesternOntario","NaDene",
+                                                        "NorthernAmerind", "Mexican",
+                                                        "CentralAmerind",
+                                                        "ChibchanPaezan", "Taino",
+                                                        "Belize", 
+                                                        "EarlyAndes", "LateCentralAndes", "HistoricalAndean",
+                                                        "Andean",
+                                                        "Ayayema", "AncientKaweskar", "AncientYamana",
+                                                        "Aconcagua", "PuntaSantaAna",
+                                                        "Southern_Cone", "EcuatorialTucanoan",
+                                                        "Ge-PanoCaribean", "Brazil",
+                                                        "LagoaSanta", "Botocudos"),
+                           ordered = T)
+
+myColor <- data.frame( k = seq(1,15), colors = c(#rgb(0.1, 0.1, 0.1), rgb(0.3, 0.3, 0.3),
+                                                 #rgb(0.5, 0.5, 0.5), rgb(0.7, 0.7, 0.7),#"gray10", "gray30", "gray50", "gray70",
+  apricotYellow,  paleRawUmber, nileBlue,ivoryBuff,oldRose,                                               
+  rawSienna, ochraceousSalmon, benzolGreen,
+  slateColor, spectrumRed, rainetteGreen, sulphurYellow,
+  oliveYellow, lightBrownDrab, dullVioletBlack))
+
+myColor$colors <- as.character(myColor$colors)
+
+```
+
+```{r}
+write.table(myPanel, "~/Projects/Botocudos/Files/ADMIX/2019_05_19/panel.txt",
+            col.names = T, row.names = F, sep = "\t", quote = F)
+
+write.table((myColor$colors), "~/Projects/Botocudos/Files/ADMIX/2019_05_19/colors.txt",
+            col.names = F, row.names = F, sep = "\t", quote = F
+            )
+
+write.table(levels(myPanel$language), "~/Projects/Botocudos/Files/ADMIX/2019_05_19/order_language.txt",
+            col.names = F, row.names = F, sep = "\t", quote = F)
+
+write.table(unique(myPanel[order(myPanel$language), c("population", "population")]), "~/Projects/Botocudos/Files/ADMIX/2019_05_19/pop_pop.txt",
+            col.names = F, row.names = F, sep = "\t", quote = F)
+```
+
+
+```{r}
+# Functions to prepare admix plot
+
+orderMeanComp <- function(k, nCol, admix){
+  # Take the ordered levels from the column of interest
+  myLevels <- levels(admix[, nCol])
+  col <- which(colnames(admix) == colnames(admix)[nCol])
+  myOrder <- c()
+  K <- seq(1, k)
+  while(length(K)){
+    for(l in myLevels){
+      ind <- which(admix[,col] == l)
+      meanComp <- colMeans(as.matrix(admix[ind,K]))
+      meanComp <- meanComp[!(names(meanComp) %in% myOrder) & meanComp > 0.0002]
+      #print(l)
+      if(length(K) == 1){
+        myOrder <- c(myOrder, K)
+        K <- c()
+        break
+      }else if(length(meanComp)){
+        highestComponent <- as.integer(names(meanComp)[which(meanComp == max(meanComp))])
+        myOrder <- c(myOrder, highestComponent)
+        #print(highestComponent)
+        K <- K[-which(K ==highestComponent)]
+      }
+    }
+  }
+  return(admix[,c(myOrder, (length(myOrder)+1):ncol(admix))])
+  
+}
+
+admixPrepare <- function(k){
+  name <- paste(preffix, k, ".qopt", sep = "")
+  admix <- read.table(name)
+  nInd <- dim(admix)[1]
+  ncomp <-  dim(admix)[2]
+  colnames(admix) <- seq(1,ncomp)
+  # Add the metadate defined in myPanel
+  admix <- cbind(admix, myPanel)
+  # Order according to the previously established levels
+  admix <- admix[order( admix$region, 
+                        admix$language, admix$population,
+                        decreasing = F),]
+  # admix[, 1:ncomp] <- admix[, order_comp(admix, c("Botocudo", "Africa", "Oceania", "EastAsia", "Europe"))]
+  
+}
+
+get_popline <- function(nCol, admix){
+  pop_line <- sapply(unique(admix[,nCol]), 
+                     function(X) which(
+                       admix$indID == 
+                         tail(admix$indID[admix[,nCol] == X], 1)))
+  names(pop_line) <- unique(admix[,nCol])
+  pop_line <- pop_line[order(pop_line)]
+  w <- sapply(names(pop_line), function(x) sum(admix$width[admix[,nCol] == x]))
+  pop_line <- cumsum(pop_line*w)
+}
+  
+```
+
+```{r}
+#png("~/Desktop/admixture.png", width = 20, height = 20, res = 300, units = "in")
+# feature from which we will order
+featureOrder <- "language"
+par(mfrow = c(15,1))
+par(mar = c(2, .5, 1, 2))
+
+for(k in paste(seq(2, 15 ), c( 26,21,81,61,41,1,81,61,41,41,1,81,72,81 ), sep = '_')){
+    name <- paste(preffix, k, ".qopt", sep = "")
+  admix <- read.table(name)
+  nInd <- dim(admix)[1]
+  ncomp <-  dim(admix)[2]
+  colnames(admix) <- seq(1,ncomp)
+   admix <- cbind(admix, myPanel)
+  nCol <- which(colnames(admix) == featureOrder)
+  admix <- admix[order(
+                       admix$language, admix$population,
+                       decreasing = F),]
+  
+  pop_line <- get_popline(nCol = nCol, admix = admix)
+  admix <- orderMeanComp(k = as.integer(sub("_.*", "",k)), 
+                         nCol = nCol, 
+                         admix = admix)
+  admix <- admix[which(admix$population != "Bajo"),]
+  barplot(as.matrix(t(admix[1:nInd,1:ncomp])), space=0,border=NA, 
+          xlab=NULL,
+          ylab = paste("k =", sub("_.*", "",k)), horiz = F, cex.main = 3,
+          cex.lab = 2, axes = F, axisnames= F, width = admix$width, col = as.character(myColor$colors))
+  abline(v = cumsum(w),
+         col = "white")
+}
+
+rownames(admix) <- 1:dim(admix)[1]
+pop_names <- sapply(unique(admix$language), 
+                    function(X) mean(as.numeric(rownames(admix[admix$language == X,]))))
+names(pop_names) <- unique(admix$language)
+text(cumsum(w)-0.5*w, -0., names(pop_names), xpd=NA, cex = 1, srt = 90)
+
+#dev.off()
+```
+
+
+
+# F3
+
+## Maanasa panel
+
+```{r}
+f3 <- read.table("~/Projects/Botocudos/Files/F3/2019_05_17/boto_maanasa.txt",
+                 header = T)
+colnames(coordinates) <- c("Source2", "lat", "long", "type")
+f3$Source2 <- sub("Conchal.*", "ConchaliSantiagoRM", f3$Source2)
+f3 <- join(f3, coordinates, by = "Source2")
+f3 <- f3[f3$SNPs >10000,]
+
+f3$population <- f3$Source2
+myPanel <- unique(panel[,c("population", "region")])
+f3 <- join(f3, myPanel, by = "population")
+ f3 <- join(f3, languages, by = "population")
+```
+
+```{r}
+myPalette <- choose_palette()
+```
+
+### Color by F3 value
+
+```{r}
+f3 <- f3[f3$region == "Americas",]
+f3 <- f3[order(f3$f_3, decreasing = T),]
+myColor <- myPalette(nrow(f3))[rank(f3$f_3, "max")]
+myColor <- myPalette((max(f3$f_3)-min(f3$f_3))*1e6)[(f3$f_3-min(f3$f_3))*1e6+1]
+
+myBg <- myColor
+myColor[f3$type=="Ancient"] <- "black"
+f3$shape <- 16
+f3$shape[f3$type == "Ancient"] <- 21
+
+topHits <- f3[1:20,c("population", "type", "lat", "long")]
+rownames(topHits) <- 1:20
+ pdf("~/Projects/Botocudos/Plots/F3/Maanasa_F3_americas.pdf",
+      width = 8, height = 8)
+layout(matrix(seq(1, 3), byrow = F, nrow = 1, ncol = 3),
+       widths = c(1,2,6), heights = c(6))
+
+
+barplot(cbind(seq(min(f3$f_3), max(f3$f_3), length.out = 100)),
+        border = NA,
+        col = myPalette(100), yaxt="n", horiz = F)
+axis(2, at = seq(0, 25, length.out = 10), 
+     las = 2,
+     labels = round(seq(min(f3$f_3), max(f3$f_3), length.out = 10), 3))
+
+nBreaks <- 50
+x <- hist(x=f3$f_3, breaks = nBreaks, border = NA, 
+          col = myPalette(20), plot = F)
+
+barplot(x$counts, horiz = T, col = myPalette(length(x$breaks)), beside = T, axes = F,
+        border = NA)
+par(fg = NULL)
+map('world', fill = T, col = "gray90",
+    xlim=c(-168,-10), ylim = c(-60, 100),
+    border="white", lforce = "e")
+
+
+topHits$offx <- 0
+topHits$offx[topHits$long > -55] <- 10
+topHits$offx[topHits$long < -70] <- -10
+
+topHits$offy <- 0
+topHits$offy[topHits$lat > 0] <- 10
+topHits$offy[topHits$lat < -25] <- -10
+
+text(x = topHits$offx + topHits$long, y = topHits$lat + topHits$offy, 
+     labels = rownames(topHits),
+     adj = 1)
+segments(x0 = topHits$long + topHits$offx, 
+         x1 = topHits$long,
+          y0 = topHits$lat + topHits$offy,
+         y1 = topHits$lat)
+
+points(x = f3$long, y = f3$lat, 
+       col = alpha(myColor, 0.8), 
+       bg = alpha(myBg, 0.8),
+       pch=f3$shape, cex = 2, lwd = 1
+       )
+text(x = -150, y = -6*as.integer(rownames(topHits))+50, 
+     labels = paste(rownames(topHits),
+                    topHits$population),
+     adj = 0)
+
+offset <- 10
+
+
+dev.off()
+
+```
+
+```{r}
+f3$Source2 <- factor(f3$Source2, levels = f3$Source2, ordered = T)
+
+ggplot(f3, aes(x = Source2, y = f_3, ymin = f_3 - std.err, ymax = f_3 + std.err)) +
+  geom_point() +
+  geom_errorbar() +
+  coord_flip()
+```
+
+
+### Jabuticabeira
+```{r}
+f3 <- read.table("~/Projects/Botocudos/Files/F3/2019_05_17/jabuticabeira_maanasa.txt",
+                 header = T)
+colnames(coordinates) <- c("Source2", "lat", "long", "type")
+f3$Source2 <- sub("Conchal.*", "ConchaliSantiagoRM", f3$Source2)
+f3 <- join(f3, coordinates, by = "Source2")
+f3 <- f3[f3$SNPs >10000,]
+
+f3$population <- f3$Source2
+myPanel <- unique(panel[,c("population", "region")])
+f3 <- join(f3, myPanel, by = "population")
+```
+
+```{r}
+myPalette <- choose_palette()
+```
+
+
+
+```{r}
+f3 <- f3[f3$region %in% c("Americas", "Botocudos") & f3$Source1 == "Jabuticabeira2",]
+f3 <- f3[order(f3$f_3, decreasing = T),]
+myColor <- myPalette(nrow(f3))[rank(f3$f_3, "max")]
+myColor <- myPalette((max(f3$f_3)-min(f3$f_3))*1e6)[(f3$f_3-min(f3$f_3))*1e6+1]
+
+myBg <- myColor
+myColor[f3$type=="Ancient"] <- "black"
+f3$shape <- 16
+f3$shape[f3$type == "Ancient"] <- 21
+
+topHits <- f3[1:20,c("population", "type", "lat", "long")]
+rownames(topHits) <- 1:20
+ # pdf("~/Projects/Botocudos/Plots/F3/Maanasa_F3_jabuticabeira.pdf",
+ #      width = 8, height = 8)
+layout(matrix(seq(1, 3), byrow = F, nrow = 1, ncol = 3),
+       widths = c(1,2,6), heights = c(6))
+
+
+barplot(cbind(seq(min(f3$f_3), max(f3$f_3), length.out = 100)),
+        border = NA,
+        col = myPalette(100), yaxt="n", horiz = F)
+axis(2, at = seq(0, 25, length.out = 10), 
+     las = 2,
+     labels = round(seq(min(f3$f_3), max(f3$f_3), length.out = 10), 3))
+
+nBreaks <- 50
+x <- hist(x=f3$f_3, breaks = nBreaks, border = NA, 
+          col = myPalette(20), plot = F)
+
+barplot(x$counts, horiz = T, col = myPalette(length(x$breaks)), beside = T, axes = F,
+        border = NA)
+par(fg = NULL)
+map('world', fill = T, col = "gray90",
+    xlim=c(-168,-10), ylim = c(-60, 100),
+    border="white", lforce = "e")
+
+
+topHits$offx <- 0
+topHits$offx[topHits$long > -55] <- 10
+topHits$offx[topHits$long < -70] <- -10
+
+topHits$offy <- 0
+topHits$offy[topHits$lat > 0] <- 10
+topHits$offy[topHits$lat < -25] <- -10
+
+text(x = topHits$offx + topHits$long, y = topHits$lat + topHits$offy, 
+     labels = rownames(topHits),
+     adj = 1)
+segments(x0 = topHits$long + topHits$offx, 
+         x1 = topHits$long,
+          y0 = topHits$lat + topHits$offy,
+         y1 = topHits$lat)
+
+points(x = f3$long, y = f3$lat, 
+       col = alpha(myColor, 0.8), 
+       bg = alpha(myBg, 0.8),
+       pch=f3$shape, cex = 1.5, lwd = 1
+       )
+text(x = -150, y = -6*as.integer(rownames(topHits))+50, 
+     labels = paste(rownames(topHits),
+                    topHits$population),
+     adj = 0)
+
+offset <- 10
+
+
+# dev.off()
+
+```
+
+```{r}
+f3$Source2 <- factor(f3$Source2, levels = f3$Source2, ordered = T)
+
+ggplot(f3, aes(x = Source2, y = f_3, ymin = f_3 - std.err, ymax = f_3 + std.err)) +
+  geom_point() +
+  geom_errorbar() +
+  coord_flip()
+```
+
+
+# D-stat
+
+## Stratify things by type of data
+
+```{r read in files}
+d <- read.table("~/Projects/Botocudos/Files/Dstat/2019_05_19/h_corrected.txt",
+                stringsAsFactors = F)
+colnames(d) <- c("result","Pop1",  "Pop2", "Pop3",  
+                 "Pop4",  "Dstat","Z", "BABA",
+                 "ABBA",	"SNPs")
+d <- d[d$SNPs >10000,]
+panel <- read.table("~/Projects/Botocudos/Files/Panels/Magic.panel", header = T)
+
+d$Pop1 <- sub("Conchal.*", "ConchaliSantiagoRM", d$Pop1)
+d$Pop2 <- sub("Conchal.*", "ConchaliSantiagoRM", d$Pop2)
+
+# 161 populations
+# unique(c(d$Pop1, d$Pop2, d$Pop3))
+
+#------------------------------------------------------------------------------#
+# Set of samples that were captured (Posth)
+posth <- read.table("~/Projects/Botocudos/Files/Panels/Posth/Posth.panel.txt",
+                    header = T)
+#------------------------------------------------------------------------------#
+# Set of samples for which we sampled a random read
+sampledReads <- read.table("~/Projects/Botocudos/Files/Dstat/2019_05_19/B.P.ASM.VMAnc")
+colnames(sampledReads) <- "indID"
+sampledReads$indID <- sub(".*/", "", sampledReads$indID)
+sampledReads$indID <- sub(".bam", "", sampledReads$indID)
+
+sampledReads <- join(sampledReads, panel, by = "indID")
+sampledReads <- sampledReads[-which(sampledReads$indID %in% posth$indID),]
+sampledReads <- sampledReads[!(sampledReads$indID %in% c("Taino", "USR1", "Ayayema")),]
+#------------------------------------------------------------------------------#
+# Set of samples for which we called genotypes 
+calledGenos <- read.table("~/Projects/Botocudos/Files/Panels/h/h.panel", 
+                          header = T)
+calledGenos <- calledGenos[-which(
+  calledGenos$population %in% c("Taino", #"USR1",
+                                "Ayayema", #"Lovelock2", 
+                                #"Lovelock3",
+                                "Saqqaq", "Inuit",
+                                #"Lovelock3", "Anzick1",
+                                "Tlingit"#, #"SpCave", #"LagoaSta",
+                                #"Chane", "Piapoco"
+                                )),]
+```
+
+```{r separate by sampled or called}
+
+keepOrRemove <- function(group, action, dataset){
+  if(action == "keep"){
+    return(which(dataset %in% group))
+  }else{
+    return(which(!(dataset %in% group)))
+  }
+}
+stratifyMe <- function(set, action, dataset){
+  if(set == "captured"){
+    index <- keepOrRemove(posth$population, action, dataset)
+  }else if(set == "sampled"){
+    index <- keepOrRemove(sampledReads$population, action, dataset)
+  }else if(set == "called"){
+    index <- keepOrRemove(calledGenos$population, action, dataset)
+  }else if(set == "all"){
+    index <- 1:length(dataset)
+  }
+  return(index)
+}
+
+```
+
+```{r}
+# Function to switch the desired population to Pop1
+switchPops <- function(myD, pop1){
+  index <- myD$Pop2 == pop1
+  pop2 <- myD$Pop1[index]
+  myD$Pop2[index] <- pop2
+  myD$Pop1[index] <- pop1
+  myD$Z[index] <- -myD$Z[index]
+  myD$Dstat[index] <- -myD$Dstat[index]
+  
+  return(myD)
+}
+```
+
+```{r organizeDstat}
+# Function to organize the Dstat dataset, according to what we want to
+# display for Pop1, Pop2, Pop3
+
+organizeDstat <- function(set1 = "all", set2 = "all", set3 = "all", d){
+  
+  if(set1 == "called"){
+    popsToSwitch <- unique(calledGenos$population)
+  }else if(set1 == "captured"){
+    popsToSwitch <- unique(posth$population)
+  }else if(set1 == "sampled"){
+    popsToSwitch <- unique(sampledReads$population)
+  }else if(set1 == "all"){
+    popsToSwitch <- unique(c(d$Pop1, d$Pop2))
+  }
+  
+  # Put all the desired populations in Pop1
+  # plus subset the tests with set3 in Pop3
+  # aaand subset to tests with set2 in Pop2
+  myD <- data.frame()
+  for(pop in popsToSwitch){ 
+    tmp <- switchPops(d, pop)
+    tmp <- tmp[tmp$Pop1 == pop,]
+    index <- stratifyMe(set = set2, action = "keep", dataset = tmp$Pop2)
+    tmp <- tmp[index,]
+    index <- stratifyMe(set = set3, action = "keep", dataset = tmp$Pop3)
+    tmp <- tmp[index,]
+    if(nrow(tmp[complete.cases(tmp),])){
+      myD <- rbind(myD, tmp)
+    }else{
+      myD <- tmp
+    }
+  }
+  return(myD)
+  
+}
+```
+
+```{r}
+set1 = "called"
+set2 = "captured"
+set3 = "all" 
+
+x <- organizeDstat(set1, set2, set3, d)
+
+```
+
+```{r orderNean}
+orderNean <- function(pop, myD, POP){
+  myD <- switchPops(d, pop)
+  m <- mean(myD$Z[myD$Pop3 == "AltaiNean"])
+  m <- median(unlist(sapply(POP, 
+                            function(x) rank(myD$Z[myD$Pop2 == x])[which(myD$Pop3[myD$Pop2 == x] == "AltaiNean")])))
+  return(m)
+}
+```
+
+## h panel
+## Archaic trend
+## Australasian trend
+## Within the Americas
+
+```{r}
+# d <- read.table("~/Projects/Botocudos/Files/Dstat/2019_05_19/natam.txt", 
+#                 sep = "\t", stringsAsFactors = F)
+# colnames(d) <- c("result","Pop1",  "Pop2", "Pop3",  
+#                  "Pop4",  "Dstat","Z", "BABA",
+#                  "ABBA",	"SNPs")
+# d <- d[d$SNPs >10000,]
+# panel <- read.table("~/Projects/Botocudos/Files/Panels/Magic.panel", header = T)
+# 
+# d$Pop1 <- sub("Conchal.*", "ConchaliSantiagoRM", d$Pop1)
+# d$Pop2 <- sub("Conchal.*", "ConchaliSantiagoRM", d$Pop2)
+# 
+# d <- switchPops(d, "Botocudos")
+
+
+```
+
+
+```{r getmyDplot}
+getMyDplot <- function(i , nCol, popTitle, pop1, set3 = "all", lwd = 1.2, cex = 1, archaic = T){
+
+  myD <- organizeDstat(set1 = "all", set2 = "all", set3 = set3, d = d)
+  myD <- myD[which(myD$Pop2 == popTitle), ]
+  index <- keepOrRemove(group = pop1$Pop1, action = "keep", dataset = myD$Pop1)
+  myD <- myD[index,]
+  
+  myD <- join(myD, pop1, by = "Pop1")
+  myD$population <- myD$Pop3
+  miniPanel <- unique(panel[,c("population", "region")])
+  myD <- join(myD, miniPanel, by = "population")
+  
+  myD$color <- "gray65"
+  if(archaic){
+      myD$color[myD$Pop3 == "Denisova"] <- "brown1"
+      myD$color[myD$Pop3 == "AltaiNean"] <- "blueviolet"
+  }
+
+  myD$color[myD$region == "Oceania"] <- "deepskyblue"
+
+  myD <- myD[order(myD$color, decreasing = T),]
+  
+  if(i%%nCol == 1){
+    par(mar = c(1,14,2,1)+0.1)
+    plot(x = myD$Z, y = myD$index, bty = "n", col = myD$color, axes = F,
+         xlab = NA, ylab = NA, xlim = c(-6,6), main = popTitle, type = "n")
+    abline(h = pop1$index, lty = "dotted", col = "gray")
+    points(x = -myD$Z, y = myD$index, col = myD$color, pch = 8, lwd = lwd, cex = cex)
+    abline(v = c(-3.3, 3.3), lty = "dashed")
+    axis(2, at = seq(1, nrow(pop1)), 
+         las = 2,
+         labels = pop1$Pop1)
+  }else{
+    par(mar = c(1,1,2,1)+0.1)
+    plot(x = myD$Z, y = myD$index, bty = "n", col = myD$color, axes = F,
+         xlab = NA, ylab = NA, xlim = c(-6,6), main = popTitle, type = "n")
+    abline(h = pop1$index, lty = "dotted", col = "gray")
+    points(x = -myD$Z, y = myD$index, col = myD$color,  pch = 8, lwd = lwd, cex = cex)
+    abline(v = c(-3.3, 3.3), lty = "dashed")
+  }
+}
+```
+
+
+
+```{r}
+
+set1 <- "called"
+set2 <- "sampled"
+set3 <- "all"
+
+# index <- stratifyMe(set = set1, "keep", d$Pop1)
+# myD <- d[index,]
+# POP1 should contain poopulations in Y-axis (pop1)
+index <- stratifyMe(set = set1, "keep", d$Pop1)
+myD <- d[index,]
+
+# POPT contains populations that will be displayed in the title
+index <- stratifyMe(set = set2, "keep", d$Pop1)
+myD <- d[index,]
+POPT <- unique(myD$Pop1)
+
+allPops <- unique(c(myD$Pop1, myD$Pop2))
+names(allPops) <- 1:length(allPops)
+
+POP1 <- data.frame(Pop1 = allPops, index = names(allPops))
+POP1$meanNean <- sapply(POP1$Pop1, orderNean, myD = myD, POP = POPT)
+POP1 <- POP1[order(POP1$meanNean),]
+POP1 <- POP1[which(POP1$Pop1 != "Tlingit"),]
+POP1 <- POP1[which(POP1$Pop1 != "Saqqaq"),]
+POP1$index <- 1:nrow(POP1)
+
+
+```
+
+```{r}
+s2 <- "called"
+set3 <- "all"
+for(s2 in c("called","sampled", "captured")){
+    # POPT contains populations that will be displayed in the title (pop2)
+    index1 <- stratifyMe(set = s2, "keep", d$Pop2)
+    index2 <- stratifyMe(set = s2, "keep", d$Pop1)
+    myD <- d[c(index1, index2),]
+    
+    allPops <- unique(c(myD$Pop2, myD$Pop1))
+    allPops <- allPops[stratifyMe(s2, "keep", allPops)]
+    names(allPops) <- 1:length(allPops)
+    
+    POPT <- unique(unique(myD$Pop1), unique(myD$Pop2))
+    POPT <- POPT[stratifyMe(s2, "keep", POPT)]
+    print(s2)
+    print(POPT)
+    nCells <- ceiling(sqrt(length(POPT)))
+    for(s1 in c("called")){#, "captured", "sampled")){
+      # name <- paste("~/Projects/Botocudos/Plots/Dstat/MidThesis/mini/title_",
+      #               s1, "_yAxis_", s2, ".png", sep = "")
+      # print(name)
+      # png(name, width = 3+2*(nCells-1), 
+      #     height = 2.5*nCells, res = 250, units = "in", bg = NA)
+      # layout(matrix(seq(1, nCells**2), byrow = T, 
+      #               nrow = nCells, ncol = nCells),
+      #        widths = c(2,rep(1, nCells-1)), heights = rep(2, nCells))
+      
+      
+      #nCells <- 1
+      # POP1 should contain poopulations in Y-axis (pop1)
+      index1 <- stratifyMe(set = s1, "keep", d$Pop1)
+      index2 <- stratifyMe(set = s1, "keep", d$Pop2)
+      myD <- d[c(index1, index2),]
+      allPops <- unique(c(d$Pop1[index1],
+                                       d$Pop2[index2]))
+      POP1 <- data.frame(Pop1 = allPops, index = 1:length(allPops))
+      
+      #POP1$meanNean <- sapply(POP1$Pop1, orderNean, myD = myD, POP = POPT)
+      #POP1 <- POP1[order(POP1$meanNean),]
+      POP1 <- POP1[which(POP1$Pop1 != "Tlingit"),]
+      POP1 <- POP1[which(POP1$Pop1 != "Saqqaq"),]
+      POP1$Pop1 <- factor(POP1$Pop1, levels = c("USR1", "Anzick1", "SpCave",
+                                                "Lovelock2", "Lovelock3",
+                                                "Ayayema",
+                                                "Quechua", "Aymara",
+                                                "Mixe", "Huichol", "Piapoco", "Pima",
+                                                "Athabascan", "Maya",
+                                                "Taino","Chane", "Yukpa",
+                                                "Karitiana", "Surui",
+                                                "LagoaSta"))
+      POP1 <- POP1[order(POP1$Pop1, decreasing = T),]
+      
+      POP1$index <- 1:nrow(POP1)
+      for(i in 1:length(POPT)){
+        name <- paste("~/Projects/Botocudos/Plots/Dstat/MidThesis/mini/arc_title_",
+                      s2, POPT[i], "_yAxis_", s1, ".png", sep = "")
+        print(name)
+        png(name, width = 5, height = 4, res = 250, units = "in", bg = NA)
+        # layout(matrix(seq(1, nCells**2), byrow = T, nrow = nCells, ncol = nCells),
+        #        widths = c(2,rep(1, nCells-1)), heights = rep(2, nCells))
+        print(POPT[i])
+        getMyDplot(i = 1,#i, 
+                   nCol = nCells, popTitle = POPT[i], 
+                   pop1 = POP1, set3 = set3, 
+                   lwd = 3, cex = 1.5, archaic = T)
+         dev.off()
+      }
+      #dev.off()
+    }
+    
+}
+
+```
+
+
+```{r rank tests for a pop}
+
+Drank <- function(myD, pop1, pop3, set2){
+  dsw <- switchPops(myD, pop1)
+  index <- keepOrRemove(pop1, "keep", dsw$Pop1)
+  D <- dsw[index,]
+  index <- stratifyMe(set2, "keep", D$Pop2)
+  D <- D[index,]
+  pop2 <- unique(D$Pop2)
+  
+  getRank <- function(x, D){
+    z <- D[D$Pop2 == x,]
+    return(which(z[order(rank(z$Z)),]$Pop3 == pop3))
+  }
+  myRank <- sapply(pop2, function(x) getRank(x, D))
+  myRank <- data.frame(pop2 = names(myRank), rank = myRank)
+  return(myRank)
+}
+
+```
+
+```{r Plot the different ranks for the Z-scores per population}
+
+myAm <- unique(calledGenos$population[calledGenos$region == "Americas"])
+myAm <- factor(myAm, levels = c("Anzick1", "USR1", "SpCave", "LagoaSta",
+                                "Ayayema", "Saqqaq", "Lovelock2", "Lovelock3",
+                                "Taino", "Aconcagua", "Quechua", "Aymara", "Athabascan",
+                                "Tlingit", 
+                                "Inuit", "Pima", "Mixe", "Huichol", "Maya", "Piapoco",
+                                "Chane", "Yukpa","Karitiana", "Surui"),
+               ordered = T)
+
+popTitle <- "LagoaSta"
+myRank <- Drank(myD, pop1 = popTitle, "AltaiNean", "called")
+
+myRank$pop2 <- factor(myRank$pop2, levels = levels(myAm), ordered = T)
+
+myRank <- myRank[order(myRank$pop2),]
+
+    plot(x = myRank$rank, y = 1:nrow(myRank), bty = "n", axes = F,
+         xlab = NA, ylab = NA, xlim = c(0, 110), main = popTitle, type = "n")
+    #abline(h = , lty = "dotted", col = "gray")
+    points(x = myRank$rank, y = 1:nrow(myRank),pch = 8, lwd = 1.2)
+    
+    abline(v = 55, lty = "dashed")
+    axis(2, at = seq(1, nrow(myRank)), 
+         las = 2,
+         labels = myRank$pop2)
+    
+```
+
+
+
+## Correlations
+```{r}
+
+
+myD <- switchPops(d, "Mixe")
+myD <- myD[myD$Pop1 == "Mixe",] ;unique(myD$Pop1)
+index <- stratifyMe("called", "keep", myD$Pop2)
+mixe <- myD[index,]
+
+myD <- switchPops(d, "LagoaSta")
+myD <- myD[myD$Pop1 == "LagoaSta",] ;unique(myD$Pop1)
+index <- stratifyMe("called", "keep", myD$Pop2)
+lagoa <- myD[index,]
+
+nean <- which(mixe$Pop3 == "AltaiNean")
+mixe <- mixe[nean,]
+nean <- which(lagoa$Pop3 == "AltaiNean")
+lagoa <- lagoa[nean,]
+
+mixe$ABBA <- mixe$ABBA/mixe$SNPs
+mixe$BABA <- mixe$BABA/mixe$SNPs
+lagoa$ABBA <- lagoa$ABBA/lagoa$SNPs
+lagoa$BABA <- lagoa$BABA/lagoa$SNPs
+j <- join(mixe[,c("Pop2","Pop3" ,"ABBA", "BABA")], lagoa[,c("Pop2", "ABBA", "Pop3","BABA")],
+          by = "Pop2")
+
+j$D1 <- j[,3]-j[,4]
+j$D2 <- j[,5]-j[,7]
+plot(j$D1[j[,2] == "UstIshim"], j$D2[j[,6] == "UstIshim"])
+for(i in 2:4){
+  for(k in 2:4){
+    plot(j[,i], j[,k])
+  }
+
+}
+
+
+j
+
+plot(j$D1, j$D2)
+cor(j[,2]-j[,3], j[,4]-j[,5])
+
+
+```
+
+# Microbiome
+
+```{r}
+
+```
+
+```{r}
+library(plyr)
+
+# FAM file with the population name and individual ID
+originalFam <- read.table(path_to_original)
+colnames(originalFam) <- c("pop", "ind", seq(3, ncol(originalFam)))
+
+# FAM file with apparent 0's in the population entry
+myFam <- read.table(path_to_new_fam)
+colnames(myFam) <- c("pop", "ind", seq(3, ncol(myFam)))
+
+# Find index
+index <- sapply(myFam$pop, function(x) which(originalFam$pop == x))
+
+# Population names
+newPop <- originalFam$pop[index]
+
+```
+

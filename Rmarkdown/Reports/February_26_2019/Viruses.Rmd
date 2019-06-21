@@ -58,10 +58,91 @@ virus <- read.csv("~/Projects/Botocudos/Files/Microbiome/Virome/HumanVirus2.txt"
 
 rownames(virus) <- gsub("_", " ", gsub("-", " ", virus[,1]))
 
-png("~/Projects/Botocudos/Files/Microbiome/Virome/Heatmap_norm.png",
+png("~/Projects/Botocudos/Plots/Viruses/Heatmap_norm.png",
     width = 10, height = 7, res = 300, units = "in")
 heatmap(as.matrix(virus[4:38,2:25]/as.numeric(virus[1, 2:25])), 
-        col = rev(heat.colors(350)), scale = "col")
+        col = rev(heat.colors(350)))
 dev.off()
 
 ```
+
+```{r}
+library(factoextra)
+```
+
+```{r}
+data <- t(virus[4:38, 2:25]/as.numeric(virus[1, 2:25]))*1e6
+
+
+x <- prcomp(data + 1e-10)
+
+plot(x$rotation)
+plot(x$x[,1], x$x[,2])
+text(x = x$x[,1], y = x$x[,2], labels = boto$MN)
+
+fviz_pca_ind(x)
+fviz_pca_var(x)
+fviz_pca_biplot(x)
+
+```
+
+# Smallpox and Variola virus
+```{r}
+index <- which(virus$Columna1 == "Variola_virus") ; index
+indexInd <- 2:25
+readsGiven <- as.numeric(virus[1, indexInd])
+
+hist(as.numeric(virus[index,indexInd])/readsGiven,
+     breaks = 15, col = alpha("brown1", 0.5), 
+     border = "brown1")
+
+qqnorm(y = as.numeric(virus[index,indexInd])/readsGiven, 
+       bty = "n")
+qqline(y = as.numeric(virus[index,indexInd])/readsGiven, col = "red")
+
+fr <- as.numeric(virus[index,indexInd])/readsGiven
+threshold <- qnorm(p = 0.95, 
+                   mean = mean(fr), 
+                   sd = sd(fr))
+sum(fr > threshold)
+virus[index, indexInd][fr>threshold]
+
+```
+
+
+```{r assume normality}
+find_outliers <- function(index, indexInd = seq(2,25)){
+  
+  #index <- which(virus$Columna1 == "Variola_virus") ; index
+  #indexInd <- 2:25
+  readsGiven <- as.numeric(virus[1, indexInd])
+  
+  # hist(as.numeric(virus[index,indexInd])/readsGiven,
+  #      breaks = 15, col = alpha("brown1", 0.5), 
+  #      border = "brown1")
+  # 
+  # qqnorm(y = as.numeric(virus[index,indexInd])/readsGiven, 
+  #        bty = "n")
+  # qqline(y = as.numeric(virus[index,indexInd])/readsGiven, col = "red")
+  
+  fr <- as.numeric(virus[index,indexInd])/readsGiven
+  threshold <- qnorm(p = 0.95, 
+                     mean = mean(fr), 
+                     sd = sd(fr))
+  sum(fr > threshold)
+  print(fr[fr>threshold]*1e6)
+  print(virus[index, indexInd][fr>threshold])
+
+}
+
+```
+
+```{r}
+
+for(i in 4:38){
+  find_outliers(i)
+}
+
+
+```
+

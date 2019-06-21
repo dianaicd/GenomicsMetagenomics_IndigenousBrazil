@@ -379,42 +379,6 @@ points(x = ind$d15N, y = ind$d13C, xlim = c(0,33),
 
 ```
 
-```{r}
-
-kinaston <- read.csv("~/Projects/Botocudos/Files/Isotopic/Kinaston2014.csv")
-
-# Plot
-plot(x = ind$d15N, y = ind$d13C, xlim = c(0,33),
-     ylim = c(-22, -3), #type = "n",
-     bty = "l", col = alpha(colors,0.77), pch = shapes,
-     ylab = expression(delta^13 ~ C),
-     xlab = expression(delta^15 ~ N),
-     main = "Isotope values",
-     cex = 1.8,
-     type = "n")
-
-# Terrestrial
-color <- "black"
-cross_isotope("Terrestrial Fauna", tef, sour, color)
-
-# Marine Fish
-color <- "firebrick"
-cross_isotope("Marine Fish", tef, sour, color)
-
-# Marine Mammals
-color <- "dodgerblue4"
-
-cross_isotope("Marine Mammals", tef, sour, color)
-
-ind$color <- "midnightblue"
-ind$color[ind$Cod %in% c("Bot15", "Bot17")] <- "orange1"
-ind$color[ind$Code == "Sambaqui_Cabecuda"] <- "brown1"
-ind$color[ind$Code == "NativeAmerican_MorrodaBabilonia"] <- "chartreuse"
-points(x = ind$d15N, y = ind$d13C, xlim = c(0,33),
-     ylim = c(-22, -3), #type = "n",
-     pch = shapes, col = ind$color)
-
-```
 
 
 We had a first inspection of the isotope values for the 23 individuals (21 dated in this study plus Bot15 and Bot17),
@@ -804,7 +768,7 @@ table_s1 %>%
 ```{r, echo = F, eval = F}
 table_s1$Mean <- per
 
-ggplot(table_s1[order(table_s1$Mean),], aes(y = Mean, x = ID)) + 
+ggplot(table_s1, aes(y = Mean, x = ID)) + 
   geom_segment(aes(x = as.factor(ID), y = 0, xend = as.factor(ID), yend = Mean)) +
   geom_point()
 

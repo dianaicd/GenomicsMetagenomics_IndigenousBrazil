@@ -1,0 +1,436 @@
+---
+title: "PCA on microbial data"
+author: "DI Cruz Dávalos"
+date: "3/13/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(plyr)
+library(cowplot)
+library(factoextra)
+library(scales)
+source("~/Projects/Botocudos/Scripts/misc/translate_ids.R")
+setwd("~/Projects/Botocudos/Files/Microbiome/Centrifuge/2019_03_07/centrifuge/")
+
+```
+
+```{r, eval=F}
+# Load IDs
+organisms <- list.files("~/Projects/Botocudos/Files/Microbiome/GENOME_REPORTS/IDS/")
+ID <- data.frame()
+
+for(org in organisms){
+  path <- paste("~/Projects/Botocudos/Files/Microbiome/GENOME_REPORTS/IDS/",
+                org,
+                sep = "")
+  ids <- read.csv(path, header = F, sep = "\t")[,1:2]
+  
+  #if(dim(ids)[2] < 7){
+  #  ids$V7 <- NA
+  #}
+  #colnames(ids) <- c("Taxonomy_ID", "NC_ID", "NoIdea", "NoIdea2", "NoIdea3",
+  #                   "Name", "NoIdea4")
+  ID <- rbind(ID, ids)
+}
+
+colnames(ID) <- c("Taxonomy_ID", "NC_ID")
+```
+
+```{r, eval=F}
+# Load Genomes description
+remove_dup<- function(data, i){
+  tmp <- data[data$TaxID == i,]
+  if(i %in% dup){
+    tmp <- unique(tmp[tmp$Size_Mb == max(tmp$Size_Mb),])
+  }
+  return(tmp[, c("TaxID", "Size_Mb")])
+}
+
+
+prokaryotes <- read.csv("~/Projects/Botocudos/Files/Microbiome/GENOME_REPORTS/prokaryotes.txt",
+                        header = T, sep = "\t")
+viruses <- read.csv("~/Projects/Botocudos/Files/Microbiome/GENOME_REPORTS/viruses.txt",
+                    header = T, sep = "\t")
+
+
+viruses <- viruses[, c("X.Organism.Name", "TaxID", "Size..Kb.")]
+colnames(viruses) <- c("Name", "TaxID", "Size_Mb")
+viruses$Size_Mb <- viruses$Size_Mb/1000
+prokaryotes <- prokaryotes[, c("X.Organism.Name", "TaxID", "Size..Mb.")]
+colnames(prokaryotes) <- c("Name", "TaxID", "Size_Mb")
+
+# Prokaryotes
+dup <- prokaryotes$TaxID[duplicated(prokaryotes$TaxID)]
+all_ids <- unique(prokaryotes$TaxID)
+x <- data.frame(matrix(unlist(lapply(all_ids,
+                          function(x) remove_dup(data = prokaryotes, i = x))),
+            ncol = 2, byrow = T))
+colnames(x) <- c("TaxID", "Size_Mb")
+y <- join(x, prokaryotes[, c("TaxID", "Name")], by = "TaxID")
+
+prokaryotes <- unique(y)
+dim(prokaryotes)
+#colnames(prokaryotes) <- c("TaxID", "Size_Mb", "Name")
+save(prokaryotes, 
+     "~/Projects/Botocudos/Files/Microbiome/GENOME_REPORTS/prokaryotes_rmdup")
+
+#sub_prok <- prokaryotes[,
+#                        c("TaxID", "Size..Mb.")]
+
+#colnames(sub_prok) <- c("Taxonomy_ID", "Size_Mb")
+
+
+
+
+# Viruses
+# Remove duplicates
+dup <- viruses$TaxID[duplicated(viruses$TaxID)]
+
+x <- data.frame(matrix(unlist(lapply(unique(viruses$TaxID), 
+            function(x) remove_dup(data = viruses, i = x))),
+            ncol = 2, byrow = T))
+colnames(x) <- c("TaxID", "Size_Mb")
+viruses <- unique(join(x, viruses[, c("TaxID", "Name")], by = "TaxID"))
+#colnames(viruses) <- c("Name", "TaxID", "Size_Mb")
+dim(viruses)
+
+#viruses$TaxID <- unlist(viruses$TaxID)
+
+
+#sub_virus <- viruses[,
+#                     c("TaxID", "Size..Kb.")]
+
+genomes <- rbind(prokaryotes, viruses)
+
+
+
+
+```
+
+```{r, eval=F}
+
+report <- read.csv("MA2381_nt.report", sep = "\t", header = F)
+colnames(report) <- c("Reads_clade_percent",
+                      "Reads_clade",
+                      "Reads_taxon",
+                      "Rank", 
+                      "TaxID",
+                      "Sci_name")
+report$Rank <- factor(report$Rank, 
+                  levels = c("-", "S", "G", "F", "O", "C", "P", "K", "D"),
+                  ordered = T)
+
+# Index to prokkaryotes and viruses
+index <- grep("D", report$Rank)
+report <- report[c(index[1]:index[2]-1, index[3]:index[5]-1),]
+print(dim(report))
+head(report[duplicated(report),])
+print(length(unique(report$TaxID)))
+report <- report[report$Reads_taxon>0,]
+print(dim(report))
+#report <- join(report, ID, by = "Taxonomy_ID")
+#report <- report[complete.cases(report),]
+
+report <- join(report, genomes, by = "TaxID")
+print(dim(report))
+print(dim(report[complete.cases(report),]))
+
+report$Sci_name <- sub("^ +", "", report$Sci_name, perl = T)
+sum(report$Sci_name %in% prokaryotes$Name)
+# 
+# missing <- report$Sci_name[!complete.cases(report) & (report$Rank == "S")]
+# 
+# matches <- c()
+# for(m in missing){
+#   matches <- c(matches, sum(grepl(m, prokaryotes$Name, ignore.case = T)))
+# }
+# 
+
+```
+
+```{r, eval=F}
+
+genome_related <- function(report, rank, taxid){
+
+  ranks <- factor(c("-", "S", "G", "F", "O", "C", "P", "K", "D"), 
+                  levels = c("-", "S", "G", "F", "O", "C", "P", "K", "D"),
+                  ordered = T)
+  rank <- ranks[which(rank == ranks)]
+  current_rank <- report$Rank[report$TaxID == taxid]
+  current_row <- as.integer(rownames(report[report$TaxID == taxid,]))
+  upper_rank <- ranks[(ranks > rank)][1] 
+  
+  if(rank > current_rank){
+    # restrict to taxa within the range of the upper rank
+    index <- grep(upper_rank, report$Rank)
+    lim_rank1 <- rev(index[index < current_row])[1] + 1
+    lim_rank2 <-  index[index > current_row][1] - 1
+  }else if(rank == current_rank){
+    
+  }
+
+  if(is.na(lim_rank2)){
+    lim_rank2 <- rev(index)[1]
+  }
+  
+  if(abs(lim_rank2-lim_rank1)){
+      size <- max(report$Size_Mb[lim_rank1:lim_rank2], na.rm = T)
+      if(size == -Inf){
+        size <- NA
+      }
+  }else{
+    size <- NA
+  }
+        return(size)
+
+}
+```
+
+```{r, eval = F}
+missing_species <- which(is.na(report$Size_Mb) & report$Rank == "-")
+
+for(i in missing_species){
+  report$Size_Mb[i] <- genome_related(report, "-", report$TaxID[i])
+}
+
+missing_species <- which(is.na(report$Size_Mb) & report$Rank == "S")
+for(i in missing_species){
+  report$Size_Mb[i] <- genome_related(report, "-", report$TaxID[i])
+}
+
+```
+
+
+```{r}
+# PCA on Phyla level
+
+
+extract_counts <- function(rank){
+  whole <- data.frame()
+  
+  for(ind in boto$MA){
+    path <- paste("~/Projects/Botocudos/Files/Microbiome/Centrifuge/2019_03_07/centrifuge/", ind, "_nt.report", sep = "")
+    report <- read.csv(path, sep = "\t", header = F)
+    colnames(report) <- c("Reads_clade_percent",
+                          "Reads_clade",
+                          "Reads_taxon",
+                          "Rank", 
+                          "TaxID",
+                          "Sci_name")
+    report$Rank <- factor(report$Rank, 
+                          levels = c("-", "S", "G", "F", "O", "C", "P", "K", "D"),
+                          ordered = T)
+    total_classified <- report$Reads_clade[report$TaxID == 1]
+    
+    # Index to prokkaryotes and viruses
+    index <- grep("D", report$Rank)
+    report <- report[c(index[1]:index[2]-1, index[3]:dim(report)[1]),]
+    report$Reads_clade <- report$Reads_clade/total_classified
+    colnames(report) <- sub("Reads_clade", ind, colnames(report))
+    report$Sci_name <- sub("^ +", "", report$Sci_name)
+    if(dim(whole)[1] == 0){
+      whole <- report[report$Rank == rank, c("TaxID", "Sci_name", ind)]
+    }else{
+      whole <- join(whole, 
+                    report[report$Rank == rank, c("TaxID", "Sci_name",ind)], 
+                    by = "TaxID", type = "full")
+    }
+  }
+  
+  hist(rowSums(is.na(whole)), breaks = dim(whole)[1])
+  # remove rows with a lot of missing data
+  whole <- whole[-which(rowSums(is.na(whole))/dim(whole)[2] > 0.5),] 
+  whole[is.na(whole)] <- 0
+  
+  return(whole)
+}
+
+boto <- read.csv("~/Projects/Botocudos/Files/database_names.csv")
+boto <- boto[-which(boto$Ethn == "Quack" |boto$MN == "MN0008"),]
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+
+
+plot_pca <- function(rank, do_log, rm_13){
+  whole <- extract_counts(rank)
+  
+  data <- t(as.matrix(whole[,3:dim(whole)[2]]))
+  data[is.infinite(data)] <- 0
+  rownames(data) <- ma2mn(rownames(data))
+  colnames(data) <- whole$Sci_name
+  #do_log <- F
+  #rm_13 <- F
+  
+  if(rm_13){
+    data <- data[-c(which(rownames(data) == "MN00013")),]
+  }
+  if(do_log){
+    x <- prcomp(log(data+1e-10))
+  }else{
+    x <- prcomp(data)
+  }
+  
+  eigs <- x$sdev**2
+  prop <- eigs/sum(eigs)
+  cumulative <- cumsum(eigs)/sum(eigs)
+  plot(x$x[,1], x$x[,2], pch = 16, bty = "n", type = "n",
+       xlab = paste("PC1 (", percent(prop[1]), ")", sep = ""),
+       ylab = paste("PC2 (", percent(prop[2]), ")", sep = ""))
+  abline(v = 0, h = 0, col = "gray", lty = "dashed")
+  points(x$x[,1], x$x[,2], pch = 16)
+  # Sambaqui
+  points(x$x[rownames(x$x) == "MN01701",1], x$x[rownames(x$x) == "MN01701",2], 
+         pch = 16, col = "salmon")
+  # NativeAmerican
+  points(x$x[rownames(x$x) == "MN1943",1], x$x[rownames(x$x) == "MN1943",2], 
+         pch = 16, col = "dodgerblue")
+  text(x = x$x[,1], y = x$x[,2]+0.05*max(x$x[,2]), labels = rownames(x$x), adj = c(0,0))
+  
+  
+  # Loadings
+  colors <- colorRampPalette(c("deepskyblue", "deepskyblue4"))
+  contrib <- x$rotation[, 1] * (x$rotation[,1] - x$center) 
+  max_pc <- which(cumulative >0.95)[1]
+  plot(x$rotation[1:max_pc,1], x$rotation[1:max_pc,2], type = "n", bty = "n",
+       main = "Contribution of variables (at least 95%)",
+       xlab = paste("PC1 (", percent(prop[1]), ")", sep = ""),
+       ylab = paste("PC2 (", percent(prop[2]), ")", sep = ""),
+       xlim = c(-max(abs(x$rotation[1:max_pc, 1])), max(abs(x$rotation[1:max_pc, 1]))),
+       ylim = c(-max(abs(x$rotation[1:max_pc, 2])), max(abs(x$rotation[1:max_pc, 2]))))
+  abline(v = 0, h = 0, col = "gray", lty = "dashed")
+  arrows(x0 = 0, y0 = 0, x1 = x$rotation[1:max_pc, 1], y1 = x$rotation[1:max_pc, 2],
+         length = 0.1, col = colors(100)[round(prop[1:max_pc]*100)])
+  text(x$rotation[1:max_pc,1], x$rotation[1:max_pc,2], rownames(x$rotation)[1:max_pc],
+       adj = c(1,1))
+}
+
+
+ranks <- factor(c("-", "S", "G", "F", "O", "C", "P", "D", "K"), 
+                  levels = c("-", "S", "G", "F", "O", "C", "P", "D", "K"),
+                  ordered = T)
+
+
+plot_pca("C", do_log = F, rm_13 = F)
+
+
+```
+
+
+# Viruses
+
+```{r}
+virus <- read.csv("~/Projects/Botocudos/Files/Microbiome/Virome/HumanVirus2.txt",
+                  skip=2, header = T, sep = "\t")
+
+rownames(virus) <- gsub("_", " ", gsub("-", " ", virus[,1]))
+data <- t(virus[4:38, 2:25]/as.numeric(virus[1, 2:25]))*1e6 + 1e-9
+data <- data[, -which(colnames(data) == "Mamastrovirus 1")]
+data <- data[, -grep("Yaba", colnames(data))]
+x <- prcomp(log(data))
+
+
+fviz_pca_ind(x)
+y <- list(contrib = 7)
+fviz_pca_var(x, select.var = y, repel = T, col.var = "contrib")
+fviz_screeplot(x)
+fviz_pca_biplot(x, repel = T, select.var = y, col.var = "contrib")
+
+screeplot(x)
+
+eigs <- x$sdev**2
+prop <- eigs/sum(eigs)
+cumulative <- cumsum(eigs)/sum(eigs)
+plot(x$x[,1], x$x[,2], pch = 16, bty = "n", type = "n",
+     xlab = paste("PC1 (", percent(prop[1]), ")", sep = ""),
+     ylab = paste("PC2 (", percent(prop[2]), ")", sep = ""))
+abline(v = 0, h = 0, col = "gray", lty = "dashed")
+points(x$x[,1], x$x[,2], pch = 16)
+# Sambaqui
+points(x$x[rownames(x$x) == "MN01701",1], x$x[rownames(x$x) == "MN01701",2], 
+       pch = 16, col = "salmon")
+# NativeAmerican
+points(x$x[rownames(x$x) == "MN1943",1], x$x[rownames(x$x) == "MN1943",2], 
+       pch = 16, col = "dodgerblue")
+text(x = x$x[,1], y = x$x[,2]+0.05*max(x$x[,2]), labels = rownames(x$x), adj = c(0,0))
+
+
+# Loadings
+colors <- colorRampPalette(c("deepskyblue", "deepskyblue4"))
+max_pc <- which(cumulative >0.95)[1]
+plot(x$rotation[1:max_pc,1], x$rotation[1:max_pc,2], type = "n", bty = "n",
+     main = "Contribution of variables (at least 95%)",
+     xlab = paste("PC1 (", percent(prop[1]), ")", sep = ""),
+     ylab = paste("PC2 (", percent(prop[2]), ")", sep = ""),
+     xlim = c(-max(abs(x$rotation[1:max_pc, 1])), max(abs(x$rotation[1:max_pc, 1]))),
+     ylim = c(-max(abs(x$rotation[1:max_pc, 2])), max(abs(x$rotation[1:max_pc, 2]))))
+abline(v = 0, h = 0, col = "gray", lty = "dashed")
+arrows(x0 = 0, y0 = 0, x1 = x$rotation[1:max_pc, 1], y1 = x$rotation[1:max_pc, 2],
+       length = 0.1, col = colors(100)[round(prop[1:max_pc]*100)])
+text(x$rotation[1:max_pc,1], x$rotation[1:max_pc,2], rownames(x$rotation)[1:max_pc],
+     adj = c(1,1))
+
+ sort(apply(x$rotation,1, sd)**2/sum(apply(x$rotation,1, sd)**2))
+```
+
+# Parvovirus
+
+## Geno3 
+```{r}
+pv <- read.table("~/Projects/Botocudos/Files/Microbiome/Virome/Parvovirus/2019_03_14/geno3.txt")
+colnames(pv)<- c("chr", "start", "end", "cov")
+
+chrs <- unique(pv$chr)
+l <- c(5017, 5028, 5028)
+names(l) <- c("AY083234.1", "AJ249437.1", "NC_004295.1")
+
+png("~/Projects/Botocudos/Plots/Viruses/Parvovirus_Geno3_coverage.png",
+    width = 8, height = 8 , res = 300, units = "in")
+par(mfrow=c(3,1))
+for(i in seq(1, length(l))){
+  plot(pv$start[pv$chr == names(l)[i]], pv$cov[pv$chr == names(l)[i]], 
+     type = "n" , xlim = c(0, l[i]), bty = "n",
+     main = paste("Genotype 3, strain", names(l)[i]),
+     xlab = "Position (bp)", ylab = "Genome coverage")
+segments(x0 =pv$start[pv$chr == names(l)[i]], x1 = pv$end[pv$chr == names(l)[i]],
+         y0 = pv$cov[pv$chr == names(l)[i]],lwd = 3, col = "brown")
+}
+
+dev.off()
+```
+
+## Geno2
+```{r}
+pv <- read.table("~/Projects/Botocudos/Files/Microbiome/Virome/Parvovirus/2019_03_14/geno2.txt")
+colnames(pv)<- c("chr", "start", "end", "cov")
+
+chrs <- unique(pv$chr)
+l <- c(4354, 4767, 4922)
+names(l) <- c("HQ340602.1", "DQ333427.1", "AJ717293.1")
+
+png("~/Projects/Botocudos/Plots/Viruses/Parvovirus_Geno2_coverage.png",
+    width = 8, height = 8 , res = 300, units = "in")
+par(mfrow=c(3,1))
+for(i in seq(1, length(l))){
+  plot(pv$start[pv$chr == names(l)[i]], pv$cov[pv$chr == names(l)[i]], 
+     type = "n" , xlim = c(0, l[i]), bty = "n",
+     main = paste("Genotype 2, strain", names(l)[i]),
+     xlab = "Position (bp)", ylab = "Genome coverage")
+segments(x0 =pv$start[pv$chr == names(l)[i]], x1 = pv$end[pv$chr == names(l)[i]],
+         y0 = pv$cov[pv$chr == names(l)[i]], lwd = 3, col = "blue")
+}
+dev.off()
+
+```

@@ -1,0 +1,457 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdftitle={Isotopic analysis},
+            pdfauthor={Cruz-Dávalos, Diana I.},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{longtable,booktabs}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\newcommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+
+  \title{Isotopic analysis}
+    \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+    \author{Cruz-Dávalos, Diana I.}
+    \preauthor{\centering\large\emph}
+  \postauthor{\par}
+      \predate{\centering\large\emph}
+  \postdate{\par}
+    \date{4/3/2018}
+
+
+\begin{document}
+\maketitle
+
+\hypertarget{radiocarbon-measurements}{%
+\subsection{Radiocarbon measurements}\label{radiocarbon-measurements}}
+
+\begin{figure}
+\includegraphics{isotopes_files/figure-latex/age-1} \caption{\label{fig:age} Figure 1. Uncalibrated dates. The bars represent one standard deviation.}\label{fig:age}
+\end{figure}
+
+21 individuals were dated at \textsuperscript{14}CHRONO Center at
+Queen's University Belfast. The dates are shown in Table 1 and in Figure
+1, along with the dates for MN00015 (Bot15) and MN00017 (Bot17)
+presented in Malaspinas et al.~(2014). The uncalibrated dates are
+between 23 BP and 327 BP for the Botocudo individuals, and 1080 BP and
+2035 BP for the Native American and the Sambaqui individual,
+respectively.
+
+\begin{longtable}[]{@{}llrrllrrr@{}}
+\caption{Table 1. Isotope values and uncalibrated dates.}\tabularnewline
+\toprule
+ID & Material type & Age (BP) & SD & Details & Endogenous DNA & d13C &
+d15N & C:N ratio\tabularnewline
+\midrule
+\endfirsthead
+\toprule
+ID & Material type & Age (BP) & SD & Details & Endogenous DNA & d13C &
+d15N & C:N ratio\tabularnewline
+\midrule
+\endhead
+MN00119 & tooth, 1st lower right premolar & 23 & 22 & Botocudo\_Doce &
+9.92\% & -18.3 & 12.1 & 3.14\tabularnewline
+MN00316 & tooth, 1st upper right molar, child (broken) & 40 & 30 &
+Botocudo\_Aimores & 1.33\% & -19.5 & 12.6 & 3.15\tabularnewline
+MN00118 & tooth, 3rd upper right molar & 48 & 33 & Botocudo\_Doce &
+10.12\% & -19.2 & 11.0 & 3.15\tabularnewline
+MN00021 & tooth, 1st upper right molar & 66 & 50 & Botocudo\_Mutum &
+9.97\% & -18.7 & 13.1 & 3.19\tabularnewline
+MN00346 & tooth, 2nd lower right premolar & 76 & 30 &
+Botocudo\_Unknown(Botocudo) & 8.34\% & -19.5 & 13.0 &
+3.14\tabularnewline
+MN00069 & tooth, upper right canine & 79 & 39 & Botocudo\_Mutum & 0.99\%
+& -19.2 & 14.0 & 3.15\tabularnewline
+MN00010 & tooth, 1st upper right molar & 84 & 22 & Botocudo\_Itamacuari
+& 0.15\% & -15.4 & 12.8 & 3.16\tabularnewline
+MN00039 & tooth, 2nd upper right premolar & 106 & 30 & Botocudo\_Mutum &
+0.42\% & -17.2 & 11.6 & 3.16\tabularnewline
+MN00068 & tooth, 2nd upper right molar & 121 & 33 & Botocudo\_Mutum &
+3.33\% & -19.3 & 11.7 & 3.16\tabularnewline
+MN00023 & tooth, 2nd upper left premolar & 137 & 25 &
+Botocudo\_Poxixa\_Mutum & 0.37\% & -18.3 & 14.5 & 3.19\tabularnewline
+MN00022 & teeth (2), 1st upper right molar(deciduous and permanent) &
+145 & 30 & Botocudo\_Mutum & 2.15\% & -14.3 & 15.1 & 3.16\tabularnewline
+MN00013 & tooth, 1st lower right molar & 150 & 40 & Botocudo\_Mutum &
+17.43\% & -18.1 & 12.8 & 3.17\tabularnewline
+MN0003 & tooth, 1st upper left molar & 160 & 26 & Botocudo\_Mutum &
+5.30\% & -19.0 & 12.3 & 3.17\tabularnewline
+MN00056 & tooth, 3rd lower right molar & 169 & 25 & Botocudo\_Pot &
+35.23\% & - & 19.6 & 13.5 3.15\tabularnewline
+MN00067 & tooth, 2nd upper left molar & 170 & 21 & Botocudo\_Minas &
+6.33\% & -16.4 & 12.5 & 3.16\tabularnewline
+MN0009 & tooth, 2nd upper righ molar & 185 & 29 & Botocudo\_Mucuri &
+17.55\% & -19.4 & 13.2 & 3.16\tabularnewline
+MN00064 & tooth, 2nd upper right premolar & 199 & 41 & Botocudo\_Doce &
+4.74\% & -19.7 & 11.5 & 3.14\tabularnewline
+MN00045 & tooth, 1st upper left molar (child) & 249 & 29 &
+Botocudo\_Mutum & 3.17\% & -15.5 & 15.3 & 3.16\tabularnewline
+MN00016 & tooth, 2nd upper right molar & 327 & 24 & Botocudo\_Itapemirim
+& 3.93\% & -19.5 & 12.8 & 3.16\tabularnewline
+Bot15 & Bot15 & 417 & 25 & Bot15 & & -17.0 & 13.9 & 3.20\tabularnewline
+Bot17 & Bot17 & 487 & 25 & Bot17 & & -14.8 & 18.2 & 3.20\tabularnewline
+MN1943 & tooth, 3rd lower right molar & 1080 & 25 &
+NativeAmerican\_MorrodaBabilonia & 0.82\% & -12.1 & 27.5 &
+3.17\tabularnewline
+MN01701 & tooth, 2nd lower left molar & 2035 & 27 & Sambaqui\_Cabecuda &
+0.09\% & -10.3 & 17.5 & 3.16\tabularnewline
+\bottomrule
+\end{longtable}
+
+\hypertarget{delta13c-and-delta15n-measurements}{%
+\subsection{\texorpdfstring{\(\delta\)\textsuperscript{13}C and
+\(\delta\)\textsuperscript{15}N
+measurements}{\textbackslash delta13C and \textbackslash delta15N measurements}}\label{delta13c-and-delta15n-measurements}}
+
+We measured the \(\delta\)\textsuperscript{13}C and
+\(\delta\)\textsuperscript{15}N values for the 21 individuals. These
+values can give us an insight into the dietary habits for a given
+organism. However, we need to be careful when examining children's
+teeth. The decidious teeth (`baby teeth') develop during the embryonic
+stage of development, and the isotopic measurements reflect the dietary
+habits of the child's mother. Moreover, the crown of the first molars
+are formed during the early years/breastfeeding period. In some
+instances, a child's first molar can have enriched \textsuperscript{15}N
+values due to breastfeeding, indicating that a significant proportion of
+the dentine was formed at that time (Schroeder et al. 2009). In order to
+know more about an individual's dietary habits, it is better to date
+second and third molars.
+
+In Figure 2, we show whether the samples analyzed belonged to a child,
+and whether the tooth was a first molar. Among the samples, we observe
+two children's first molars (from MN00022 and MN00045) that could have
+shifted \(\delta\)\textsuperscript{15}N values due to breastfeeding. We
+have to keep in mind this information for the next steps, in which we
+will infer dietary proportions.
+
+\begin{figure}
+\includegraphics{isotopes_files/figure-latex/unnamed-chunk-3-1} \caption{\label{fig:isotope} Figure 2. Isotope values. The triangles represent children and the circles represent adults. The color indicates whether we examined a first molar (purple) or any other type of tooth (yellow).}\label{fig:unnamed-chunk-3}
+\end{figure}
+
+\hypertarget{mixing-models-for-stable-isotopic-data}{%
+\subsection{Mixing models for stable isotopic
+data}\label{mixing-models-for-stable-isotopic-data}}
+
+We used SIAR (Stable Isotope Analysis in R, ({\textbf{???}})) in order
+\textbf{to infer dietary proportions} for the individuals.
+
+\hypertarget{model}{%
+\subsubsection{Model}\label{model}}
+
+SIAR fits a model via Markov chain Monte Carlo. The parameters to fit
+are the \textbf{dietary proportions}.
+
+Keypoints of the model:
+
+\begin{itemize}
+\tightlist
+\item
+  a consumer (e.g., a Native American) integrates isotopes from one or
+  more sources (e.g., marine mammals, marine fish, terrestrial fauna,
+  etc.)
+\item
+  we have known values of the trophic enrichment factors (TEF), which
+  indicate the difference in the isotopic ratio between a consumer and
+  their diet
+\item
+  a consumer incorporates an isotope proportionally to the dietary
+  proportion of a given source, its TEF and its isotope value
+\item
+  for a consumer, the observed isotope value is explained by the sum of
+  the dietary proportions
+\end{itemize}
+
+We used the default Dirichlet prior distribution for the parameters.
+This distribution allows us to treat source data independently; e.g.,
+the estimated dietary proportion for source X does not depend on the
+estimated proportion for source Y. All inferred dietary proportions must
+sum to one.
+
+We fitted a model per individual. As suggested in the manual, we set
+500,000 iterations and discarded the first 50,000 iterations.
+
+\hypertarget{results}{%
+\subsubsection{Results}\label{results}}
+
+\hypertarget{raw-data}{%
+\paragraph{Raw data}\label{raw-data}}
+
+\begin{figure}
+\includegraphics{isotopes_files/figure-latex/unnamed-chunk-5-1} \caption{\label{fig:rawdata}Figure 3. The squares represent the mean isotope values for a consumer whose diet was
+based on a specific source (terrestrial fauna, marine fish or marine mammals).
+The dashed lines represent two standard errors of the mean isotope values.
+The solid circles represent the pair of isotope values reported by the CHRONO Centre per individual. 
+The triangles correspond to the isotope values for Bot15 and Bot17 (from Malaspinas et al., 2014),
+dated at the AMS 14C Centre at Aarhus University}\label{fig:unnamed-chunk-5}
+\end{figure}
+
+We had a first inspection of the isotope values for the 23 individuals
+(21 dated in this study plus Bot15 and Bot17), along with the expected
+isotope values for an organism with a diet based on terrestrial fauna,
+marine fish or marine mammals (Figure 3). In order to obtain the
+coordinates of a (theoretical) consumer whose diet consisted on a single
+source, we summed the mean TEF values and the mean isotope values of a
+source.
+
+We observe that for the Cabeçuda individual (or Sambaqui) the isotope
+values correspond to a marine diet, in agreement with the origin of the
+individual. The Native American from Morro da Babilonia shows an unusual
+high value for \(\delta\)\textsuperscript{15}N, and we need to contact
+the \textsuperscript{14}CHRONO Centre to get more information. Regarding
+the Botocudo individuals, most of the samples group close to the
+expected values for a diet based on terrestrial fauna. Interestingly,
+the Polynesian individuals (Bot15 and Bot17) fall on the limits or
+outside of the expected isotope values for a marine diet.
+
+\hypertarget{inferred-dietary-proportions}{%
+\subsubsection{Inferred dietary
+proportions}\label{inferred-dietary-proportions}}
+
+The inferred dietary proportions for the 23 individuals are listed in
+Table S1, and displayed on in Figures 4-6. We noticed that, although
+MN00045 and MN00022 are among the individuals from the Botocudo
+collection with highest proportions of marine diets, this might be due
+to the type of material that was sent to date (children's first molars).
+The program also inferred a high proportion of marine diet for the
+Native American (Morro da Babilônia) due to the anormal
+\(\delta\)\textsuperscript{15}N value obtained for this individual.
+
+\hypertarget{boxplots}{%
+\paragraph{Boxplots}\label{boxplots}}
+
+\begin{figure}
+\centering
+\includegraphics{All_proportions.png}
+\caption{Figure 4. Dietary proportion (boxplots). The samples from
+children's first molars are indicated with a '*' in front of the
+individual's ID.}
+\end{figure}
+
+\hypertarget{densities}{%
+\paragraph{Densities}\label{densities}}
+
+\begin{figure}
+\centering
+\includegraphics{All_densities.png}
+\caption{Figure 5. Dietary proportion (densities). The samples from
+children's first molars are indicated with a '*' in front of the
+individual's ID.}
+\end{figure}
+
+\hypertarget{diagnostic-matrix-plot}{%
+\paragraph{Diagnostic matrix plot}\label{diagnostic-matrix-plot}}
+
+High correlations indicate that the program has problems to distinguish
+between the dietary proportions of two sources. Thus, as expected, the
+draws for marine fish and marine mammals tend to be highly correlated,
+as their isotope values are similar.
+
+\begin{figure}
+\centering
+\includegraphics{All_matrix.png}
+\caption{Figure 6. Dietary proportions (histograms and correlations).
+For every individual, we have a matrix with nine entries: The histograms
+of the estimated proportions are located on the diagonal; on the upper
+entries, the contour plots depict whether the posterior distributions
+are correlated; the lower entries contain the values corresponding to
+the correlation coefficient for pairs of distribution. The samples from
+children's first molars are indicated with a '*' in front of the
+individual's ID.}
+\end{figure}
+
+\hypertarget{traces}{%
+\paragraph{Traces}\label{traces}}
+
+For every individual, we saved the sampled values of 30,000 out of
+500,000 draws for every estimated dietary proportion after removing the
+burnin phase (first 50,000 iterations).
+
+\begin{figure}
+\centering
+\includegraphics{All_trace_14July2018.png}
+\caption{Figure 7. MCMC traces (after burnin phase). A point represents
+a sampled value at a given iteration. The samples from children's first
+molars are indicated with a '*' in front of the individual's ID.}
+\end{figure}
+
+\hypertarget{calibrated-dates}{%
+\subsection{Calibrated dates}\label{calibrated-dates}}
+
+Finally, we calibrated the radiocarbon results using a Southern
+Hemisphere calibration curve (ShCal13, Reimer et al. (2013)) for all
+individuals. The estimated dietary proportions are listed in Table S1.
+
+Additionally, for Bot15, Bot17 and MN01701 (Cabeçuda from Sambaqui), we
+corrected for a marine reservoir effect, according to the estimated
+carbon uptake from a marine diet, and added a local \(\Delta\)R offset
+of 33±24 years, as suggested during our visit to the Museu Macional. The
+parameters specific to the individuals with marine diets are presented
+in Table 2, along with the parameters reported in Malaspinas et
+al.~(2014) for Bot15 and Bot17. Notably, we obtained higher proportions
+of marine diet for Bot15 and Bot17 than those reported in Malaspinas et
+al. (2014) (Table 2).
+
+\begin{longtable}[]{@{}lcc@{}}
+\caption{Table 2. Calibration parameters for individuals with possible
+marine diets.}\tabularnewline
+\toprule
+& Malaspinas et al.~(2014) & This study\tabularnewline
+\midrule
+\endfirsthead
+\toprule
+& Malaspinas et al.~(2014) & This study\tabularnewline
+\midrule
+\endhead
+Marine carbon protein (Bot15) & 30±16\% & 39±18\%\tabularnewline
+Marine carbon protein (Bot17) & 60±16\% & 63±18\%\tabularnewline
+Marine carbon protein (MN01701) & NA & 89±14\%\tabularnewline
+Atmospheric calibration curve & ShCal04 (Board 2004) & ShCal13 (Reimer
+et al. 2013)\tabularnewline
+Marine calibration curve & Marine09 (Reimer et al. 2009) & Marine13
+(Reimer et al. 2013)\tabularnewline
+\(\Delta\)R offset & 0±20 & 33±24\tabularnewline
+\bottomrule
+\end{longtable}
+
+We used the OxCal programme, (version 4.3, Bronk Ramsey (2009)) to
+calibrate the radiocarbon results. The figures below represent the
+posterior density for the \textsuperscript{14}C dates. We show in
+parentheses the date and standard deviation reported by
+\textsuperscript{14}CHRONO Centre, as well as the agreement indices
+(``A'') and convergence integral (``C''") returned by OxCal (Figure 8).
+The agreement indices are a measure of the agreement between the model
+(prior) and the observational data (likelihood); this value should be
+over 60\% (although in some instances we recovered values of 101\%). The
+convergence integral is a test of the effectiveness of the MCMC
+algorithm; this value should be above 95\%.
+
+Regarding Bot15 and Bot17, the probability density are in agreement with
+the curves presented in Malaspinas et al. (2014) (Figure 8B). Finally,
+the calibrated dates for the Botocudo individuals indicate that they are
+post-Columbian (Figure 8C).
+
+\begin{figure}
+\centering
+\includegraphics{All_calibrated.png}
+\caption{Figure 8. Calibrated \textsuperscript{14}C dates for (A) MN1943
+and MN01701, (B) Bot15 and Bot17 from Malaspinas et al.~(2014) and from
+this study and (C) the Botocudo collection (this study only). The
+numbers in parentheses refer to the uncalibrated dates; in brackets, we
+report the agreement indices and the convergence integral values. The
+circles indicate the estimated mean, and the bars represent one standard
+deviation. The horizontal brackets denote the regions associated to the
+95\% highest posterior density.}
+\end{figure}
+
+\hypertarget{references}{%
+\subsection*{References}\label{references}}
+\addcontentsline{toc}{subsection}{References}
+
+\hypertarget{refs}{}
+\leavevmode\hypertarget{ref-Board2004}{}%
+Board, Arizona. 2004. ``2004 by the Arizona Board of Regents on Behalf
+of the University of Arizona.'' \emph{Radiocarbon} 46 (1): 1111--50.
+\url{https://doi.org/10.2458/azu_js_rc.46.4183}.
+
+\leavevmode\hypertarget{ref-BronkRamsey2009}{}%
+Bronk Ramsey, Christopher. 2009. ``Bayesian Analysis of Radiocarbon
+Dates.'' \emph{Radiocarbon} 51 (01): 337--60.
+\url{https://doi.org/10.1017/S0033822200033865}.
+
+\leavevmode\hypertarget{ref-Malaspinas2014a}{}%
+Malaspinas, A.-S., O. Lao, H. Schroeder, M. Rasmussen, M. Raghavan, I.
+Moltke, P. F. Campos, et al. 2014. ``Two Ancient Human Genomes Reveal
+Polynesian Ancestry Among the Indigenous Botocudos of Brazil.''
+\emph{Current Biology} 29 (8): 12711--6.
+\url{https://doi.org/10.1016/j.cub.2014.09.035}.
+
+\leavevmode\hypertarget{ref-Reimer2013}{}%
+Reimer, Paula J., Edouard Bard, Alex Bayliss, J. Warren Beck, Paul G.
+Blackwell, Christopher Bronk Ramsey, Caitlin E. Buck, et al. 2013.
+``IntCal13 and Marine13 Radiocarbon Age Calibration Curves 0--50,000
+Years Cal BP.'' \emph{Radiocarbon} 55 (04): 1869--87.
+\url{https://doi.org/10.2458/azu_js_rc.55.16947}.
+
+\leavevmode\hypertarget{ref-Reimer2009}{}%
+Reimer, P. J., M. G. L. Baillie, E. Bard, a. Bayliss, J. W. Beck, P. G.
+Blackwell, C. Bronk Ramsey, et al. 2009. ``INTCAL 09 and MARINE09
+Aadiocarbon Age Calibration Curves, 0-50,000 Years Cal BP.''
+\emph{Radiocarbon} 51 (4): 1111--50.
+\url{https://doi.org/10.2458/azu_js_rc.51.3569}.
+
+\leavevmode\hypertarget{ref-Schroeder2009}{}%
+Schroeder, Hannes, Tamsin C. O'Connell, Jane A. Evans, Kristrina A.
+Shuler, and Robert E. M. Hedges. 2009. ``Trans-Atlantic Slavery:
+Isotopic Evidence for Forced Migration to Barbados.'' \emph{American
+Journal of Physical Anthropology} 139 (4): 547--57.
+\url{https://doi.org/10.1002/ajpa.21019}.
+
+
+\end{document}

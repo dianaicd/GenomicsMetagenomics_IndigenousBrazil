@@ -58,7 +58,8 @@ ggplot(boto,
        aes(x = Library, y = hits_coverage_nuclear)) +
   geom_bar(stat = "identity", fill = "brown3") + 
   labs(x = NULL, y = "Depth of coverage", title = "Depth of coverage") +
-  theme(axis.text.x = element_text(angle = 90)) +
+  theme(axis.text.x = element_text(angle = 90), axis.text.y = element_text(size = 30),
+        axis.title = element_text(size = 30), title = element_text(size = 40)) +
   annotate("text", x = seq(1,24), 
            y = boto$hits_coverage_nuclear[order(boto$hits_coverage_nuclear)]+0.1,
            label = prettyNum(boto$hits_coverage_nuclear[order(boto$hits_coverage_nuclear)], digits = 2))

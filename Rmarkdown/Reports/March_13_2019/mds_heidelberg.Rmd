@@ -1,0 +1,229 @@
+---
+title: "mds_heidelberg"
+author: "Cruz-Dávalos, Diana I."
+date: "3/14/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(adegenet)
+library(ggplot2)
+library(plyr)
+library(scales)
+```
+
+# %%
+# Read in distance file and labels
+```{r}
+
+dist_path  = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_03_14/Maanasa_0.01_minind_bamlist_sampled.dist.gz"
+
+botocudos = "/Users/dcruz/Projects/Botocudos/Files/MDS/2019_03_14/Maanasa_81samples.panel"
+label_given <- read.table(botocudos, header = T)
+
+
+# %%
+dist <- as.matrix(read.table(dist_path))/199285
+
+# %%
+#image(dist)
+```
+
+```{r}
+# %%
+# Remove nan
+empty <- rep(seq(1,2001), 20001)[which(is.na(dist))]
+occur <- table(empty)
+
+individualToRemove <- c()
+
+toremove <- as.integer(names(sort(occur, decreasing = T)))
+for(i in toremove){
+  if(sum(is.na(dist[, i]))>0){
+    dist[i, i] <- 0
+    individualToRemove <- c(individualToRemove, i)
+  }
+}
+
+
+print("Removing:")
+for(i in sort(individualToRemove, decreasing = T)){
+  print(label_given[i,])
+  label_given <- label_given[-i,]
+}
+```
+
+```{r}
+#%%
+individualToRemove <- sort(individualToRemove)
+clean_dist <- dist[-individualToRemove, -individualToRemove]
+```
+
+```{r}
+sub_dist <- clean_dist
+x <- cmdscale(sub_dist, k = 4, eig = T)
+```
+
+```{r}
+coord <- x$points
+colors <- data.frame(Region = levels(label_given$Region),
+                     Color = funky(length(levels(label_given$Region))))
+label <- join(label_given, colors, by = "Region")
+
+plot(coord[,1], coord[,2], pch = 16, col = as.character(label$Color))
+mds <- as.data.frame(coord)
+colnames(mds) <- c("mds_1","mds_2","mds_3","mds_4")
+mds$Pop <- label$Region
+mds$Pop <- factor(mds$Pop, levels = (c("Africa", "NearEast", "Caucasus", 
+                               "Oceania", "Europe","EastAsia", "SouthAsia", "SoutheastAsia", 
+                               "Siberia", "Americas", "Botocudo")), ordered = T)
+#mds$Pop[mds$Pop == "SoutheastAsia"] <- "EastAsia"
+#mds$Pop[mds$Pop == "Caucasus"] <- "Europe"
+mds <- mds[mds$Pop %in% c("Africa",  "Oceania","EastAsia", "Europe", "Americas", "Botocudo"),]
+mds <- mds[order(mds$Pop),]
+mds$Boto <- "no"
+mds$Boto[mds$Pop == "Botocudo"] <- "yes"
+dim1 <- percent(x$eig[1]/sum(x$eig))
+dim2 <- percent(x$eig[2]/sum(x$eig))
+title <- ""
+xlab <- paste("PC1:", dim1)
+ylab <- paste("PC2:", dim2)
+
+png("~/Projects/Botocudos/Plots/MDS/Heidelberg_Maanasa_noboto.png",
+    width = 4, height = 3, res = 300, units = "in", bg = NA)
+ggplot(mds[mds$Pop != "Botocudo",], aes(x = -mds_1, y = mds_2, color = Pop, size = Boto)) +
+  geom_point(alpha = 0.7, show.legend = F) +
+  scale_size_manual(values = c(4,7)) +
+  theme_void() +
+  scale_color_manual(values = c(rev(brewer_pal(palette = "Set2")(5)),
+                                "black"), 
+                     breaks = c("EastAsia", "Africa", "Oceania",
+                                "Europe", "Americas", "Botocudo")) +
+  labs(title = title, x = xlab, 
+       y = ylab) +
+  theme(plot.title = element_text(size = 34, face = "bold", hjust = 0.5),
+        axis.title.x  = element_text(size = 12, face = "plain", hjust = 0.5), 
+        axis.title.y  = element_text(size = 12, face = "plain", hjust = 0.5))
+dev.off()
+
+png("~/Projects/Botocudos/Plots/MDS/Heidelberg_Maanasa_all.png",
+    width = 4, height = 3, res = 300, units = "in", bg = NA)
+ggplot(mds, aes(x = -mds_1, y = mds_2, color = Pop, size = Boto)) +
+  geom_point(alpha = 0.7, show.legend = F) +
+  scale_size_manual(values = c(4,7)) +
+  theme_void() +
+  theme(plot.title = element_text(size = 34, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(size = 12, hjust = 0.5, face = "plain"),
+        axis.title.y = element_text(size = 12, face = "plain", hjust = 0.5)) +
+  scale_color_manual(values = c(rev(brewer_pal(palette = "Set2")(5)), "black")) +
+  labs(title = title, x = xlab, y = ylab)
+dev.off()
+
+ggplot(mds, aes(x = mds_3, y = mds_2, color = Pop, size = Boto)) +
+  geom_point(alpha = 0.7, show.legend = F) +
+  scale_size_manual(values = c(4,7)) +
+  theme_void() +
+  theme(title = element_text(size = 44, face = "bold", hjust = 0.5)) +
+  scale_color_manual(values = c(funky(9), "black")) +
+  labs(title = "An MDS")
+
+```
+
+## Remove Africans
+
+```{r}
+index <- which(label_given$Region == "Africa")
+sub_dist <- clean_dist[-index, -index]
+x <- cmdscale(sub_dist, k = 4, eig = T)
+colors <- data.frame(Region = unique(label_given$Region[-index]),
+                     Color = funky(length(unique(label_given$Region[-index]))))
+label <- join(label_given[-index,], colors, by = "Region")
+coord <- x$points
+plot(coord[,1], coord[,2], pch = 16, col = as.character(label$Color))
+
+```
+
+## Americas
+
+```{r}
+boto <- read.table("~/Projects/Botocudos/Files/Summaries/2019_02_25/Botocudos_summary_2019-02-25.table",
+                   header = T)
+boto$ID <- boto$Target
+
+moreno <- read.table("~/Projects/Botocudos/Files/ADMIX/2019_03_17/Maanasa.americas.Moreno_names.txt")
+colnames(moreno) <- c("Pop", "Group")
+index <- which(label_given$Region == "Botocudo" | label_given$Region == "Americas")
+sub_dist <- clean_dist[index, index]
+x <- cmdscale(sub_dist, k = 4, eig = T)
+coord <- x$points
+
+
+label <- label_given[index,]
+
+plot(coord[,1], coord[,2], pch = 16,  col = "grey")
+
+points(coord[label$Pop == "Karitiana",1], coord[label$Pop == "Karitiana",2], pch = 16, col = "red")
+
+
+points(coord[label$Pop == "Botocudo",1], coord[label$Pop == "Botocudo",2], pch = 16, col = "black")
+points(coord[label$Pop == "LagoaSanta",1], coord[label$Pop == "LagoaSanta",2], pch = 16, col = "orange")
+points(coord[label$Pop == "Karitiana",1], coord[label$Pop == "Karitiana",2], pch = 16, col = "red")
+points(coord[label$Pop == "Surui",1], coord[label$Pop == "Surui",2], pch = 16, col = "violet")
+
+mds <- as.data.frame(coord)
+colnames(mds) <- c("mds_1","mds_2","mds_3","mds_4")
+mds$Pop <- label_given[index, "Pop"]
+mds <- join(mds, moreno, by = "Pop")
+levels(mds$Group) <- c(levels(mds$Group),  as.character(mds$Pop[is.na(mds$Group)]), "Other")
+mds$Group[mds$Pop == "Botocudo"] <- "Botocudo"
+mds$Group[is.na(mds$Group)] <- "Other"#mds$Pop[is.na(mds$Group)]
+ggplot(mds, aes(x = mds_1, y = mds_2, color = Group)) +
+  geom_point() +
+  scale_color_manual(values = funky(8))
+
+```
+
+
+### Removing Karitiana and Surui
+
+```{r}
+index <- which((label_given$Region == "Botocudo" | label_given$Region == "Americas") & (label_given$Pop != "Karitiana" & label_given$Pop != "Surui"))
+sub_dist <- clean_dist[index, index]
+x <- cmdscale(sub_dist, k = 4, eig = T)
+coord <- x$points
+
+
+label <- label_given[index,]
+
+plot(coord[,1], coord[,2], pch = 16,  col = "gray")
+
+
+points(coord[label$Pop == "Botocudo",1], coord[label$Pop == "Botocudo",2], pch = 16, col = "black")
+points(coord[label$Pop == "LagoaSanta",1], coord[label$Pop == "LagoaSanta",2], pch = 16, col = "orange")
+
+
+mds <- as.data.frame(coord)
+colnames(mds) <- c("mds_1","mds_2","mds_3","mds_4")
+mds$Pop <- label_given[index, "Pop"]
+mds <- join(mds, moreno, by = "Pop")
+levels(mds$Group) <- c(levels(mds$Group),  as.character(mds$Pop[is.na(mds$Group)]), "Other")
+mds$Group[mds$Pop == "Botocudo"] <- "Botocudo"
+mds$Group[is.na(mds$Group)] <- "Other"#mds$Pop[is.na(mds$Group)]
+ggplot(mds, aes(x = mds_1, y = mds_2, color = Group)) +
+  geom_point() +
+  scale_color_manual(values = funky(8))
+
+
+image(dist[index, index])
+```
+
+
+```{r}
+hist(sub_dist[which(label$Pop == "Botocudo"),]/199285)
+
+
+```

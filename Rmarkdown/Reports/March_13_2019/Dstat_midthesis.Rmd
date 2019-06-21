@@ -1,0 +1,189 @@
+---
+title: "Dstat_midthesis"
+author: "Cruz-Dávalos, Diana I."
+date: "5/20/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(plyr)
+```
+
+```{r}
+d <- read.table("~/Projects/Botocudos/Files/Dstat/2019_05_19/h_Dstat.result")
+colnames(d) <- c("result","Pop1",  "Pop2", "Pop3",  
+                 "Pop4",  "Dstat","Z", "BABA",
+                 "ABBA",	"SNPs")
+d <- d[d$SNPs >10000,]
+panel <- read.table("~/Projects/Botocudos/Files/Panels/Magic.panel", header = T)
+
+d$Pop1 <- sub("Conchal.*", "ConchaliSantiagoRM", d$Pop1)
+d$Pop2 <- sub("Conchal.*", "ConchaliSantiagoRM", d$Pop2)
+
+```
+
+```{r}
+
+pop <- "Botocudos"
+archaic <- c("Denisova", "AltaiNean")
+plots <- list()
+
+for(pop in unique(c(as.character(d$Pop1), as.character(d$Pop2)))){
+  subD <- d[d$Pop1 == pop | d$Pop2 == pop,]
+  subD$Pop2 <- factor(subD$Pop2, levels = unique(c(as.character(subD$Pop1), as.character(subD$Pop2))))
+  
+  index <- subD$Pop2 == pop
+  h2 <- subD$Pop1[index]
+  subD$Pop1[index] <- pop
+  subD$Pop2[index] <- h2
+  subD$Dstat[index] <- -subD$Dstat[index]
+  subD$Z[index] <- -subD$Z[index]
+  
+  
+  subD <- subD[!(subD$Pop2 %in% c("Inuit", "Tlingit", "Saqqaq")),]
+  
+  subD$color <- "other"
+  subD$color[subD$Pop3 %in% archaic] <- "Archaic"
+  subD$population <- subD$Pop3
+  myPanel <- unique(panel[,c("population", "region")])
+  subD <- join(subD, myPanel, by = "population")
+  subD$color[subD$region == "Oceania"] <- "Oceania"
+  subD <- subD[order(subD$color, decreasing = T),]
+  
+  x <-ggplot(subD, aes(x = Z, y = Pop2, color = color)) +
+    geom_point() +
+    geom_vline(xintercept = c(-3.3,3.3)) +
+    labs(title = pop) +
+    theme(legend.position = "none") +
+    coord_cartesian(xlim = c(-6, 6)) +
+    scale_color_manual(values = c("brown1", "deepskyblue", "gray"))
+  
+  plots[[length(plots)+1]] <- x
+}
+
+```
+
+```{r}
+library(cowplot)
+```
+
+```{r}
+png("~/Projects/Botocudos/Plots/Dstat/Dstat_May19.png", 
+    width = 40, height = 35,
+    res = 300, units = "in")
+plot_grid(plotlist = plots, ncol = 8, nrow = 7)
+dev.off()
+```
+
+```{r}
+
+
+plot(subD, subD[,j], type = "n", bty = "n", 
+     ylab =NA, xlab = NA, xlim = lims, ylim = lims,
+     cex.lab = 2)
+
+# title(ylab = paste("H2 =", colnames(D)[j]),  cex.lab = 1.2)
+# title(xlab = paste("H2 =", colnames(D)[i]), cex.lab = 1.2)
+
+points(D[,i], D[,j], type = "n", bty = "n", 
+       xlab = NA, ylab = NA, xlim = lims, ylim = lims,
+       cex.lab = 2)
+```
+
+```{r}
+switchPops <- function(myD, pop1){
+  index <- myD$Pop2 == pop1
+  pop2 <- myD$Pop1[index]
+  myD$Pop2[index] <- pop2
+  myD$Pop1[index] <- pop1
+  myD$Z[index] <- -myD$Z[index]
+  myD$Dstat[index] <- -myD$Dstat[index]
+  
+  return(myD)
+}
+
+orderNean <- function(pop){
+  myD <- switchPops(d, pop)
+  m <- mean(myD$Z[myD$Pop3 == "AltaiNean"])
+  m <- median(unlist(sapply(POP$Pop2, 
+                            function(x) rank(myD$Z[myD$Pop2 == x])[which(myD$Pop3[myD$Pop2 == x] == "AltaiNean")])))
+  return(m)
+}
+```
+
+```{r}
+archaic <- c("Denisova", "AltaiNean")
+i <- 1
+allPops <- unique(rbind(d$Pop1, d$Pop2)[1,])
+names(allPops) <- 1:length(allPops)
+
+POP <- data.frame(Pop2 = allPops, index = names(allPops))
+POP$meanNean <- sapply(POP$Pop2, orderNean)
+POP <- POP[order(POP$meanNean),]
+POP <- POP[-which(POP$Pop2 == "Tlingit"),]
+POP$index <- 1:nrow(POP)
+```
+
+```{r}
+getMyDplot <- function(i){
+
+  pop <- POP$Pop2[i]
+  myD <- switchPops(d[d$Pop1 == pop | d$Pop2 == pop,], pop)
+  myD <- join(myD, POP, by = "Pop2")
+  myD$population <- myD$Pop3
+  miniPanel <- unique(panel[,c("population", "region")])
+  myD <- join(myD, miniPanel, by = "population")
+  
+  myD$color <- "gray65"
+  myD$color[myD$Pop3 == "Denisova"] <- "brown1"
+  myD$color[myD$Pop3 == "AltaiNean"] <- "blueviolet"
+  myD$color[myD$region == "Oceania"] <- "deepskyblue"
+
+  myD <- myD[order(myD$color, decreasing = T),]
+  
+  if(i%%9 == 1){
+    par(mar = c(1,14,2,1)+0.1)
+    plot(x = myD$Z, y = myD$index, bty = "n", col = myD$color, axes = F,
+         xlab = NA, ylab = NA, xlim = c(-6,6), main = pop, type = "n")
+    abline(h = POP$index, lty = "dotted", col = "gray")
+    points(x = myD$Z, y = myD$index, col = myD$color, pch = 8, lwd = 1.2)
+    abline(v = c(-3.3, 3.3), lty = "dashed")
+    axis(2, at = seq(1, nrow(POP)), 
+         las = 2,
+         labels = POP$Pop2)
+  }else{
+    par(mar = c(1,1,2,1)+0.1)
+    plot(x = myD$Z, y = myD$index, bty = "n", col = myD$color, axes = F,
+         xlab = NA, ylab = NA, xlim = c(-6,6), main = pop, type = "n")
+    abline(h = POP$index, lty = "dotted", col = "gray")
+    points(x = myD$Z, y = myD$index, col = myD$color,  pch = 8, lwd = 1.2)
+    abline(v = c(-3.3, 3.3), lty = "dashed")
+  }
+}
+
+```
+
+```{r}
+png("~/Projects/Botocudos/Plots/Dstat/Dstat_midthesis.png", 
+    width = 25, height = 35, res = 250, units = "in")
+layout(matrix(seq(1, 54), byrow = T, nrow = 6, ncol = 9),
+       widths = c(2,rep(1, 8)), heights = rep(2, 6))
+
+for(i in 1:nrow(POP)){
+  
+  getMyDplot(i)
+}
+
+plot(1:10,1:10, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+legend(2,8,legend=c("H3 = Oceanian", "H3 = Neanderthal", "H3 = Denisova"), pch = 8, lwd = 1.2,
+       col = c("deepskyblue", "blueviolet", "brown1"), bty = "n",
+       lty = NA)
+dev.off()
+
+```
+
