@@ -17,12 +17,12 @@ rule listSamples:
         key=lambda wildcards: get_info(wildcards.value)
     shell:
         'echo "ID\tData\tMAPQ\tLB\tPL\tSM" > {output};'
-        'libs=($(ls -R | grep -P ".*_{params.key}_.*fastq.*" | sed "s/.*_{params.key}_L/L/ ; s/_L.*//"|sort |uniq)) ;'
+        'libs=($(ls -R | grep -P ".*{params.key}_.*fastq.*" | sed "s/.*_{params.key}_L/{params.key}_L/ "|cut -f2 -d_ |sort |uniq)) ;'
         'for l in ${{libs[@]}} ; do'
         '   fastq=($(ls -R | '
-        '   awk -f fullpath.awk |grep {params.key} | grep -P ".*$l.*fastq.*" )) ; '
+        '   awk -f fullpath.awk |grep {params.key} | grep -P ".*${{l}}_.*" |sort |uniq)) ; '
         '   for f in ${{fastq[@]}} ; do'
-        '       id=$(echo $f |sed "s/.fastq.*//" |sed "s|/|_|g") ;'
+        '       id=$(echo $f |sed "s/.fastq.*// ; s|.*FASTQ/||; s|/|_|g") ;'
         '       echo "$id\t$f\t30\t$l\tILLUMINA\t{wildcards.value}" >> {output} ; '
         '   done ; '
         'done; '
@@ -38,4 +38,5 @@ rule map:
     log:
         "{value}/logs/snakelog.txt"
     shell:
+        "cd {value}/ "
         "mapping_aDNA.sh -i {input} --ref {params.ref} -p {threads} --cpuPerJob {threads}"
