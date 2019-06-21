@@ -1,0 +1,122 @@
+---
+title: "Conditional pi"
+author: "DI Cruz Dávalos"
+date: "5/6/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(plyr)
+library(ggplot2)
+panel <- read.table("~/Projects/Botocudos/Files/Panels/SGDP/Simons_sample_pop_region_country.txt",
+                    header = T, sep = "\t")
+
+```
+
+```{r}
+path_to_pi <- "~/Projects/Botocudos/Files/Heterozygosity/2019_05_06/"
+files <- list.files(path_to_pi)
+pops <- unique(sub("\\..*", "", files))
+
+pi <- data.frame()
+
+for(p in pops){
+  current_pi <- read.table(paste(path_to_pi, p, ".pi.stats.txt", sep = ""))
+  colnames(current_pi) <- c('estimate','bias','stderror','confint1','confint2')
+  current_pi$Population.ID <- p
+  if(dim(pi)[1] == 0){
+    pi <- current_pi
+  }else{
+    pi <- rbind(pi, current_pi)
+  }
+}
+
+pi <- join(pi, panel, by = "Population.ID")
+levels(pi$Region) <- c(levels(pi$Region), "Botocudos")
+pi$Region[!(complete.cases(pi))] <- "Botocudos"
+
+popsize <- data.frame(table(panel$Population.ID)) ; colnames(popsize) <- c("Population.ID", "popsize")
+pi <- join(pi, popsize, by = "Population.ID")
+pi$label <- paste(pi$Population.ID, "(n=", pi$popsize, ")", sep="")
+
+```
+
+## Add Team B
+
+```{r}
+path_to_pi <- "~/Projects/Botocudos/Files/Heterozygosity/2019_05_13/"
+files <- list.files(path_to_pi)
+pops <- unique(sub("\\..*", "", files))
+
+teamB <- data.frame()
+
+for(p in pops){
+  current_pi <- read.table(paste(path_to_pi, p, ".pi.stats.txt", sep = ""))
+  colnames(current_pi) <- c('estimate','bias','stderror','confint1','confint2')
+  current_pi$Population.ID <- p
+  if(dim(teamB)[1] == 0){
+    teamB <- current_pi
+  }else{
+    teamB <- rbind(teamB, current_pi)
+  }
+}
+
+teamB <- join(teamB, panel, by = "Population.ID")
+teamB[!complete.cases(teamB),]$Region <- "Africa"
+
+teamB$popsize <- 1
+teamB$Population.ID <- paste(teamB$Population.ID, "TeamB")
+teamB$label <- paste(teamB$Population.ID, "(n=", teamB$popsize, ")", sep="")
+
+```
+
+
+```{r}
+teamB$estimate <- teamB$estimate*2.05
+pi_B <- rbind(pi, teamB)
+
+regionOrder <- sapply(levels(pi_B$Region), 
+                      function(x) c(x, mean(pi_B$estimate[pi_B$Region == x])) )
+regionOrder <- data.frame(Region = regionOrder[1,], mean = regionOrder[2,])
+
+pi_B <- join(pi_B, regionOrder, by = "Region")
+pi_B <- pi_B[order(pi_B$mean, pi_B$estimate),]
+pi_B$Population.ID <- factor(pi_B$Population.ID, 
+                             levels = unique(pi_B$Population.ID), ordered = T)
+
+
+png("~/Projects/Botocudos/Plots/Het/sgdp_teamB.png",
+    width = 22, height = 8, res = 300, units = "in")
+
+ggplot(pi_B, aes(x = Population.ID, y = estimate, ymin = confint1, 
+               ymax = confint2, color = Region, interaction = Region)) +
+  geom_point() +
+  geom_errorbar() +
+  scale_x_discrete( breaks = pi_B$Population.ID, labels= pi_B$label) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, size = 9)) + 
+  labs(title = "Conditional heterozygosity, SGDP (VCF) + Team B (BAM)")
+dev.off()
+
+```
+
+```{r}
+coverage <- 35
+
+corrFactor <- function(coverage){
+  return(2*coverage/(coverage-1))
+}
+
+
+```
+
+
+## Count heterozygotes within the Botocudos
+
+
+
+
