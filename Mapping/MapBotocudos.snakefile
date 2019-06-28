@@ -20,7 +20,7 @@ rule listSamples:
         'libs=($(ls -R | grep -P ".*{params.key}_.*fastq.*" | sed "s/.*_{params.key}_L/{params.key}_L/ "|cut -f2 -d_ |sort |uniq)) ;'
         'for l in ${{libs[@]}} ; do'
         '   fastq=($(ls -R | '
-        '   awk -f fullpath.awk |grep {params.key} | grep -P ".*${{l}}_.*" |sort |uniq)) ; '
+        '   awk -f fullpath.awk |grep {params.key} | grep -P ".*${{l}}_.*" |sed "s/\./\.\./"|sort |uniq)) ; '
         '   for f in ${{fastq[@]}} ; do'
         '       id=$(echo $f |sed "s/.fastq.*// ; s|.*FASTQ/||; s|/|_|g") ;'
         '       echo "$id\t$f\t30\t$l\tILLUMINA\t{wildcards.value}" >> {output} ; '
@@ -30,13 +30,12 @@ rule listSamples:
 rule map:
     input:
         "{value}/{value}.txt"
-    threads: 24
+    threads: 52
     output: 
         "{value}/{value}.bam"
     params:
         ref=config["ref"]
     log:
-        "{value}/logs/snakelog.txt"
+        "{value}/logs/mapping.txt"
     shell:
-        "cd {value}/ "
-        "mapping_aDNA.sh -i {input} --ref {params.ref} -p {threads} --cpuPerJob {threads}"
+        "cd {wildcards.value} ; mapping_aDNA.sh -i ../{input} --ref {params.ref} -p {threads} --cpuPerJob {threads}"
