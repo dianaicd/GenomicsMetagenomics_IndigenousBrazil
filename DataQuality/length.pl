@@ -4,7 +4,7 @@
 use Getopt::Long;
 my %opts = ();
 
-GetOptions(\%opts, 'o=s', 'type=s');
+GetOptions(\%opts, 'o=s', 'type:s');
 #GetOptions('rmdamage' => \$damage);
 #GetOptions('homozygous' => \$homozygous);
 
