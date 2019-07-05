@@ -1,4 +1,4 @@
-configfile: "MN1943.yaml"
+configfile: "24samples.yaml"
 mito=config["Mitochondrial"]
 import re
 # Verify that all necessary files are present:
@@ -30,13 +30,26 @@ def expand_input(input, depth = "ID"):
                 myPrefix[sm+"/"+lb+"/"+id+"/"+id] = 1 
     return(list(myPrefix.keys()))
 
-IDs = [expand_input("{file}".format(file=myInput), depth = "ID")
-                    for myInput in config["Samples"].keys()][0]
-LBs = [expand_input("{file}".format(file=myInput), depth = "LB") 
-                    for myInput in config["Samples"].keys()][0]
-SMs = [expand_input("{file}".format(file=myInput), depth = "SM") 
-                    for myInput in config["Samples"].keys()][0]
+IDs = [item for sublist in 
+            [expand_input("{file}".format(file=myInput), depth = "ID")
+                    for myInput in config["Samples"].keys()] 
+            for item in sublist]
 
+LBs = [item for sublist in 
+            [expand_input("{file}".format(file=myInput), depth = "LB") 
+                    for myInput in config["Samples"].keys()] 
+            for item in sublist]
+SMs = [item for sublist in 
+            [expand_input("{file}".format(file=myInput), depth = "SM") 
+                    for myInput in config["Samples"].keys()]
+            for item in sublist]
+
+# print(SMs)
+# print(len(SMs))
+# print(LBs)
+# print(len(LBs))
+# print(IDs)
+# print(len(IDs))
 
 rule all:
     input:
@@ -225,7 +238,7 @@ rule summary:
     input:
         bam="{sample}/{sample}.bam",
         adapter=theirChildrenSettings,
-        rmdup = theirChildrenRmDup,
+        rmdup = "{sample}/{sample}_rmdup.stats",
         genomecov=theirChildrenGenomecov,
         idxstats=theirChildrenIdxstats,
         nucLength=theirChildrenNucLen,
