@@ -8,22 +8,6 @@ import re
 # 1 including dup per library
 # Stats from AdapterRemoval:
 # 1 per ID
-def get_values_column(input, column, parent = False, parentColumn = False):
-    # Function to return unique values per column
-    myValues = {}
-    with open(input, 'r') as file:
-        header = file.readline()
-        indexColumn = [index for index,element in enumerate(header.split()) 
-                if(column == element)][0]
-        for line in file.readlines():
-            if(parent):
-                parentIndex = [index for index,element in enumerate(header.split()) 
-                                if(parentColumn == element)][0]
-                if(parent == line.split()[parentIndex]):
-                    myValues[line.split()[indexColumn]] = 1
-            else:
-                myValues[line.split()[indexColumn]] = 1
-    return(list(myValues.keys()))
 def expand_input(input, depth = "ID"):
     # returns prefix for an input
     myPrefix = {}
@@ -45,33 +29,6 @@ def expand_input(input, depth = "ID"):
             elif depth == "ID":
                 myPrefix[sm+"/"+lb+"/"+id+"/"+id] = 1 
     return(list(myPrefix.keys()))
-def identMe(text, nIdent, colon = True):
-    ident = "  " #ident with two spaces
-    myString = ""
-    for i in range(0, nIdent):
-        myString = myString + ident
-    myString = myString + text 
-    if colon: 
-        myString = myString + ":\n"
-    else: 
-        myString = myString + "\n"
-    return(myString)
-def input2yaml(input):
-    yaml = input.replace(".txt", ".yaml")
-    SMs = get_values_column(input, "SM")
-    with open(yaml, 'w') as YAML:
-        YAML.write(identMe("Samples", 0))
-        for sm in SMs:
-            YAML.write(identMe(sm, 1))
-            LBs = get_values_column(input = input, column = "LB",
-                                   parent = sm, parentColumn = "SM")
-            for lb in LBs:
-                YAML.write(identMe(lb, 2))
-                IDs = get_values_column(input = input, column = "ID",
-                                   parent = lb, parentColumn = "LB")
-                for id in IDs:
-                    YAML.write(identMe(id, 3, False))
-        YAML.close()
 
 IDs = [expand_input("{file}".format(file=myInput), depth = "ID")
                     for myInput in config["Samples"].keys()][0]
