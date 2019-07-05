@@ -113,7 +113,8 @@ rule adapterRemoval_settings:
     output:
         protected("{sample}/{file}.settings")
     wildcard_constraints:
-        sample = "\w+"
+        sample = "\w+",
+        file = "\w+/?\w+"
     params:
         descendants = theirChildren
     shell:
