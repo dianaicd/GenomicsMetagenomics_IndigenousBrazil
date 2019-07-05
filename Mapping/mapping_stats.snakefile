@@ -57,7 +57,6 @@ def identMe(text, nIdent, colon = True):
         myString = myString + "\n"
     return(myString)
 def input2yaml(input):
-
     yaml = input.replace(".txt", ".yaml")
     SMs = get_values_column(input, "SM")
     with open(yaml, 'w') as YAML:
