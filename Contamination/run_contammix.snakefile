@@ -10,7 +10,8 @@ rule all:
         # bam=expand('{mito}/{sample}.bam', mito = mito, sample = samples),
         # realign=expand("{mito}/{sample}_{mito}_consensus.bam", mito = mito, sample = samples),
         # maln=expand("{mito}/311_{sample}_aligned.fasta", mito = mito, sample = samples),
-        fig=expand("{mito}/{sample}_{rmtrans}.pdf", mito = mito, sample = samples, rmtrans = ['all', 'rmTrans'])
+        fig=expand("{mito}/{sample}_{rmtrans}.pdf", mito = mito, sample = samples, rmtrans = ['all', 'rmTrans']),
+        data="{mito}/{sample}_{rmTrans}.Rda"
 
 def inputBam(wildcards):
     myInput=wildcards.sample+"/"+wildcards.sample+".bam"
@@ -21,9 +22,9 @@ def inputBai(wildcards):
 
 rule index:
     input:
-        "{x}.bam"
+        "{file}.bam"
     output:
-        "{x}.bam.bai"
+        "{file}.bam.bai"
     shell:
         "samtools index {input}"
 
@@ -84,8 +85,8 @@ rule contammix:
         bai="{mito}/{sample}_{mito}_consensus.bam.bai",
         maln="{mito}/311_{sample}_aligned.fasta"
     output:
-        fig="{mito}/{sample}_{rmTrans}.pdf",
-        data="{mito}/{sample}_{rmTrans}.Rda"
+        fig=protected("{mito}/{sample}_{rmTrans}.pdf"),
+        data=protected("{mito}/{sample}_{rmTrans}.Rda")
     params:
         transitions=lambda wildcards: rmTrans.get(wildcards.rmTrans),
         nIter=config["nIter"],
