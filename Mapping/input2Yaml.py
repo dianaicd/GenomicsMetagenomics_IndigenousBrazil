@@ -26,7 +26,6 @@ def get_values_column(input, column, sample = False, lib = False):
                         myValues[line.split()[indexColumn]] = 1
             else:
                 myValues[line.split()[indexColumn]] = 1
-
     return(list(myValues.keys()))
 
 
@@ -44,7 +43,6 @@ def expand_input(input, depth = "ID"):
             sm = line.split()[5]
             lb = line.split()[3]
             id = line.split()[0]
-
             if depth == "SM":
                 myPrefix[sm+"/"+sm] = 1
             elif depth == "LB":
