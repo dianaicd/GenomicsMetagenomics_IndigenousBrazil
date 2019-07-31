@@ -8,12 +8,9 @@ import re
 # 1 including dup per library
 # Stats from AdapterRemoval:
 # 1 per ID
-def expand_input(input, depth = "ID"):
+def expand_input(input, depth = "ID", SM = False, LB = False, ID = False):
     # returns prefix for an input
     myPrefix = {}
-    #print(type(input))
-    #print(input)
-    #print('.txt'.join(input))
     input = input+".txt" #; print(input)
     with open(input, 'r') as file:
         header = file.readline()
@@ -25,9 +22,19 @@ def expand_input(input, depth = "ID"):
             if depth == "SM":
                 myPrefix[sm+"/"+sm] = 1     
             elif depth == "LB":
-                myPrefix[sm+"/"+lb+"/"+lb] = 1  
+                if SM and SM == sm:
+                    myPrefix[sm+"/"+lb+"/"+lb] = 1  
+                elif not SM:
+                    myPrefix[sm+"/"+lb+"/"+lb] = 1  
             elif depth == "ID":
-                myPrefix[sm+"/"+lb+"/"+id+"/"+id] = 1 
+                if SM and SM == sm:
+                    if LB and LB == lb:
+                        myPrefix[sm+"/"+lb+"/"+id+"/"+id] = 1 
+                    elif not LB:
+                       myPrefix[sm+"/"+lb+"/"+id+"/"+id] = 1  
+                elif not SM:
+                    myPrefix[sm+"/"+lb+"/"+id+"/"+id] = 1 
+
     return(list(myPrefix.keys()))
 
 IDs = [item for sublist in 
@@ -83,7 +90,9 @@ def theirChildren(wildcards):
     if myStr in SMs:
         children = expand_input(wildcards.sample, depth = "LB")
     elif myStr in LBs:
-        children = expand_input(wildcards.sample, depth = "ID")
+        myLB = re.sub(".*/", "", myStr)
+        mySM = re.sub("/.*", "", myStr)
+        children = expand_input(wildcards.sample, depth = "ID", LB = myLB, SM = mySM)
     else:
         children = "notWanted"
     #print(myStr)
@@ -118,7 +127,7 @@ rule adapterRemoval_settings:
     params:
         descendants = theirChildren
     shell:
-        '~/Projects/Botocudos/Scripts/Mapping/summary_settings.sh {wildcards.sample}/{wildcards.file} {params.descendants}'
+        '~/data/Git/Botocudos-scripts/Mapping/summary_settings.sh {wildcards.sample}/{wildcards.file} "$(echo {params.descendants})" '
 
 rule flagstat:
     input:
@@ -155,15 +164,16 @@ rule bedtools:
 
 rule length:
     input:
-        nuc="{file}.bam"
+        nuc="{file}.bam",
+        bai="{file}.bam.bai"
     output:
         nuc="{file}.length",
         mito="{file}.mito.length"
     shell:
-        "cat {input} |"
-        "python ~/Projects/Botocudos/Scripts/DataQuality/read_length.py -o {output.nuc} ;"
-        "samtools view -b {input} {mito} |"
-        "python ~/Projects/Botocudos/Scripts/DataQuality/read_length.py -o {output.mito} "
+        "cat {input.nuc} |"
+        "python ~/data/Git/Botocudos-scripts/DataQuality/read_length.py -o {output.nuc} ;"
+        "samtools view -b {input.nuc} {mito} |"
+        "python ~/data/Git/Botocudos-scripts/DataQuality/read_length.py -o {output.mito} "
 
 def theirChildren(wildcards):
     myStr = wildcards.sample+"/"+wildcards.sample
@@ -249,5 +259,5 @@ rule summary:
     wildcard_constraints:
         sample = "\w+"
     shell:
-        "python ~/Projects/Botocudos/Scripts/DataQuality/summary_alignment.py "
+        "python ~/data/Git/Botocudos-scripts/DataQuality/summary_alignment.py "
         "--sample {wildcards.sample} --output {output} --mitochondrial {mito}"
