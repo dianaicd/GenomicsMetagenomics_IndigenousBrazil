@@ -23,14 +23,15 @@ path_out_counts = "counts.txt"
 path_out_sampled = "sampled.txt"
 path_sites = "sites.refalt"
 ped = False
-
+all_mutations = False
 print('ARGV      :', sys.argv[1:])
 
-options, remainder = getopt.getopt(sys.argv[1:], 'm:c:s:rp', ['mpileup=',
+options, remainder = getopt.getopt(sys.argv[1:], 'm:c:s:rpa', ['mpileup=',
                                                          'counts=',
                                                          'sampled=',
                                                          'refalt=',
-                                                         'ped'])
+                                                         'ped',
+                                                         'allmutations'])
 print('OPTIONS   :', options)
 
 for opt, arg in options:
@@ -44,11 +45,12 @@ for opt, arg in options:
         path_sites = arg
     elif opt in ('-p', '--ped'):
         ped = True
+    elif opt in ('-a', '--allmutations'):
+        all_mutations = True
 
 # %%
 base_column = {0:"A", 1:"C", 2:"G", 3:"T"}
 refalt = {}
-
 # %%
 # Parse the amazing mpileup format
 def parse_line(pileup, nInd):
@@ -110,6 +112,8 @@ if path_mpileup:
         positions = [add_key(line) for line in sites.readlines()]
     nInd = int((len(open(path_mpileup, 'r').readline().split("\t")) -3 ) / 3)
 
+    counts_all_mut = np.zeros((len(positions), nInd))
+    
     start = time.time()
     with open(path_mpileup, "r") as file:
         counts = np.array([parse_line(line, nInd) 
