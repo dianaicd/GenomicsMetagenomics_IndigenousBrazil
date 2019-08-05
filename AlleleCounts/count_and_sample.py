@@ -13,17 +13,18 @@ import time
 import sys, getopt
 import gzip
 #%%
-#path_mpileup = "/Users/dcruz/Projects/Botocudos/Files/test/1.mpileup"
-#path_out_counts = "/Users/dcruz/Projects/Botocudos/Files/test/test_counts.gz"
-#path_out_sampled = "/Users/dcruz/Projects/Botocudos/Files/test/test_sampled.gz"
-#path_sites = "/Users/dcruz/Projects/Botocudos/Files/test/sites.refalt"
-
 path_mpileup = False
 path_out_counts = "counts.txt"
 path_out_sampled = "sampled.txt"
 path_sites = "sites.refalt"
 ped = False
 all_mutations = False
+
+path_mpileup = "/Users/dcruz/Projects/Botocudos/Files/test/1.mpileup"
+path_out_counts = "/Users/dcruz/Projects/Botocudos/Files/test/test_counts.gz"
+path_out_sampled = "/Users/dcruz/Projects/Botocudos/Files/test/test_sampled.gz"
+path_sites = "/Users/dcruz/Projects/Botocudos/Files/test/sites.refalt"
+
 print('ARGV      :', sys.argv[1:])
 
 options, remainder = getopt.getopt(sys.argv[1:], 'm:c:s:rpa', ['mpileup=',
@@ -54,6 +55,7 @@ refalt = {}
 # %%
 # Parse the amazing mpileup format
 def parse_line(pileup, nInd):
+
     # remove missing, beginning, end
     #pattern = "\*|\^.|\$"
     # Get olnly the columns with the bases
@@ -79,6 +81,7 @@ def parse_line(pileup, nInd):
             pattern = base_column[base]
             count = len(tuple(re.finditer(pattern, string, flags = re.I)))
             allele_counts.append(count)
+        allele_counts.append(len(string))
 
     return(allele_counts)
 
@@ -112,7 +115,7 @@ if path_mpileup:
         positions = [add_key(line) for line in sites.readlines()]
     nInd = int((len(open(path_mpileup, 'r').readline().split("\t")) -3 ) / 3)
 
-    counts_all_mut = np.zeros((len(positions), nInd))
+    #counts_all_mut = np.zeros((len(positions), nInd))
     
     start = time.time()
     with open(path_mpileup, "r") as file:
@@ -129,9 +132,24 @@ counts = np.loadtxt(path_out_counts)
 start = time.time()
 nSites, nInd = counts.shape
 
-index_ref = range(0, nInd, 2)
-index_alt = range(1, nInd, 2)
-nInd = int(nInd/2)
+# First column is reference, second is alternative
+# if asking to draw an allele using the frequencies of all observed states,
+# then there is a third column per individual with total counts
+
+if all_mutations:
+    nColumns = 3
+else:
+    nColumns = 2
+    
+index_ref = range(0, nInd, nColumns)
+index_alt = range(1, nInd, nColumns)
+
+if all_mutations:
+    index_total_counts = range(2, nInd, nColumns)
+    all_counts = counts[:, index_total_counts]
+    print(all_counts.shape)
+
+nInd = int(nInd/nColumns)
 
 counts_ref = ma.array(counts[:, index_ref])
 counts_alt = ma.array(counts[:, index_alt])
@@ -152,9 +170,10 @@ counts_alt[missing_data] = ma.masked
 # %%
 # Calculate base frequencies
 #print("Calculate base frequencies")
-
+if not all_mutations:
+    all_counts = counts_ref + counts_alt
 # Frequencies of the reference allele
-freq = counts_ref/(counts_ref + counts_alt)
+freq = counts_ref/all_counts#(counts_ref + counts_alt)
 alt_is_major_allele = ma.where(freq < 0.5)
 freq[alt_is_major_allele] = 1 - freq[alt_is_major_allele]
 
