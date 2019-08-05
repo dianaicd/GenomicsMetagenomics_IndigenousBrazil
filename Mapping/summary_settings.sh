@@ -13,6 +13,7 @@ seq_retained_reads=0
 seq_retained_nts=0
 seq_retained_length=0
 
+
 for id in ${ids[@]}
 do
   seq_reads_se_id=$(grep 'Total number of reads:' $id.settings | sed 's/.*: //g')
