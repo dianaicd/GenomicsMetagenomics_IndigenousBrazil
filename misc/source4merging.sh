@@ -98,9 +98,9 @@ prepare_sites(){
 # Count alleles and sample one base at random
 sample_mpileup(){
     local ped=""
-
-    SHORTOPTS="p:b:Fc:"
-    LONGOPTS="panel: bamlist: chromosomes: pedformat"
+    local allmutations=""
+    SHORTOPTS="p:b:Fc:a"
+    LONGOPTS="panel: bamlist: chromosomes: pedformat allmutations"
     # This function uses my scripts
     ARGS=$(getopt -s bash -o "$SHORTOPTS" -l "$LONGOPTS" -n "ERROR" -- "$@")
     retVal=$?
@@ -113,6 +113,7 @@ sample_mpileup(){
             -b|--bamlist)       local bamlist=$2; shift;;
             -c:--chromosomes)   local chromosomes=($(echo $2)); shift;;
             -F|--pedformat)     ped="--ped"; shift;;
+            -a|--allmutations)  allmutations="--allmutations"; shift;;
         esac 
         shift
     done
@@ -125,7 +126,7 @@ sample_mpileup(){
         python count_and_sample.py --mpileup ${bamlist}_${chr}.mpileup \
             --counts ${bamlist}_${chr}.counts.gz \
             --sampled ${bamlist}_${chr}.sampled.gz \
-            --refalt ${panel}_${chr}.refalt $ped &
+            --refalt ${panel}_${chr}.refalt $ped $allmutations &
     done
     wait
 
@@ -325,18 +326,20 @@ make_bamlist(){
 #-----------------------------------------------------------------------------#
 # Merge BAM to BED
 mergeBAM2BED(){
-    SHORTOPTS="p:b:"
-    LONGOPTS="panel: bamlist:"
+    SHORTOPTS="p:b:a"
+    LONGOPTS="panel: bamlist: allmutations"
     # This function uses my scripts
     ARGS=$(getopt -s bash -o "$SHORTOPTS" -l "$LONGOPTS" -n "ERROR" -- "$@")
     retVal=$?
     if [ $retVal -ne 0 ]; then echo "something went wrong with args"; exit; fi
 
     eval set -- "$ARGS"
+    local allmutations=""
     while  [ $# -gt 0 ]; do
         case "$1" in
             -p|--panel)     local panel=$2; shift;;
-             -b|--bamlist)  local bamlist=$2; shift;;
+            -b|--bamlist)  local bamlist=$2; shift;;
+            -a|--allmutations) local allmutations="--allmutations"; shift;;
         esac 
         shift
     done
@@ -358,7 +361,7 @@ mergeBAM2BED(){
         --chromosomes "$(echo ${chromosomes[@]})"
 
     sample_mpileup --bamlist $bamlist --panel $panel --pedformat \
-        --chromosomes "$(echo ${chromosomes[@]})"
+        --chromosomes "$(echo ${chromosomes[@]})" $allmutations
     
     bed2tped $panel 
     paste $panel.tped $bamlist.counts.sampled.txt -d ' ' > $panel.$bamlist.tped
