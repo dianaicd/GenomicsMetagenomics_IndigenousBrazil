@@ -126,7 +126,9 @@ rule contammix:
         path=config["contammix"],
         prefix="{mito}/{file}_{rmTrans}",
         basename="{mito}/{file}_{rmTrans}"
+    log:
+        "{mito}/{file}_{rmTrans}.log"
     shell:
         "Rscript {params.path} --samFn {input.bam} --nIter {params.nIter} "
         "--malnFn {input.maln} --alpha 0.1 --figure {output.fig} "
-        "--saveData {params.basename} {params.transitions}"
+        "--saveData {params.basename} {params.transitions} 2>{log}"
