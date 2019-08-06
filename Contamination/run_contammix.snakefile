@@ -1,17 +1,39 @@
-configfile: "2019_07_01.yaml"
+configfile: "24samples.yaml"
 
 mito=config["Mitochondrial"]
-samples=config["samples"].split()
+wildcard_constraints:
+   # file = "(?P<sample>\w+)\/((?P=sample)$|((?P<library>\w+)\/(?P=library)$))",
+    mito = mito
+
+def output_prefix():
+    sample_list = list(config["Samples"].keys())
+    samples = ["{}/{}".format(sample, sample) for sample in config["Samples"].keys()]
+    libs = []
+    for sample in sample_list:
+        libs.append(["{sample}/{lib}/{lib}".format(sample = sample, lib = lib) 
+                     for lib in list(config["Samples"][sample]["Libraries"].keys())])
+
+    output = [item for sublist in libs for item in sublist] + samples
+
+    return(output)
+
+all_prefix = output_prefix()
 
 rule all:
     input:
-        # fasta=expand('{mito}/{sample}.fa', mito = mito, sample = samples),
-        # dict=expand('{mito}/{sample}.dict', mito = mito, sample = samples),
-        # bam=expand('{mito}/{sample}.bam', mito = mito, sample = samples),
-        # realign=expand("{mito}/{sample}_{mito}_consensus.bam", mito = mito, sample = samples),
-        # maln=expand("{mito}/311_{sample}_aligned.fasta", mito = mito, sample = samples),
-        fig=expand("{mito}/{sample}_{rmtrans}.pdf", mito = mito, sample = samples, rmtrans = ['all', 'rmTrans']),
-        data="{mito}/{sample}_{rmTrans}.Rda"
+        # fasta=expand('{mito}/{file}_{mito}.fa',
+        #                  mito = mito, file = all_prefix),
+        # dict = expand('{mito}/{file}.dict', mito = mito, file = all_prefix),
+        # bam = expand('{mito}/{file}.bam', mito = mito, file = all_prefix),
+        # bai = expand('{mito}/{file}.bam.bai', mito = mito, file = all_prefix),
+        # realn_bam = expand('{mito}/{file}_{mito}_consensus.bam', mito = mito, file = all_prefix),
+        # realn_bai = expand('{mito}/{file}_{mito}_consensus.bam.bai', mito = mito, file = all_prefix),
+        # fastq = expand('{mito}/{file}_{mito}_consensus.truncated.gz', mito = mito, file = all_prefix),
+        # maln = expand('{mito}/{file}_311_aligned.fasta', mito = mito, file = all_prefix),
+        result = expand('{mito}/{file}_{rmtrans}.{extension}',
+                         mito = mito, file = all_prefix, 
+                         rmtrans = ['all', 'rmTrans'], extension = ['pdf', 'Rdata'])
+
 
 def inputBam(wildcards):
     myInput=wildcards.sample+"/"+wildcards.sample+".bam"
@@ -20,79 +42,91 @@ def inputBai(wildcards):
     myInput=wildcards.sample+"/"+wildcards.sample+".bam.bai"
     return(myInput)
 
-rule index:
-    input:
-        "{file}.bam"
-    output:
-        "{file}.bam.bai"
-    shell:
-        "samtools index {input}"
+fasta = ["{mito}/{file}_{mito}.fa".format(mito = mito, file = file) for file in all_prefix]
+bam_out = ["{mito}/{file}.bam".format(mito = mito, file = file) for file in all_prefix]
+dict = ["{mito}/{file}.dict".format(mito = mito, file = file) for file in all_prefix]
+
+def all_bam(wildcards):
+    return("{file}.bam".format(file = wildcards.file))
+    
+def all_bai(wildcards):
+    return("{file}.bam.bai".format(file = wildcards.file))
 
 rule consensus:
     input:
-        bam=inputBam,
-        bai=inputBai
-    params:
-        mito=mito
+        bam = protected("{file}.bam"), #all_bam, 
+        bai = protected("{file}.bam.bai") #all_bai
     output:
-        fasta='{mito}/{sample}.fa',
-        dict='{mito}/{sample}.dict',
-        bam="{mito}/{sample}.bam"
+        fasta = "{mito}/{file}_{mito}.fa", 
+        dict = "{mito}/{file}.dict",
+        bam = "{mito}/{file}.bam" 
     shell:
+        '  mkdir -p {mito}/{wildcards.file} ;'
         '  samtools view -b {input.bam} {mito} > {output.bam} ;'
         '  samtools index {output.bam} ;'
-        '  angsd -doFasta 2 -doCounts 1 -i {output.bam} -out  {wildcards.sample}/{mito}/{wildcards.sample} ;'
+        '  angsd -doFasta 2 -doCounts 1 -i {output.bam} -out {mito}/{wildcards.file}_{mito} ;'
         '  gunzip {output.fasta}.gz ;'
         '  bwa index  {output.fasta} ;'
         '  samtools faidx {output.fasta} ;'
         '  picard-tools CreateSequenceDictionary REFERENCE={output.fasta} OUTPUT={output.dict} ;'
 
-def inputBam(wildcards):
-    return(mito+"/"+wildcards.sample+".bam")
-
+rule index:
+    input:
+        "{x}.bam"
+    output:
+        "{x}.bam.bai"
+    shell:
+        "samtools index {input}"
 
 rule realign:
     input:
-        bam="{mito}/{sample}.bam",
-        bai="{mito}/{sample}.bam.bai"
+        bam = "{mito}/{file}.bam", 
+        bai = "{mito}/{file}.bam.bai", 
+        fasta = "{mito}/{file}_{mito}.fa" 
     output:
-        bam="{mito}/{sample}_{mito}_consensus.bam",
-        fastq="{mito}/{sample}_{mito}_consensus.truncated",
-        fasta="{mito}/{sample}_{mito}.fa"
+        bam="{mito}/{file}_{mito}_consensus.bam",
+        fastq="{mito}/{file}_{mito}_consensus.truncated.gz"
+    params:
+        basename="{file}_{mito}_consensus"
+    log:
+        "logs/{mito}/{file}_{mito}_consensus.log"
     shell:
-        "bedtools bamtofastq -i {input.bam} -fq {output.fastq} ;"
-        "gzip {output.fastq} ;"
-        "aDNA_mapping.sh --ref {output.fasta} --fastq1 {output.fastq} --skip1 1 ;"
-        "samtools index {input.bam} ;"
+        "bedtools bamtofastq -i {input.bam} -fq {mito}/{params.basename}.truncated ;"
+        "gzip {mito}/{params.basename}.truncated ;"
+        "aDNA_mapping.sh --ref {input.fasta} --fastq1 {params.basename} "
+        "   --skip1 1 --override --base {params.basename} "
+        "   --wd MT -o {mito}/{params.basename}.bam 2>{log};"
 
 rule maln:
     input:
-        "{mito}/{sample}_{mito}.fa"
+        "{mito}/{file}_{mito}.fa"
     output:
-        "{mito}/311_{sample}_aligned.fasta"
+        "{mito}/{file}_311_aligned.fasta"
     params:
         mt311=config["mt311"]
     shell:
-        "cat {params.mt311} {input} > 311_{wildcards.sample}.fasta ;"
-        "mafft --auto 311_{wildcards.sample}.fasta > {output} ;"
+        "cat {params.mt311} {input} > {mito}/{wildcards.file}_311.fasta ;"
+        "mafft --auto {mito}/{wildcards.file}_311.fasta > {output} ;"
 
 
 rmTrans={"all":"", "rmTrans":"--transverOnly"}
 
+
 rule contammix:
     input:
-        bam="{mito}/{sample}_{mito}_consensus.bam",
-        bai="{mito}/{sample}_{mito}_consensus.bam.bai",
-        maln="{mito}/311_{sample}_aligned.fasta"
+        bam="{mito}/{file}_{mito}_consensus.bam",
+        bai="{mito}/{file}_{mito}_consensus.bam.bai", 
+        maln="{mito}/{file}_311_aligned.fasta" 
     output:
-        fig=protected("{mito}/{sample}_{rmTrans}.pdf"),
-        data=protected("{mito}/{sample}_{rmTrans}.Rda")
+        fig=protected("{mito}/{file}_{rmTrans}.pdf"),
+        data=protected("{mito}/{file}_{rmTrans}.Rdata")
     params:
         transitions=lambda wildcards: rmTrans.get(wildcards.rmTrans),
         nIter=config["nIter"],
         path=config["contammix"],
-        prefix="{mito}/{sample}_{rmTrans}"
+        prefix="{mito}/{file}_{rmTrans}",
+        basename="{mito}/{file}_{rmTrans}"
     shell:
-        "{params.path} --samFn {input.bam} --nIter {params.nIter} "
+        "Rscript {params.path} --samFn {input.bam} --nIter {params.nIter} "
         "--malnFn {input.maln} --alpha 0.1 --figure {output.fig} "
-        "--saveData {output.data} {params.transitions}"
+        "--saveData {params.basename} {params.transitions}"
