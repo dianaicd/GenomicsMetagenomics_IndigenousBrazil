@@ -205,7 +205,7 @@ rule rmdup:
     shell:
         'for file in {params.descendants} ;'
         'do '
-        'rmdup=$(grep -v "#" MN1943/L1/L1_rmdup.stats '
+        'rmdup=$(grep -v "#" ${{file}}_rmdup.stats '
         '|grep -v "^$"|cut -f6 |tail -n1) ;'
         'echo "$file\t$rmdup" >> {output.sample} ; done'
 
