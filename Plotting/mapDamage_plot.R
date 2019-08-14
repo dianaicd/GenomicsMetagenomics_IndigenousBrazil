@@ -7,7 +7,7 @@
 
 
 ##### Plot
-damage_plot <- function(ind, type, d ="~/Projects/Botocudos/Files/mapDamage/2018_07_23/",
+damage_plot <- function(ind, type, lib, d ="~/Projects/Botocudos/Files/mapDamage/2018_07_23/",
                         asis = F, sufix = "_Human_results_mapDamage"){
   mean_muts <- function(mutation, ref){
     mutation <- as.character(mutation)
@@ -87,7 +87,8 @@ damage_plot <- function(ind, type, d ="~/Projects/Botocudos/Files/mapDamage/2018
   par(mar = c(4, 3, 3, 1))
   plot(x = seq(1,25), 
        y = mean_GA$left[1:25], type = "l", xlim = c(1,25), ylim = c(0, 0.3), 
-       col = NA, lwd = 3, axes = F, ylab = "Frequency", xlab = "", main = ind)
+       col = NA, lwd = 3, axes = F, ylab = "Frequency", xlab = "", 
+       main = paste(ind, lib, sep = ", "))
   axis(side = 1, at = seq(0,25), las = 2)
   axis(side = 2, las =2)
   lines(x = seq(1,25), 

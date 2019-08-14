@@ -21,10 +21,10 @@ gglength <- function(ind, type = c("nuc", "mito"),
   l$Type <- factor(l$Type, levels = c("mito", "nuc"))  
   colors <- c("yellowgreen", "royalblue1")
   names(colors) <- levels(l$Type)
-  title <- paste(ind, " (endogenous: ", 
+  title <- paste(" ", type, ind, "\n(endogenous: ", 
                  round(boto$hits_unique_frac_endogenous[boto$sample == ind & 
-                                                          boto$library == "All"]*100, 2),"%) ",
-                 " ", type, " ", lib, sep = "")
+                                                          boto$library == lib]*100, 2),"%) ",
+                 " ", lib, sep = "")
   if(gg){
     p <- ggplot(l, aes(x = Length, y = Freq/sum(Freq), 
                        color = Type)) +
