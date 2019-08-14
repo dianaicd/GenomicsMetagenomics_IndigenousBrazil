@@ -30,9 +30,11 @@ rule all:
         # realn_bai = expand('{mito}/{file}_{mito}_consensus.bam.bai', mito = mito, file = all_prefix),
         # fastq = expand('{mito}/{file}_{mito}_consensus.truncated.gz', mito = mito, file = all_prefix),
         # maln = expand('{mito}/{file}_311_aligned.fasta', mito = mito, file = all_prefix),
-        result = expand('{mito}/{file}_{rmtrans}.{extension}',
+        result_data = expand('{mito}/{file}_{rmtrans}.{extension}',
                          mito = mito, file = all_prefix, 
-                         rmtrans = ['all', 'rmTrans'], extension = ['pdf', 'Rdata'])
+                         rmtrans = ['all', 'rmTrans'], extension = ['pdf', 'Rdata']),
+        result_txt = expand("{mito}/{file}_{rmTrans}.txt", 
+                            mito = mito, file = all_prefix, rmTrans = ['all', 'rmTrans'])
 
 
 def inputBam(wildcards):
@@ -126,9 +128,19 @@ rule contammix:
         path=config["contammix"],
         prefix="{mito}/{file}_{rmTrans}",
         basename="{mito}/{file}_{rmTrans}"
-    log:
-        "{mito}/{file}_{rmTrans}.log"
+    # log:
+    #     "{mito}/{file}_{rmTrans}.log"
     shell:
         "Rscript {params.path} --samFn {input.bam} --nIter {params.nIter} "
         "--malnFn {input.maln} --alpha 0.1 --figure {output.fig} "
-        "--saveData {params.basename} {params.transitions} 2>{log}"
+        "--saveData {params.basename} {params.transitions}"
+
+rule print_output:
+    input:
+        data = "{mito}/{file}_{rmTrans}.Rdata"
+    output:
+        txt = "{mito}/{file}_{rmTrans}.txt"
+    params:
+        path = config["print_contamMix"]
+    shell:
+        "Rscript {params.path} {input.data} > {output.txt}"
