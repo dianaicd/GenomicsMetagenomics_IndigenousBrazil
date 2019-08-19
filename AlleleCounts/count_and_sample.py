@@ -20,10 +20,10 @@ path_sites = "sites.refalt"
 ped = False
 all_mutations = False
 
-path_mpileup = "/Users/dcruz/Projects/Botocudos/Files/test/1.mpileup"
+path_mpileup = "/Users/dcruz/Projects/Botocudos/Files/test/bamfile.list_19.mpileup"
 path_out_counts = "/Users/dcruz/Projects/Botocudos/Files/test/test_counts.gz"
 path_out_sampled = "/Users/dcruz/Projects/Botocudos/Files/test/test_sampled.gz"
-path_sites = "/Users/dcruz/Projects/Botocudos/Files/test/sites.refalt"
+path_sites = "/Users/dcruz/Projects/Botocudos/Files/test/MAF_NoLaz_HOP_MinMyc_19.refalt"
 
 print('ARGV      :', sys.argv[1:])
 
@@ -55,22 +55,23 @@ refalt = {}
 # %%
 # Parse the amazing mpileup format
 def parse_line(pileup, nInd):
-
+#%%
     # remove missing, beginning, end
     #pattern = "\*|\^.|\$"
     # Get olnly the columns with the bases
     pos = pileup.split("\t")[0] + "_" + pileup.split("\t")[1]
     pileup = "\t".join(pileup.split("\t")[4:(nInd*3+8):3])
-    
+    #%%
     pattern = "\^."
     parsed = re.sub(pattern, "", pileup)
     pattern = re.compile(r"\+\d+|\-\d+")
     matches = [int(s) for s in re.findall(pattern, parsed)]
+#%%
     # remove indels
     for p in matches:
         pattern = re.compile("[+|-]" + str(abs(p)) + ".{" + str(abs(p)) +"}")
         parsed = re.sub(pattern, "", parsed)
-
+#%%
     # Count matches
     allele_counts = []
         
@@ -82,7 +83,7 @@ def parse_line(pileup, nInd):
             count = len(tuple(re.finditer(pattern, string, flags = re.I)))
             allele_counts.append(count)
         allele_counts.append(len(string))
-
+#%%
     return(allele_counts)
 
 # %%
@@ -95,6 +96,7 @@ def add_key(line):
 # Parse 0 and 1 to nucleotides
 def int2nucleotide(line, nucleotides):
     # in ped, do it diploid
+    
     ref = base_column[nucleotides[0]] + " " + base_column[nucleotides[0]]
     alt = base_column[nucleotides[1]] + " " + base_column[nucleotides[1]]
     lineParsed = re.sub("0.", ref, line)
@@ -103,8 +105,11 @@ def int2nucleotide(line, nucleotides):
     lineParsed = re.sub("\[", "", lineParsed)
     lineParsed = re.sub("\]", "", lineParsed)
     lineParsed = re.sub("\n", "", lineParsed)
-    pattern = re.compile("\s{2,}")
-    lineParsed = re.sub(pattern, " ", lineParsed)
+    # Remove extra spaces
+    lineParsed = re.sub("\s{2,}", " ", lineParsed)
+    lineParsed = re.sub("^\s", "", lineParsed)
+    lineParsed = re.sub("\s$", "", lineParsed)
+    
     return(lineParsed+"\n")
 
 # %%
@@ -135,11 +140,12 @@ nSites, nInd = counts.shape
 # First column is reference, second is alternative
 # if asking to draw an allele using the frequencies of all observed states,
 # then there is a third column per individual with total counts
-
-if all_mutations:
-    nColumns = 3
-else:
-    nColumns = 2
+# Regardless of what was asked, index every 3 columns
+#if all_mutations:
+#    nColumns = 3
+#else:
+#    nColumns = 2
+nColumns = 3
     
 index_ref = range(0, nInd, nColumns)
 index_alt = range(1, nInd, nColumns)
