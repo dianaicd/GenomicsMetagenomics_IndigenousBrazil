@@ -50,6 +50,8 @@ if [ ! -e ${panel}.beagle ]
 then
   if [ $type == "bed" ] 
   then plink --recode vcf --bfile $panel --out $panel 
+  elif [ $type == "ped" ]
+  then plink --recode vcf --file $panel --out $panel
   fi
   
   if [ ! -e vcftogenolike.pl ] 
