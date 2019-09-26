@@ -34,7 +34,7 @@ rule listSamples:
 rule map:
     input:
         "{value}.txt"
-    threads: 12
+    threads: 120
     output: 
         "{value}/{value}.bam"
     params:
@@ -42,4 +42,7 @@ rule map:
     log:
         "{value}/logs/mapping.txt"
     shell:
-        "mapping_aDNA.sh -i {input} --ref {params.ref} -p {threads} --cpuPerJob {threads}"
+        "threads=$(echo {threads} -1 |bc ) ; "
+        "mapping_aDNA.sh -i {input} --ref {params.ref} "
+        "-p {threads} --cpuPerJob $threads "
+        ""

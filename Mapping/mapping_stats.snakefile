@@ -1,4 +1,5 @@
-configfile: "24samples.yaml"
+configname = "24samples.yaml" 
+configfile: configname
 mito=config["Mitochondrial"]
 import re
 # Verify that all necessary files are present:
@@ -75,7 +76,7 @@ rule all:
         # bedtools = expand("{prefix}.genomecov", prefix = SMs + LBs + IDs),
         # length = expand("{prefix}.length", prefix = SMs + LBs + IDs),
         # rmdup = expand("{prefix}_rmdup.stats", prefix = SMs)
-        summary = expand("{prefix}.summary", prefix = SMs)
+        summary = expand("{prefix}.new.summary", prefix = SMs)
 
 rule index_bam:
     input:
@@ -255,9 +256,13 @@ rule summary:
         nucLength=theirChildrenNucLen,
         mitoLength=theirChildrenMitoLen
     output:
-        "{sample}/{sample}.summary"
+        "{sample}/{sample}.new.summary"
     wildcard_constraints:
         sample = "\w+"
     shell:
-        "python ~/data/Git/Botocudos-scripts/DataQuality/summary_alignment.py "
-        "--sample {wildcards.sample} --output {output} --mitochondrial {mito}"
+        # "python ~/data/Git/Botocudos-scripts/DataQuality/summary_alignment.py "
+        # "--sample {wildcards.sample} --output {output} --mitochondrial {mito}"
+        """
+        python ~/data/Git/Botocudos-scripts/DataQuality/summary_from_yaml.py \
+        --sample {wildcards.sample} --output {output} --mitochondrial {mito} --config_yaml {configname} --old_mapping_pipeline
+        """
