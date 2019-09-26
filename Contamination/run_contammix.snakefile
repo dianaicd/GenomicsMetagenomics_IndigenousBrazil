@@ -1,4 +1,4 @@
-configfile: "24samples.yaml"
+configfile: "samples.yaml"
 
 mito=config["Mitochondrial"]
 wildcard_constraints:
@@ -10,7 +10,8 @@ def output_prefix():
     samples = ["{}/{}".format(sample, sample) for sample in config["Samples"].keys()]
     libs = []
     for sample in sample_list:
-        libs.append(["{sample}/{lib}/{lib}".format(sample = sample, lib = lib) 
+        libs.append([#"{sample}/{lib}/{lib}".format(sample = sample, lib = lib) 
+        "{sample}/{lib}/library_rmdup/{lib}".format(sample = sample, lib = lib) 
                      for lib in list(config["Samples"][sample]["Libraries"].keys())])
 
     output = [item for sublist in libs for item in sublist] + samples
