@@ -11,18 +11,28 @@ ind <- read.table(indName)
 colnames(ind) <- c("indID", "U", "control")
 ind$control <- NULL
 ind$indID <- sub(":.*", "", ind$indID)
-x <- join(ind, panel, by = "indID")
-x <- x[,c("indID", "U","population")]
+new_ind_names <- join(ind, panel, by = "indID")
+new_ind_names <- new_ind_names[,c("indID", "U","population")]
 dim(ind)
-dim(x)
-dim(x[complete.cases(x),])
-x$population <- as.character(x$population)
+dim(new_ind_names)
+dim(new_ind_names[complete.cases(new_ind_names),])
+new_ind_names$population <- as.character(new_ind_names$population)
 panel$population <- as.character(panel$population)
-x$population[is.na(x$population)] <- panel[unlist(sapply( x$indID[is.na(x$population)], 
-function(x) grep(x, panel$indID))),]$population
-dim(x[complete.cases(x),])
+
+# this part is not great;
+# if an individual is not in my Magic panel,
+# it will not have a population assigned, and it will try to
+# assign the population of a sample whose ID is a superstring 
+# of the current individual. This is helpful for this panel
+# with LS5 and LS5.variant.
+
+# Please update your Magic panel
+na <- is.na(new_ind_names$population)
+myIndex <- unlist(sapply( new_ind_names$indID[na], function(x) grep(x, panel$indID)))
+new_ind_names$population[na] <- panel[myIndex,]$population
+dim(new_ind_names[complete.cases(new_ind_names),])
 dim(ind)
-x$indID <- paste(x$ind, x$population, sep = ":")
+new_ind_names$indID <- paste(new_ind_names$ind, new_ind_names$population, sep = ":")
 
 
-write.table(x, file=sub(".ind", ".modified.ind",indName), sep=" ", quote=F, row.names=F, col.names=F)
+write.table(new_ind_names, file=sub(".ind", ".modified.ind",indName), sep=" ", quote=F, row.names=F, col.names=F)
