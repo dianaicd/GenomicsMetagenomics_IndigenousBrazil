@@ -1,0 +1,22 @@
+H1: 
+  "h1.txt"
+H2: 
+  "h2.txt"
+H3: 
+  "h3.txt"
+Outgroup: 
+  "Yoruba"
+
+ind_pop: 
+  "ind_pop.txt"
+max_files_per_dir:
+  100
+max_lines:
+  10
+
+panels: 
+  h_merged:
+    type: 
+      "ped"
+    path: 
+      "h_merged.ped"
