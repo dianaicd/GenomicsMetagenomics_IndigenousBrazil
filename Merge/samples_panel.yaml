@@ -1,0 +1,160 @@
+# Minimum base quality to consider for sampling an allele
+BaseQuality: 
+    20
+
+# Should all observed alleles be considered when computing 
+# allele frequencies to sample a base
+# "" or "--allmutations"
+allmutations: 
+    ""
+
+#==============================================================================#
+# Panel(s) to which samples will be merged
+panels: 
+
+    # Maanasa_mask1_flip:
+        
+    #     # bed, vcf, bim
+    #     type:
+    #         "bed"
+    #     path: 
+    #         "Maanasa_mask1_flip.bed"
+        
+    #     # Genotype likelihoods specifications
+    #     GenoLike:
+    #         # Should genotypes in this panel
+    #         # be recoded as homozygous ( 0 0 1, 1 0 0)?
+    #         # Should transitions be removed?
+    #         homozygous: "yes"
+    #         rmdamage: "no"
+
+    #     NGSAdmix:
+    #         run: "yes"
+    #         K: 15
+    #         rep: 100
+
+    # h:
+    #     type: 
+    #         "bed"
+    #     path: 
+    #         "h.bed"
+    #     GenoLike:
+    #          homozygous: "yes"
+    #          rmdamage: "yes"
+
+    # Jorde_Wollstein_hg19_final_noseconddegree_geno01:
+    #     type:
+    #         "bed"
+    #     path:
+    #         "Jorde_Wollstein_hg19_final_noseconddegree_geno01.bed"
+    #     GenoLike:
+    #         homozygous: "yes"
+    #         rmdamage: "yes"
+    
+    Wollstein_mind0.95_rmtrans:
+        type:
+            "bed"
+        path:
+            "Wollstein_mind0.95_rmtrans.bed"
+        GenoLike:
+            homozygous: "yes"
+            rmdamage: "yes"
+
+    # v37.2.1240K_HumanOrigins:
+    #     type:
+    #         "ped"
+    #     path:
+    #         "v37.2.1240K_HumanOrigins.ped"
+    #     GenoLike:
+    #         homozygous: "yes"
+    #         rmdamage: "yes"
+
+#=============================================================================#
+# Chromosomes included in the panel
+#chromosomes: list(range(1, 23)) # 23 not nicluded in python
+
+#=============================================================================#
+# Bamlists 
+# Each value defined for bamlists will lead to merging all the bam files
+# defined in the path to each panel.
+bamlists:
+    # Boto_Posth_M2014_fV:
+    #     paths:
+    #         # Remember to add "/*bam" at the end
+    #         Botocudos: "~/Project/Botocudos/BAM/*bam"
+    #         Posth: "~/Project/Americas/Posth/BAM/*bam"
+    #         Malaspinas2014: "~/Project/Botocudos/Malaspinas2014/*bam"
+    #         fromVictor_Ancient: "~/Project/Americas/fromVictor/Ancient/*bam"
+    #         fromVictor_Modern : "~/Project/Americas/fromVictor/Modern/*bam"
+    MN00010:
+        paths:
+            MN00010: '~/Project/Botocudos/BAM/MN00010.bam'
+    MN00013:
+        paths:
+            MN00013: '~/Project/Botocudos/BAM/MN00013.bam'
+    MN00016:
+        paths:
+            MN00016: '~/Project/Botocudos/BAM/MN00016.bam'
+    MN00019:
+        paths:
+            MN00019: '~/Project/Botocudos/BAM/MN00019.bam'
+    MN00021:
+        paths:
+            MN00021: '~/Project/Botocudos/BAM/MN00021.bam'
+    MN00022:
+        paths:
+            MN00022: '~/Project/Botocudos/BAM/MN00022.bam'
+    MN00023:
+        paths:
+            MN00023: '~/Project/Botocudos/BAM/MN00023.bam'
+    MN00039:
+        paths:
+            MN00039: '~/Project/Botocudos/BAM/MN00039.bam'
+    MN0003:
+        paths:
+            MN0003: '~/Project/Botocudos/BAM/MN0003.bam'
+    MN00045:
+        paths:
+            MN00045: '~/Project/Botocudos/BAM/MN00045.bam'
+    MN00056:
+        paths:
+            MN00056: '~/Project/Botocudos/BAM/MN00056.bam'
+    MN00064:
+        paths:
+            MN00064: '~/Project/Botocudos/BAM/MN00064.bam'
+    MN00066:
+        paths:
+            MN00066: '~/Project/Botocudos/BAM/MN00066.bam'
+    MN00067:
+        paths:
+            MN00067: '~/Project/Botocudos/BAM/MN00067.bam'
+    MN00068:
+        paths:
+            MN00068: '~/Project/Botocudos/BAM/MN00068.bam'
+    MN00069:
+        paths:
+            MN00069: '~/Project/Botocudos/BAM/MN00069.bam'
+    MN0008:
+        paths:
+            MN0008: '~/Project/Botocudos/BAM/MN0008.bam'
+    MN0009:
+        paths:
+            MN0009: '~/Project/Botocudos/BAM/MN0009.bam'
+    MN00118:
+        paths:
+            MN00118: '~/Project/Botocudos/BAM/MN00118.bam'
+    MN00119:
+        paths:
+            MN00119: '~/Project/Botocudos/BAM/MN00119.bam'
+    MN00316:
+        paths:
+            MN00316: '~/Project/Botocudos/BAM/MN00316.bam'
+    MN00346:
+        paths:
+            MN00346: '~/Project/Botocudos/BAM/MN00346.bam'
+    MN01701:
+        paths:
+            MN01701: '~/Project/Botocudos/BAM/MN01701.bam'
+    MN1943:
+        paths:
+            MN1943: '~/Project/Botocudos/BAM/MN1943.bam'

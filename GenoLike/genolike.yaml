@@ -1,0 +1,40 @@
+# Minimum base quality to consider for sampling an allele
+BaseQuality: 
+    20
+
+# Should all observed alleles be considered when computing 
+# allele frequencies to sample a base
+# "" or "--allmutations"
+allmutations: 
+    ""
+
+# Threads per chromosomes
+nThreads:
+    8
+#==============================================================================#
+# Panel(s) to which samples will be merged
+panels: 
+    Jorde_Wollstein_hg19_final_noseconddegree_geno01:
+        type:
+            "bed"
+        path:
+            "Jorde_Wollstein_hg19_final_noseconddegree_geno01.bed"
+        GenoLike:
+            homozygous: "yes"
+            rmdamage: "yes"
+bamlists:
+    Boto8:
+        minQ: 20
+        minmapQ: 30
+        trim: "-trim 5"
+        paths:
+            Boto8: "~/scratch_temporary/Botocudos/BAM/2019_06_13/MN0008/MN0008.bam"
+            Libs: "~/scratch_temporary/Botocudos/BAM/2019_06_13/MN0008/{S1/S1,L2/L2,L3U/L3U}.bam"
+    # Boto_Posth_M2014_fV:
+    #     paths:
+            # Remember to add "/*bam" at the end
+            # Botocudos: "~/Project/Botocudos/BAM/*bam"
+            # Posth: "~/Project/Americas/Posth/BAM/*bam"
+            # Malaspinas2014: "~/Project/Botocudos/Malaspinas2014/*bam"
+            # fromVictor_Ancient: "~/Project/Americas/fromVictor/Ancient/*bam"
+            # fromVictor_Modern : "~/Project/Americas/fromVictor/Modern/*bam"
