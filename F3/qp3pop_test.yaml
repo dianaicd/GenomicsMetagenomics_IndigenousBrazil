@@ -1,0 +1,39 @@
+Source1:
+  "Source1.txt"
+Source2:
+  "Source2.txt"
+Outgroup:
+  "Yorubas"
+ind_pop: 
+  "ind_pop.txt"
+  
+panels: 
+    # Maanasa_mask1_flip:
+        
+    #     # bed, vcf, bim
+    #     type:
+    #         "bed"
+    #     path: 
+    #         "Maanasa_mask1_flip.bed"
+        
+    #     # Genotype likelihoods specifications
+    #     GenoLike:
+    #         # Should genotypes in this panel
+    #         # be recoded as homozygous ( 0 0 1, 1 0 0)?
+    #         # Should transitions be removed?
+    #         homozygous: "yes"
+    #         rmdamage: "no"
+
+    #     NGSAdmix:
+    #         run: "yes"
+    #         K: 15
+    #         rep: 100
+
+  h:
+    type: 
+      "bed"
+    path: 
+      "h_merged.bed"
+    #     GenoLike:
+    #          homozygous: "yes"
+    #          rmdamage: "yes"
