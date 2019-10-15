@@ -84,7 +84,7 @@ def combine_pops(pops_h1, pops_h2, pops_h3, outgroup, output):
     h1 = read_pops(pops_h1)
     h2 = read_pops(pops_h2)
     h3 = read_pops(pops_h3)
-    h1_h2 = [subset for subset in itertools.product(h1,h2) if subset[0] != subset[1] ]
+    h1_h2 = [subset for subset in itertools.combinations(set(h1+h2),2) if subset[0] != subset[1] ]
 
     with open(output, 'w') as outFile:
         [outFile.write("\t".join([combination[0], combination[1], pop3, outgroup])+"\n") 
