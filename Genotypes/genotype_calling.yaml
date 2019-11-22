@@ -1,6 +1,14 @@
+# Reference genome
+ref_genome:
+  "/scratch/axiom/FAC/FBM/DBC/amalaspi/popgen/reference_human/hs.build37.1/hs.build37.1.fa"
+
 # Minimum base quality to consider for sampling an allele
 BaseQuality: 
     20
+
+Genos_Moreno2019:
+  "Yes"
+
 #==============================================================================#
 # Panel(s) to which samples will be merged
 panels: 
@@ -110,7 +118,7 @@ bamlists:
             MN0008: '~/americas/Botocudos/BAM/2019_06_13/MN0008/MN0008.bam'
     L3U:
         paths:
-            MN0008_L3U: '~/americas/Botocudos/BAM/2019_09_23/MN0008/L3U/library_rmdup/L3U.bam '
+            MN0008_L3U: '~/americas/Botocudos/BAM/2019_09_23/MN0008/L3U/library_rmdup/L3U.bam'
     LagoaSta:
         paths:
             LagoaSanta_called: '~/americas/fromVictor/Ancient/LagoaSta.bam'

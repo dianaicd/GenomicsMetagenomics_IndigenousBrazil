@@ -2,7 +2,9 @@
 configfile: "genotype_calling.yaml"
 # Call genotypes on a medium/high coverage sample
 # and merge to a panel
-
+def param_is_defined(name, default_par = False):
+    myParameter = config[name] if name in config.keys() else default_par
+    return(myParameter)
 #-----------------------------------------------------------------------------#
 # Variables and functions to begin with
 chromosomes = [str(x) for x in range(1,23)] 
@@ -59,16 +61,27 @@ rule call_genos:
         minMapQ=30,
         minBaseQ=20,
         ref = "/scratch/axiom/FAC/FBM/DBC/amalaspi/popgen/reference_human/hs.build37.1/hs.build37.1.fa",
-        threads = 4
+        threads = 4,
+        moreno2019 = param_is_defined("Genos_Moreno2019", "Yes")
     shell:
         """
-            bcftools mpileup -C 50 -q {params.minMapQ} -Q {params.minBaseQ} -a FMT/DP,SP \
-                    -f {params.ref} --threads {params.threads} -r {wildcards.chr} \
-                    -R {input.positions} -Ou  {input.bamfile} | \
-                bcftools annotate -c RPB | \
-                bcftools call --threads {params.threads} -c -V indels \
-                    -Ob -o {output.raw_genos} \
-            2>{log}
+            if [ {params.moreno2019} == "Yes" ]
+            then
+                samtools mpileup -q {params.minMapQ} \
+                -t DP -C50 -uf {params.ref} -l {input.positions} \
+                {input.bamfile} | bcftools call -f GQ -c \
+                --threads {params.threads} \
+                -Ob -o {output.raw_genos}  \
+                2>{log}
+            else
+                bcftools mpileup -C 50 -q {params.minMapQ} -Q {params.minBaseQ} -a FMT/DP,SP \
+                        -f {params.ref} --threads {params.threads} -r {wildcards.chr} \
+                        -R {input.positions} -Ou  {input.bamfile} | \
+                    bcftools annotate -c RPB | \
+                    bcftools call --threads {params.threads} -c -V indels \
+                        -Ob -o {output.raw_genos} \
+                2>{log}
+            fi
         """
 
 rule filter_genos:
@@ -81,23 +94,42 @@ rule filter_genos:
         genoqual = 30,
         allelic_imbalance = 0.2,
         read_position_bias = 0,
-        variant_distance_bias = 0
+        variant_distance_bias = 0,
+        moreno2019 = param_is_defined("Genos_Moreno2019", "Yes")
     log:
         "logs/{bamfile}_{panel}_{chr}.log"
     shell:
         """
-        bcftools filter --threads {params.threads} --exclude \
-            "(SP > 40) 
-                || (GT='het' && 
+        if [ {params.moreno2019} == "Yes" ]
+        then
+
+            bcftools filter --threads {params.threads} \
+            --SnpGap 5 --IndelGap 5 \
+             --exclude "QUAL<{params.genoqual} | 
+             PV4[0]<0.0001 | PV4[1]=0 | PV4[2]=0 | PV4[3]<0.0001 | 
+             RPB=0 | 
+             (GT='het' && 
                         ( (DP4[0]+DP4[1])/SUM(DP4) <= {params.allelic_imbalance} ||
                         (DP4[2]+DP4[3])/SUM(DP4) <= {params.allelic_imbalance}  )
-                    )
-                || (REF='C' & ALT='T') || (REF=='T' & ALT == 'C')
-                || (REF='G' & ALT='A') || (REF=='A' & ALT == 'G')
-                || N_ALT > 1 || QUAL <= {params.genoqual} 
-                || VDB == {params.variant_distance_bias} 
-                || RPB == {params.read_position_bias}" \
-            -o {output.filtered_genos} {input.raw_genos} 2>> {log}
+                    )"\
+            {input.raw_genos} | grep -v INDEL |\
+            bcftools view -Ob -o {output.filtered_genos}
+
+        else
+
+            bcftools filter --threads {params.threads} --exclude \
+                "(SP > 40) 
+                    || (GT='het' && 
+                            ( (DP4[0]+DP4[1])/SUM(DP4) <= {params.allelic_imbalance} ||
+                            (DP4[2]+DP4[3])/SUM(DP4) <= {params.allelic_imbalance}  )
+                        )
+                    || (REF='C' & ALT='T') || (REF=='T' & ALT == 'C')
+                    || (REF='G' & ALT='A') || (REF=='A' & ALT == 'G')
+                    || N_ALT > 1 || QUAL <= {params.genoqual} 
+                    || VDB == {params.variant_distance_bias} 
+                    || RPB == {params.read_position_bias}" \
+                -o {output.filtered_genos} {input.raw_genos} 2>> {log}
+        fi
             """
 
 
