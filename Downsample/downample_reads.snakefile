@@ -2,18 +2,18 @@
 import numpy as np 
 from io import StringIO
 
-configfile: "todownsample.yaml"
+configfile: "multiple_purposes.yaml"
 
-samples = [sample for sample in config["samples"].split(" ")]
-number_reads = [3*pow(10, n) for n in range(2, 9)]
-depths = [0.01, 0.05, 0.1, 0.5, 1, 2, 9]
-
+samples = [sample for sample in list(config["downsample"]["groups"].keys())]
+#number_reads = [3*pow(10, n) for n in range(2, 9)]
+#depths = [0.01, 0.05, 0.1, 0.5, 1, 2, 9]
+depths = [10,15]
 wildcard_constraints:
     n = "\d+"
 
 rule all:
     input:
-        downsampled = expand("Downsampled/{depth}/{sample}_{depth}x.bam", 
+        downsampled = expand("{depth}/{sample}_{depth}x.bam", 
                             sample = samples,
                             depth = depths)
 
@@ -36,10 +36,10 @@ rule index:
 
 rule length:
     input:
-        bam="{file}.bam",
-        bai="{file}.bam.bai"
+        bam="{file}.{chr}.bam",
+        bai="{file}.{chr}.bam.bai"
     output:
-        length="{file}.length"
+        length="{file}.{chr}.length"
     shell:
         "cat {input.bam} |"
         "python ~/data/Git/Botocudos-scripts/DataQuality/read_length.py -o {output.length} ;"
@@ -64,22 +64,60 @@ rule length:
 #         reads_to_sample = [(d, int(d*total_reads/coverage)) for d in depths] 
 #         np.savetxt(fname = {output.downsample}, X = reads_to_sample, fmt = "%.5f %d")
 
-rule shuf:
+rule bam_chr:
     input:
-        bam = "{sample}.bam",
-        idxstats = "{sample}_idxstats.txt",
-        length = "{sample}.length"
+        bam = "{sample}.bam"
     output:
-        bam = "{folder}/{sample}_{depth}x.bam",
-        sam = temp("{folder}/{depth}/{sample}_{depth}x.sam")
+        bam = temp("{sample}.{chr}.bam")
     shell:
         """
+        samtools view -b {input.bam} {wildcards.chr} > {output.bam}
+        """
+
+
+rule shuf:
+    input:
+       # folder = "{depth}",
+        bam = "{sample}.{chr}.bam",
+        idxstats = "{sample}_idxstats.txt",
+        length = "{sample}.{chr}.length"
+    wildcard_constraints:
+        depth = "|".join([str(x) for x in depths])
+    output:
+        sam = temp("{depth}/{sample}_{depth}x_{chr}.sam")
+    shell:
+        """
+        mkdir -p {wildcards.depth}
         numReads=$(python ~/data/Git/Botocudos-scripts/Downsample/calc_nReads.py \
           -i {input.idxstats} -l {input.length} -d {wildcards.depth})
 
         samtools view -H {input.bam} | \
             sed "s/SM:{wildcards.sample}/SM:{wildcards.sample}_{wildcards.depth}/" \
             > {output.sam} ;
-        samtools view {input.bam} |shuf -n $numReads >> {output.sam} 
-        samtools view -b {output.sam} |samtools sort > {output.bam}
+        samtools view {input.bam} | shuf -n $numReads >> {output.sam} 
+        """
+
+rule sort:
+    input:
+        sam = "{depth}/{sample}_{depth}x_{chr}.sam"
+    wildcard_constraints:
+        depth = "|".join([str(x) for x in depths])
+    output:
+        bam = "{depth}/{sample}_{depth}x_{chr}.bam"
+    params:
+        mem_sort = config["downsample"]["mem_sort"]
+    shell:
+        """
+        samtools view -b {output.sam} |samtools sort -m {params.mem_sort} > {output.bam}
+        """
+
+rule merge:
+    input:
+        bam = expand("{depth}/{sample}_{depth}x_{chr}.bam", chr = [str(x) for x in range(1,23)],
+                    depth = "{depth}", sample = "{sample}")
+    output:
+        bam = "{depth}/{sample}_{depth}x.bam"
+    shell:
+        """
+        samtools merge {output.bam} {input.bam}
         """
