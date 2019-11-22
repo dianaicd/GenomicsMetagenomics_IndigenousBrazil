@@ -64,13 +64,15 @@ def combine_pops(pops_h1, pops_h2, pops_h3, outgroup, output):
     h1 = read_pops(pops_h1)
     h2 = read_pops(pops_h2)
     h3 = read_pops(pops_h3)
-    h1_h2 = [subset for subset in itertools.combinations(set(h1+h2),2) if subset[0] != subset[1] ]
+    h1_h2 = [subset for subset in itertools.combinations(set(h1+h2),2) if subset[0] != subset[1] and subset[0] != outgroup and subset[1] != outgroup]
 
     with open(output, 'w') as outFile:
         [outFile.write("\t".join([combination[0], combination[1], pop3, outgroup])+"\n") 
             for combination in h1_h2 
-            for pop3 in h3 if pop3 not in combination]
-combine_pops(pops_h1, pops_h2, pops_h3, pops_outgroup, panel + ".combinations")
+            for pop3 in h3 if pop3 not in combination and pop3 != outgroup]
+
+if not os.path.exists(panel+".combinations"):
+    combine_pops(pops_h1, pops_h2, pops_h3, pops_outgroup, panel + ".combinations")
 
 wildcard_constraints:
     myRange =  "(" + "|".join([r for r in expand_range(panel)])+ ")"
@@ -145,5 +147,6 @@ rule wrap_qpDstat:
 
     shell:
         """
-            cat {input.dstat} |  grep -P "result:" | sed 's/ \+/\t/g' | cut -f2- | sort -nrk6 > {output.result}
+            #myFiles=({input.dstat})
+            cat Results/*/{panel}_*.qpDstat.results |  grep -P "result:" | sed 's/ \+/\\t/g' | cut -f2- | sort -nrk6 > {output.result}
         """
