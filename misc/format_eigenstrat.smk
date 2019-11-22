@@ -33,7 +33,8 @@ def read_pops(fileName):
 # Define rules
 rule all:
     input:
-        par_conversion = "{panel}_ped2eigenstrat.par".format(panel = panel)
+        par_conversion = "{panel}_ped2eigenstrat.par".format(panel = panel),
+        mod_ind = "{panel}.mod.ind".format(panel = panel)
 #=============================================================================#
 # Clean data and get things in the rigth format
 # The genotypes should be converted to eigenstrat format
@@ -51,7 +52,7 @@ rule make_short_ids:
 
         with open(input.ind, 'r') as fam, open(output.ind, 'w') as pedind, open(output.link_table, 'w') as link:
             for i,line in enumerate(fam.readlines()):
-                fam,ind,dad,mom,sex,pheno = line.replace("\n","").split("\t")
+                fam,ind,dad,mom,sex,pheno = line.replace("\n","").split()
                 pop = myPops[ind]
                 pedind.write(" ".join([str(i+1),str(i+1),dad,mom,sex,"1"]) + "\n")
                 link.write("\t".join([fam,ind,pop,str(i+1)]) + "\n")
