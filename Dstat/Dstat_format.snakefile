@@ -99,7 +99,7 @@ rule make_short_ids:
 
         with open(input.ind, 'r') as fam, open(output.ind, 'w') as pedind, open(output.link_table, 'w') as link:
             for i,line in enumerate(fam.readlines()):
-                fam,ind,dad,mom,sex,pheno = line.replace("\n","").split("\t")
+                fam,ind,dad,mom,sex,pheno = line.replace("\n","").split()
                 pop = myPops[ind]
                 pedind.write(" ".join([str(i+1),str(i+1),dad,mom,sex,"1"]) + "\n")
                 link.write("\t".join([fam,ind,pop,str(i+1)]) + "\n")
@@ -111,6 +111,7 @@ rule update_ids:
     output:
         new_ped = "{panel}_newID.ped",
         new_fam = "{panel}_newID.fam",
+        bim = "{panel}_newID.bim",
         tmp_fam = temp("{panel}_newID.tmp.fam")
     shell:
         """
@@ -187,10 +188,10 @@ rule par_dstat:
         argument=(genotype snpname indivname poplistname popfilename 
                     f4mode) 
 
-        options=({input.geno} {input.snp} {input.ind} {input.popname} {input.popfile} 
+        options=({input.geno} {input.snp} {input.ind} {input.popname} {input.pop_file} 
                 {params.f4}) 
         
-        for i in $(seq 0 6) 
+        for i in $(seq 0 5) 
         do 
           echo "${{argument[$i]}}: ${{options[$i]}}" >> {output.par} 
         done
