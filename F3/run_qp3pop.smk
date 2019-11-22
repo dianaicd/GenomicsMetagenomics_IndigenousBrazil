@@ -16,6 +16,7 @@ panels = [config["panels"][d]["path"].split(".")[0] for d in list(config["panels
 # named as "SourceN"
 source1 = config["Source1"] if "Source1" in config.keys() else False
 source2 = config["Source2"] if "Source2" in config.keys() else False
+outgroup = config["Outgroup"] if "Outgroup" in config.keys() else "Yorubas"
 
 rule all:
     input:
@@ -64,7 +65,7 @@ rule make_par:
         
         for i in $(seq 0 3)
         do
-            echo "${parops[$i]}: ${pargs[$i]}"    
+            echo "${{parops[$i]}}: ${{pargs[$i]}}"    
         done    >{output.par}
         """
 
