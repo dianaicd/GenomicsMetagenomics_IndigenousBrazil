@@ -1,380 +1,299 @@
-#!/bin/sh
-###############################################################################
-###############################################################################
-###     This is not yet a snakefile
-###
-###
-workdir=~/scratch_monthly/Botocudos/Het/2019_05_13
-cd $workdir
-gitpath=~/data/Git/Botocudos-scripts
-ln -s $gitpath/AlleleCounts/count_and_sample.py ./
-ln -s $gitpath/AlleleCounts/vcf_sample_random.py ./
-ln -s $gitpath/MDS/counts2dist.py ./
-ln -s $gitpath/het_pi_Skoglund.py ./
-ln -s $gitpath/Heterozygosity/remove_nondiallelic.r ./
+configfile: "multiple_purposes.yaml"
+import os,glob,itertools
 
-enough_jobs(){
-    maxJobs=$1
-    i=$2
-    launchedJobs=$(echo "($i + 1) % $maxJobs" |bc)
-    if [ $launchedJobs = 0 ]
-    then
-        echo "Waiting... $i"
-        wait
-    fi
-}
+path_vcf = "~/scratch_monthly/Simons/VCF/*"
+metadata_simons = "~/americas/Panels/SGDP/Simons_sample_pop_region_country.txt"
+# Don't forget to link required scripts
+gitpath="/users/dcruzdav/data/Git/Botocudos-scripts/"
+myPaths = ["AlleleCounts/count_and_sample.py",
+            "Heterozygosity/het_pi_Skoglund.py",
+            "Heterozygosity/remove_nondiallelic.r"]
+for p in myPaths:
+    myCommand = "ln -s " + gitpath + p + " ."
+    os.system(myCommand)
 
-# Compute heterozygosity as Pontus did before washing his hands
-#-----------------------------------------------------------------------------#
-# Select segregating sites in Sub-Saharan African populations
-vcfpath=~/scratch_monthly/Simons/VCF
-#cd $vcfpath
+chromosomes = [str(chr) for chr in range(1,23)]
 
-nThreads=6
-# Countries to select from
-countries=(BotswanaOrNamibia Central Congo Gambia Namibia Nigeria SierraLeone South)
+def expand_pop_inds(pop):
+    all_ind = list(config["Heterozygosity"]["populations"][pop].keys())
+    myCombinations = [pair for pair in itertools.combinations(all_ind, 2)]
+    prefix = ["{pop}/{ind1}_{ind2}".format(pop = pop, ind1 = ind1, ind2 = ind2)
+    for ind1,ind2 in myCombinations]
+    return(prefix)
 
-if [ -e $vcfpath/Africa/selected_Africans.txt ]
-then
-    rm $vcfpath/Africa/selected_Africans.txt
-fi
+all_pops = list(config["Heterozygosity"]["populations"].keys())
+all_prefix = [prefix for pop in all_pops for prefix in expand_pop_inds(pop)]
+all_ind = [ind for pop in all_pops for ind in list(config["Heterozygosity"]["populations"][pop].keys())]
+African = config["african_het"]
 
-for COUNTRY in ${countries[@]}
-do
-    ls $vcfpath/Africa/$COUNTRY*gz >>selected_Africans.txt
-done
+wildcard_constraints:
+    Chr =   "|".join(chromosomes)  ,
+    african =   African ,
+    ind1 = "(" + "|".join([ind for ind in all_ind])+ ")(?!_" + African + ")" 
+#=============================================================================#
+rule all:
+    input:
+        expand("{prefix}_{african}.pi.stats.txt", 
+        prefix = all_prefix, african = African)
 
-while read line
-do
-    name=$(basename $line .vcf.gz)
-    echo $name
-    bcftools view -m2 -M2 -Ou  -v snps  $line \
+rule fetch_heterozygous:
+    input:
+        vcf = "{name}.vcf.gz"
+    output:
+        "sites_het_{name}.txt"
+    shell:
+        """
+        bcftools view -m2 -M2 -Ou  -v snps {input.vcf}  \
         -e  'GT="hom" || (REF ~ "C" & ALT ~ "T") 
         || (REF ~ "G" & ALT ~ "A") || 
         (REF ~ "T" & ALT ~ "C") || (REF ~ "A" & ALT ~ "G")
         || (ALT ~ "C" & ALT ~ "T") ||(ALT ~ "G"& ALT ~ "A")' \
     | bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' \
-        > $vcfpath/Africa/sites_het_${name}.txt &
+        > {output}
+        """
 
-done < $vcfpath/Africa/selected_Africans.txt
+#  rule get_variants_all_pops:
+#     input:
+#         vcf = "{name}.vcf.gz",
+#         vcf_tbi = "{name}.vcf.gz.tbi"
+#     output:
+#         "NonDiallelic/nondiallelic_{name}.txt"
+#     shell:
+#         """
+#         bcftools view -m3 -Ou -v snps {input.vcf} \
+#         | bcftools query -f '%CHROM\t%POS\n' > \
+#             {output}
+#         """
 
-# Identify non-diallelic sites
-# This is bullshit
-allvcf=($(ls $vcfpath/*/*vcf.gz))
+# rule merge_variants:
+#     input:
+#         expand("NonDiallelic/nondiallelic_{name}.txt")
+#     output:
+#         "NonDiallelic/all_nondiallelic_{name}.txt"
+#     shell:
+#         """
+#         cat {input} |sort -nk1,2|uniq > {output}
+#         """
 
-if [ ! -d $vcfpath/NonDiallelic ] ; then mkdir $vcfpath/NonDiallelic ; fi 
-for vcf in ${allvcf[@]}
-do
-    name=$( basename $vcf .vcf.gz)
-    echo $name $vcf 
-    bcftools view -m3 -Ou -v snps $vcf \
-    | bcftools query -f '%CHROM\t%POS\n' > \
-    $vcfpath/NonDiallelic/nondiallelic_${name}.txt &
-done
+# rule rm_non_diallelic:
+#     input:
+#         "NonDiallelic/all_nondiallelic_{name}.txt"
+#     output:
+#         "Africa/sites_het_{name}.txt"
+#     shell:
+#         """
+#         Rscript remove_nondiallelic.r {input} {output}
+#         """
 
-cat $vcfpath/NonDiallelic/* |sort -nk1,2|uniq > $vcfpath/nondiallelic.txt
- 
-#-----------------------------------------------------------------------------#
-# Select one African individual e.g., Yoruba
-# Sample alleles for Botocudos according to heterozygous sites in Yoruba
-cd $workdir
+rule keep_chromosomes_in_bam:
+    input:
+        sites_afr = "sites_het_{african}.txt"
+    output:
+        refalt = "{african}.refalt"
+    shell:
+        """
+        chromosomes=({chromosomes})
+        # Get sites and reference, alternative alleles
 
-yoruba=$(grep -i yoruba $vcfpath/Africa/selected_Africans.txt |head -n1)
-# file with paths to 22 BAM files (Botocudos)
-bamfile=Botocudos
-panel=$(basename $yoruba .vcf.gz)
+        chromInPanel=($(cut -f1 {input.sites_afr} |sort |uniq))
+        for chr in ${{chromInPanel[@]}}
+        do
+            if [[ " ${{chromosomes[*]}} " == *$chr* ]]
+            then
+                echo $chr is desired
+            else
+                echo will remove $chr
+                sed -i "/$chr/d" {input.sites_afr}
+            fi
+        done
+        cat {input.sites_afr} |\
+            sed 's/\t/_/ ; s/A/0/g ; s/C/1/g ; s/G/2/g ; s/T/3/g' |cut -f1-3 >{output.refalt}
 
-# Remove non-diallelic sites
-Rscript remove_nondiallelic.r $vcfpath/nondiallelic.txt \
-    $vcfpath/Africa/sites_het_${panel}.txt
+        """
 
-chromosomes=($(seq 1 22) X Y)
+rule get_african_sites:
+    input:
+        sites_afr = "sites_het_{african}.txt"
+    output:
+        sites_bed = "{african}_{chr}_sites.bed"
+    shell:
+        """
+        cut -f 1,2 {input} |grep -P "^{wildcards.chr}\t"|\
+        awk '{{print($1"\t"$2-1"\t"$2)}}' >{output}
+        """
 
-# Get sites and reference, alternative alleles
-ln -s $vcfpath/Africa/sites_het_${panel}.txt ./
+def gimme_bam(ind, population):
+    myBam = config["Heterozygosity"]["populations"][population][ind]
+    return(myBam)
 
-chromInPanel=($(cut -f1 sites_het_${panel}.txt |sort |uniq))
-for chr in ${chromInPanel[@]}
-do
-    if [[ " ${chromosomes[*]} " == *$chr* ]]
-    then
-        : #echo $chr is desired
-    else
-        echo will remove $chr
-        sed -i "/$chr/d" sites_het_${panel}.txt
-    fi
-done
+def expand_path(ind, population):
+    path = config["Heterozygosity"]["populations"][population][ind]
+    full_path = os.path.expanduser(path) 
+    bam = glob.glob(full_path)
+    return(bam)
 
-cat sites_het_${panel}.txt |\
-sed 's/\t/_/ ; s/A/0/g ; s/C/1/g ; s/G/2/g ; s/T/3/g' >$panel.refalt
-
-# Run mpileup
-for chr in ${chromosomes[@]}
-do     
-    cut -f 1,2 sites_het_${panel}.txt |grep -P "^$chr\t"|\
-        awk '{print($1"\t"$2-1"\t"$2)}' >${panel}_${chr}_sites.bed
-
-    samtools mpileup -r $chr -Bl ${panel}_${chr}_sites.bed \
-    -b Boto/$bamfile \
-     -a -o Boto/$bamfile_${chr}.mpileup -Q20 \
-      > Boto/out_mpileup_${chr}.txt 2> Boto/err_mpileup_${chr}.txt & 
-done
-  { sleep 5; echo waking up after 5 seconds; } &
-  { sleep 1; echo waking up after 1 second; } &
-  wait
-  echo "Samtools mpileup done"
-
-# Count alleles and sample one base at random
-if [ -e Boto/$bamfile.counts.sampled.txt ]
-then rm Boto/$bamfile.counts.sampled.txt 
-fi
-
-for chr in ${chromosomes[@]}
-do
-    python count_and_sample.py Boto/$chr.mpileup \
-        Boto/$chr.counts.gz Boto/$chr.sampled.gz Boto/$panel.refalt 
-
-    gunzip -c Boto/${chr}.sampled.gz >> Boto/$bamfile.counts.sampled.txt
-done
-
-python3.5 het_pi_Skoglund.py -c Boto/$bamfile.counts.sampled.txt \
- -s Boto/$panel.refalt -o Boto/$bamfile
-
-#-----------------------------------------------------------------------------#
-# Sample random alleles for BAM files from the Americas shared by Víctor
-fromVictor=~/Project/Americas/fromVictor
-allpops=($( cat $fromVictor/ind_pop_region.txt \
-        |grep Americas | cut -f2 |sed 's/ Americas//'|sort |uniq))
-yoruba=$(grep -i yoruba $vcfpath/Africa/selected_Africans.txt |head -n1)
-
-panel=$(basename $yoruba .vcf.gz)
-
-chromosomes=($(seq 1 22) X Y)
-
-# Get sites and reference, alternative alleles
-ln -s $vcfpath/sites_het_${panel}.txt ./
-
-chromInPanel=($(cut -f1 sites_het_${panel}.txt |sort |uniq))
-for chr in ${chromInPanel[@]}
-do
-    if [[ " ${chromosomes[*]} " == *$chr* ]]
-    then
-        : #echo $chr is desired
-    else
-        echo will remove $chr
-        sed -i "/$chr/d" sites_het_${panel}.txt
-    fi
-done
-
-for chr in ${chromosomes[@]}
-do     
-    cut -f 1,2 sites_het_${panel}.txt |grep -P "^$chr\t"|\
-            awk '{print($1"\t"$2-1"\t"$2)}' >${panel}_${chr}_sites.bed
-done
-
-cat sites_het_${panel}.txt |\
-    sed 's/\t/_/ ; s/A/0/g ; s/C/1/g ; s/G/2/g ; s/T/3/g' >$panel.refalt
-
-for pop in ${allpops[@]}
-do
-    echo $pop
-    mkdir $pop 
-    samples=($(grep $pop ~/Project/Americas/fromVictor/ind_pop_region.txt |cut -f1 |sed 's/$/.bam/'))
-
-    if [ -e $pop/$pop ] ; then rm $pop/$pop ; fi
-    for s in ${samples[@]} ; do ls $fromVictor/{Ancient,Modern}/$s >>$pop/$pop ; done
-
-    bamfile=$pop/$pop
-
-    # Run mpileup
-    for chr in ${chromosomes[@]}
-    do
-        samtools mpileup -r $chr -Bl ${panel}_${chr}_sites.bed -b $bamfile \
-        -a -o $pop/$bamfile_${chr}.mpileup -Q20 \
-        > $pop/out_mpileup_${chr}.txt 2> $pop/err_mpileup_${chr}.txt & 
-    done
-    { sleep 5; echo waking up after 5 seconds; } &
-    { sleep 1; echo waking up after 1 second; } &
-    wait
-    echo "Samtools mpileup done"
-
-    # Count alleles and sample one base at random
-    if [ -e $bamfile.counts.sampled.txt ] ; then rm $bamfile.counts.sampled.txt ; fi     
-
-    for chr in ${chromosomes[@]}
-    do
-
-        python count_and_sample.py --mpileup $pop/$chr.mpileup \
-            --counts $pop/$chr.counts.gz --sampled $pop/$chr.sampled.gz --refalt $panel.refalt 
-
-        gunzip -c $pop/${chr}.sampled.gz >> $bamfile.counts.sampled.txt
-    done
-
-    python3.5 het_pi_Skoglund.py --counts $pop/$pop.counts.sampled.txt  \
-    --sites $panel.refalt --output $pop/$pop --autosomes_only
-
-done
-
-#-----------------------------------------------------------------------------#
-# Sample random alleles for all populations in SGDP (VCF)
-nThreads=1
-maxJobs=150
-allpops=($(cut -f4 ~/Project/Simons/Simons_sample_pop_region_country.txt \
-            |sort |uniq |grep -v Population))
-
-i=0
-
-if [ ! -d Merged ] ; then mkdir Merged ; fi
-chromosomes=($(seq 1 22) X Y)
-for pop in ${allpops[@]}
-do
-    echo $pop
-    samples=($(ls ~/scratch_monthly/Simons/VCF/*/*${pop}*vcf.gz))
-    for chr in ${chromosomes[@]}
-    do
-        launchedJobs=$(echo "($i + 1) % $maxJobs" |bc)
-        if [ $launchedJobs = 0 ]
-        then
-            echo "Waiting... $i"
-            wait
-        fi
-        if [ ! -d $pop ] ; then mkdir $pop ; fi
-        bcftools merge -0R ${panel}_${chr}_sites.bed --force-samples \
-         -Ob $yoruba ${samples[@]} >Merged/${panel}_${pop}_${chr}.bcf &
-    done
-done ; wait 
-
-# Look for non-diallelic sites
-if [ ! -d NonDiallelic ] ; then mkdir NonDiallelic ; fi
-rm NonDiallelic/*
-for pop in ${allpops[@]}
-do
-    echo $pop
-    for chr in ${chromosomes[@]}
-    do
-        bcftools index -f Merged/${panel}_${pop}_${chr}.bcf
-        bcftools view -m3 -v snps Merged/${panel}_${pop}_${chr}.bcf |
-        bcftools query -f '%CHROM\t%POS\n' >> NonDiallelic/${panel}_${chr}.txt
-    done
-
-done ; wait 
-
-if [ -e $panel.refalt ] ; then rm ${panel}.refalt ; fi
-for chr in ${chromosomes[@]}
-do
-    cut -f 1,2 sites_het_${panel}.txt |grep -P "^$chr\t" >${panel}_${chr}.txt
-    Rscript remove_nondiallelic.r  NonDiallelic/${panel}_${chr}.txt ${panel}_${chr}.txt
-    cat ${panel}_${chr}.txt >> $panel.refalt
-done ; wait
-
-
-maxJobs=5
-i=0
-for pop in ${allpops[@]}
-do    
-    echo $pop
-    if [ -e $pop/$pop.counts ] ; then rm $pop/$pop.counts ; fi
-    samples=($(ls ~/scratch_monthly/Simons/VCF/*/*${pop}*vcf.gz))
-    lastField=$( echo ${#samples[@]} +1|bc)
-
-    for chr in ${chromosomes[@]}
-    do 
-        echo $chr
-        bcftools view -R ${panel}_${chr}.txt Merged/${panel}_${pop}_${chr}.bcf -Ou| \
-         bcftools query -f '[%GT\t]\n' | \
-            cut -f2-$lastField |sed 's|0/1|0\t1|g ; s|1/1|1\t1|g ; s|0/0|0\t0|g' \
-            >$pop/$pop.${chr}.counts &
-    done
-    enough_jobs $maxJobs $i
-    i=$(echo $i + 1|bc )
-done ; wait
-
-
-maxJobs=130
-i=0
-for pop in ${allpops[@]}
-do    
-    echo $pop
-    if [ -e $pop/$pop.counts.txt ] ; then rm $pop/$pop.counts.txt ; fi
-    for chr in ${chromosomes[@]}
-    do 
-        cat  $pop/$pop.${chr}.counts   >>$pop/$pop.counts.txt 
-    done
-    ncol=$(head -n1 $pop/$pop.counts.txt |wc -c)
-    if [ $ncol -ge 4 ]
-    then
-        python3.5 het_pi_Skoglund.py --counts $pop/$pop.counts.txt \
-            --sites $panel.refalt --output $pop/$pop --random_seed 123 \
-            --called_genotypes &
-        sleep 5s
+rule make_lists:
+    input:
+        bam1 = lambda wildcards: expand_path(wildcards.ind1, wildcards.population),
+        bam2 = lambda wildcards: expand_path(wildcards.ind2, wildcards.population)
+    output:
+        bams_list = "{population}/{ind1}_{ind2}.txt"
+    run:
+        with open(output.bams_list, 'w') as output:
+            output.write(input.bam1[0] + "\n")
+            output.write(input.bam2[0] + "\n")
     
-        enough_jobs $maxJobs $i
-        i=$(echo $i + 1|bc )
-    fi
-done ; wait
+rule do_mpileup:
+    input:
+        sites_afr = "sites_het_{african}.txt",
+        sites_bed = "{african}_{chr}_sites.bed",
+        bams_list = "{population}/{ind1}_{ind2}.txt"
+    output:
+        mpileup = "{population}/{ind1}_{ind2}_{chr}_{african}.mpileup"
+    log:
+        "{population}/{ind1}_{ind2}_{chr}_{african}.log"
+    shell:
+        """
+        samtools mpileup -r {wildcards.chr} \
+        -Bl {input.sites_bed} \
+        -b {input.bams_list} \
+        -a -o {output.mpileup} \
+        -Q20 \
+        > {log}
+        """
 
+rule count_and_sample_bam:
+    input:
+        mpileup = "{population}/{ind1}_{ind2}_{chr}_{african}.mpileup",
+        refalt = "{african}.refalt"
+    output:
+        sampled = "{population}/{ind1}_{ind2}_{chr}_{african}.sampled.gz",
+        counts = "{population}/{ind1}_{ind2}_{chr}_{african}.counts.gz"
+
+    shell:
+        """
+        python count_and_sample.py \
+        --mpileup {input.mpileup} \
+        --counts {output.counts} \
+        --sampled {output.sampled} \
+        --refalt {input.refalt}
+        """
+
+rule merge_counts:
+    input:
+        sampled = expand("{population}/{ind1}_{ind2}_{chr}_{african}.sampled.gz", chr = chromosomes, 
+        ind1 = "{ind1}", ind2 = "{ind2}", 
+        population = "{population}", african = African)
+    output:
+        sampled = "{population}/{ind1}_{ind2}_{african}.sampled.txt"
+    shell:
+        """
+        for file in {input.sampled}
+        do
+            gunzip -c $file 
+        done > {output.sampled}
+        """
+
+rule het_pi_Skoglund:
+    input:
+        sampled = "{population}/{ind1}_{ind2}_{african}.sampled.txt",
+        sites = "{african}.refalt"
+    output:
+        pi = "{population}/{ind1}_{ind2}_{african}.pi.stats.txt"
+    shell:
+        """
+        python3.6 het_pi_Skoglund.py \
+        -c {input.sampled} \
+        -s {input.sites} \
+        -o {wildcards.population}/{wildcards.ind1}_{wildcards.ind2}_{wildcards.african}
+    """
 #-----------------------------------------------------------------------------#
-# Sample random alleles for all populations in Team A,B (BAM)
-source ~/data/Git/Botocudos-scripts/misc/source4merging.sh
-bamlist=TeamAB
-make_bamlist -s $bamlist -o $bamlist
-sed -i '/0.0/d' $bamlist
-mpileup --panel $panel --bamlist $bamlist \
-    --chromosomes "$(echo ${chromosomes[@]})"
+# Rules below are run for data in vcf.gz
+# rule get_pops_SGDP:
+#     input:
+#         metadata = metadata_simons
+#     output:
+#         "SGDP_pops.txt"
+#     shell:
+#         """
+#         cut -f4 {input} \
+#             |sort |uniq |grep -v Population > {output}
+#         """
 
-sample_mpileup --bamlist $bamlist --panel $panel \
-    --chromosomes "$(echo ${chromosomes[@]})"
+# rule merge_vcf_pop_chr:
+#     input:
+#         pop_list = "SGDP_pops.txt",
+#         sites_bed = "{african}_{chr}_sites.bed"
+#     output:
+#         vcf_gz = "Merged/{african}_{pop}_{chr}.vcf.gz"
+#     params:
+#         path_vcf = path_vcf
+#     shell:
+#         """
+#         samples=($(ls {params.path_vcf}/*{wildcards.pop}*vcf.gz))
 
-indices=/home/dcruzdva/archive/BAM/Reich_A_B/README_Bteam
+#         bcftools merge -0R {input.sites_bed} --force-samples \
+#          -Oz {wildcards.african} ${{samples[@]}} > {output.vcf}
+#         """
 
-# What about sampling with replacement?
-while read line 
-do
-    id=$(echo $line | sed 's|.*/|| ; s/-dedup.*//')
-    index=$(grep $id $indices |cut -f1)
-    pop=$(grep $id $indices |cut -f2)
-    echo "$id corresponds to line $index and pop $pop"
-    i=$(echo "($index-1)*2 + 1" |bc -l )
-    j=$(echo "$i+1" |bc) 
-    echo $i,$j
-    #cut -f$i,$j -d ' ' $bamlist.counts.sampled.txt > $pop.counts.txt
-    if [ -e $pop.counts.txt ] ; then rm $pop.counts.txt ; fi 
-    for chr in ${chromosomes[@]}
-    do 
-        less ${bamlist}_${chr}.counts.gz | cut -f $i,$j -d ' ' >> $pop.counts.txt
-    done
+# rule index_vcf:
+#     input:
+#         "{file}.vcf.gz"
+#     output:
+#         "{file}.vcf.gz.tbi"
+#     shell:
+#         """
+#         bcftools index -t {input}
+#         """
 
-    paste -d ' ' $pop.counts.txt $pop.counts.txt > tmp.counts ; mv tmp.counts $pop.counts.txt
-    python count_and_sample.py \
-        --counts $pop.counts.txt \
-            --sampled ${pop}.sampled.gz \
-            --refalt ${panel}.refalt
+# rule count_from_vcf:
+#     input:  
+#         diallelic = "Africa/sites_het_{african}_{pop}_{chr}.txt",
+#         merged_vcf = "Merged/{african}_{pop}_{chr}.vcf.gz"
+#     output:
+#         counts_pop = "{pop}/{african}.{pop}.{chr}.counts"
+#     params:
+#         path_vcf = path_vcf
+#     shell:
+#         """
+#         samples=($(ls {params.path_vcf}/*{pop}*vcf.gz))
+#         lastField=$( echo ${{#samples[@]}} +1|bc)
 
-    python3.5 het_pi_Skoglund.py --counts $pop.sampled.gz  \
-        --sites $panel.refalt --output $pop &
-done < $bamlist 
+#         bcftools view -R {input.diallelic}  -Ou {input.merged_vcf} | \
+#          bcftools query -f '[%GT\t]\n' | \
+#             cut -f2-$lastField |sed 's|0/1|0\t1|g ; s|1/1|1\t1|g ; s|0/0|0\t0|g' \
+#             > {output.counts_pop}
 
-python3.5 het_pi_Skoglund.py --counts $pop.sampled.gz  \
-    --sites $panel.refalt --output $pop 
+#         """
 
-# And what about sampling without replacement?
-while read line 
-do
-    id=$(echo $line | sed 's|.*/|| ; s/-dedup.*//')
-    index=$(grep $id $indices |cut -f1)
-    pop=$(grep $id $indices |cut -f2)
-    echo "$id corresponds to line $index and pop $pop"
-    i=$(echo "($index-1)*2 + 1" |bc -l )
-    j=$(echo "$i+1" |bc) 
-    echo $i,$j
-    #cut -f$i,$j -d ' ' $bamlist.counts.sampled.txt > $pop.counts.txt
-    if [ -e $pop.counts.txt ] ; then rm $pop.counts.txt ; fi 
-    for chr in ${chromosomes[@]}
-    do 
-        less ${bamlist}_${chr}.counts.gz | cut -f $i,$j -d ' ' >> $pop.counts.txt
-    done
-    
-    python3.5 het_pi_Skoglund.py --counts $pop.counts.txt  \
-        --sites $panel.refalt --output $pop 
+# rule merge_counts:
+#     input:
+#         expand("{pop}/{african}.{pop}.{chr}.counts")
+#     output:
+#         "{pop}/{african}.{pop}.counts.txt "
+#     shell:
+#         """
+#         cat {input} > {output}
+#         """
 
-done < $bamlist 
+# rule het_pi_Skoglund_called_genos:
+#     input:
+#         refalt = "{african}.refalt",
+#         counts = "{pop}/{african}.{pop}.counts.txt"
+#     output:
+#     params:
+#         seed = 123
+#     shell:
+#         """
+#         ncol=$(head -n1 {input.counts} |wc -c)
+#         if [ $ncol -ge 4 ]
+#         then
+#             python3.5 het_pi_Skoglund.py --counts {input.counts} \
+#                 --sites {input.refalt} \
+#                 --output {wildcards.pop}/{wildcards.pop} \
+#                 --random_seed {params.seed} \
+#                 --called_genotypes
+#         else
+#             touch {output}
+#         fi
+#         """
