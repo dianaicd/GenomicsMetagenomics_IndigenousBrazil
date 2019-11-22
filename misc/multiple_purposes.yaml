@@ -1,0 +1,419 @@
+# Reference genome
+ref_genome:
+  "/scratch/axiom/FAC/FBM/DBC/amalaspi/popgen/reference_human/hs.build37.1/hs.build37.1.fa"
+
+# Minimum base quality to consider for sampling an allele
+BaseQuality: 
+  20
+MapQuality:
+  30
+#=============================================================================#
+# Heterozygosity
+african_het:
+  "Nigeria_B_Yoruba-3"
+# Path to SGDP (.vcf.gz)
+vcf_path:
+  "SS6004475.annotated.nh.vcf.gz"
+
+Heterozygosity:
+  populations:
+    Mbuti:
+      HGDP00456: "~/americas/Panels/TeamAB_fclement/HGDP00456.flt.sort.rmdup.realign.md.bam"
+      SS6004471: "~/americas/Panels/TeamAB_fclement/SS6004471-dedup.rg.bam"
+    Dai:
+      SS6004467: "~/americas/Panels/TeamAB_fclement/SS6004467-dedup.rg.bam"
+      HGDP01307: "~/americas/Panels/TeamAB_fclement/HGDP01307.flt.sort.rmdup.realign.md.bam"
+    French:
+      SS6004468: "~/americas/Panels/TeamAB_fclement/SS6004468-dedup.rg.bam"
+      HGDP00521: "~/americas/Panels/TeamAB_fclement/HGDP00521.flt.sort.rmdup.realign.md.bam"
+    Han:
+      SS6004469: "~/americas/Panels/TeamAB_fclement/SS6004469-dedup.rg.bam"
+      HGDP00778: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00778.flt.sort.rmdup.realign.md.bam"
+    Mandenka:
+      SS6004470: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004470-dedup.rg.bam"
+      HGDP01284: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP01284.flt.sort.rmdup.realign.md.bam"
+    Papuan:
+      SS6004472: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004472-dedup.rg.bam"
+      HGDP00542: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00542.flt.sort.rmdup.realign.md.bam"
+    San:
+      SS6004473: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004473-dedup.rg.bam"
+      HGDP01029: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP01029.flt.sort.rmdup.realign.md.bam"
+    Sardinian:
+      SS6004474: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004474-dedup.rg.bam"
+      HGDP00665: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00665.flt.sort.rmdup.realign.md.bam"
+    Yoruba:
+      SS6004475: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004475-dedup.rg.bam"
+      HGDP00927: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00927.flt.sort.rmdup.realign.md.bam"
+    Karitiana:
+      SS6004476: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004476-dedup.rg.bam"
+      HGDP00998: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00998.flt.sort.rmdup.realign.md.bam"
+    Australian:
+      SS6004477: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004477-dedup.rg.bam"
+      SS6004478: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004478-dedup.rg.bam"
+    Mixe:
+      Mixe: "~/americas/fromVictor/Modern/Mixe.bam"
+      MixeE: "~/americas/fromVictor/Modern/MixeE.bam"
+      MixeF: "~/americas/fromVictor/Modern/MixeF.bam"
+    WCD:
+      WCD01: "~/americas/fromVictor/Modern/WCD01.bam"
+      WCD02: "~/americas/fromVictor/Modern/WCD02.bam"
+      WCD03: "~/americas/fromVictor/Modern/WCD03.bam"
+      WCD05: "~/americas/fromVictor/Modern/WCD05.bam"
+      WCD08: "~/americas/fromVictor/Modern/WCD08.bam"
+      WCD13: "~/americas/fromVictor/Modern/WCD13.bam"
+    Pima:
+      PimaCEPH: "~/americas/fromVictor/Modern/PimaCEPH.bam"
+      PimaE: "~/americas/fromVictor/Modern/PimaE.bam"
+      PimaF: "~/americas/fromVictor/Modern/PimaF.bam"
+    Surui:
+      SuruiA: "~/americas/fromVictor/Modern/SuruiA.bam"
+      SuruiB: "~/americas/fromVictor/Modern/SuruiB.bam"
+    Maya:
+      MayaG: "/users/dcruzdav/americas/fromVictor/Modern/MayaG.bam"
+      MayaH: "/users/dcruzdav/americas/fromVictor/Modern/MayaH.bam"
+    USR:
+      USR1: "~/americas/fromVictor/Ancient/USR1.bam"
+      USR2: "~/americas/Panels/USR/USR2.bam"
+    LagoaSta:
+      LagoaSta: "/users/dcruzdav/americas/fromVictor/Ancient/LagoaSta.bam"
+      LS4: "/users/dcruzdav/americas/fromVictor/Ancient/LS4.bam"
+      LS6: "/users/dcruzdav/americas/fromVictor/Ancient/LS6.bam"
+      LS7: "/users/dcruzdav/americas/fromVictor/Ancient/LS7.bam"
+      LS8: "/users/dcruzdav/americas/fromVictor/Ancient/LS8.bam"
+    Lovelock:
+      Lovelock: "~/americas/Panels/Moreno2018b/Lovelock1_final.bam"
+      Lovelock2: "~/americas/fromVictor/Ancient/Lovelock2.bam"
+      Lovelock3: "~/americas/fromVictor/Ancient/Lovelock3.bam"
+    Botocudos:
+      MN00010: "boto/MN00010.bam"
+      MN00013: "boto/MN00013.bam"
+      MN00016: "boto/MN00016.bam"
+      MN00019: "boto/MN00019.bam"
+      MN00021: "boto/MN00021.bam"
+      MN00022: "boto/MN00022.bam"
+      MN00023: "boto/MN00023.bam"
+      MN00039: "boto/MN00039.bam"
+      MN0003: "boto/MN0003.bam"
+      MN00045: "boto/MN00045.bam"
+      MN00056: "boto/MN00056.bam"
+      MN00064: "boto/MN00064.bam"
+      MN00066: "boto/MN00066.bam"
+      MN00067: "boto/MN00067.bam"
+      MN00068: "boto/MN00068.bam"
+      MN00069: "boto/MN00069.bam"
+      MN0008: "boto/MN0008.bam"
+      MN0009: "boto/MN0009.bam"
+      MN00118: "boto/MN00118.bam"
+      MN00119: "boto/MN00119.bam"
+      MN00316: "boto/MN00316.bam"
+      MN00346: "boto/MN00346.bam"
+      MN01701: "boto/MN01701.bam"
+      MN1943: "boto/MN1943.bam"
+
+#=============================================================================#
+# Runs of homozygosity in plink
+roh_plink:
+  bamlists:
+    MN0008: "MN0008"
+    SuruiA: 'SuruiA'
+    SuruiB: 'SuruiB'
+    Karitiana: 'Karitiana'
+    KaritianaB: 'KaritianaB'
+    KaritianaBI16: 'KaritianaBI16'
+    KaritianaG: 'KaritianaG'
+    KaritianaH: 'KaritianaH'
+
+  # filters:
+    # window_kb:
+    #   5000
+    # window_snp:
+    #   50
+    # hets_window:  
+    #   1
+    # window_missing: 
+    #   5
+    # window_threshold: 
+    #   0.05
+    # segment_snp:  
+    #   100
+    # segment_kb: 
+    #   1000
+    # segment_density:  
+    #   50 # kb^-1, i.e., 1 SNP per 50kb
+    # homozyg_gap:
+    #   1000
+    
+
+#=============================================================================#
+# AdmixTools
+Outgroup:
+  "Yorubas"
+
+# This file should have a column with indId and
+# one column with population ID
+ind_pop: 
+  "ind_pop.txt"
+
+# qp3pop
+Source1:
+  "Source1.txt"
+Source2:
+  "Source2.txt"
+
+# qpDstat
+H1: 
+  "h1.txt"
+H2: 
+  "h2.txt"
+H3: 
+  "h3.txt"
+max_files_per_dir:
+  100
+max_lines:
+  10
+#=============================================================================#
+# Enhanced D-statistics
+enhanced:
+  chimp_variants:
+    "chimpHg19.variants"
+  max_missing:
+    0.5
+  panel:
+    "h_merged.bed"
+  # Variants to enhance for a Neanderthal introgression test
+  # Outgroup is chimp, make sure to have ancestral variants
+  tests:
+    35Africans_Meyer2012:
+      Outgroup:
+        "chimpHg19.fa"
+      H3:
+        "AltaiNea"
+      Human_not_introgressed:
+        "35Africans_Meyer2012"
+      
+#=============================================================================#
+# Abbababa multipop
+
+# Outgroup and Perfect sample for error estimation
+# The files can be in bam or fasta format.
+# If bam is given, the error_angsd.smk will generate a fasta file
+# in case a fasta is not already in the working directory.
+Outgroup_file:
+  "Yoruba.bam"
+Perfect_file:
+  "NA12778.fa"
+abbababa_threads:
+  10
+ancError_threads:
+  20
+BlockSize:
+  5e6
+#=============================================================================#
+# Genotype calling
+# Use Víctor's lines to call genotype: ("Yes" | "No")
+geno_calls:
+  bamlists:
+    MN0008:
+        paths:
+            MN0008: '~/americas/Botocudos/BAM/2019_09_23/MN0008/MN0008.bam'
+    SuruiA:
+        paths:
+            SuruiA: '~/americas/fromVictor/Modern/SuruiA.bam'
+    SuruiB:
+        paths:
+            SuruiB: '~/americas/fromVictor/Modern/SuruiB.bam'
+    Karitiana:
+        paths:
+            Karitiana: '~/americas/fromVictor/Modern/Karitiana.bam'
+    KaritianaB:
+        paths:
+            KaritianaB: '~/americas/fromVictor/Modern/KaritianaB.bam'
+    KaritianaBI16:
+        paths:
+            KaritianaBI16: '~/americas/fromVictor/Modern/KaritianaBI16.bam'
+    KaritianaG:
+        paths:
+            KaritianaG: '~/americas/fromVictor/Modern/KaritianaG.bam'
+    KaritianaH:
+        paths:
+            KaritianaH: '~/americas/fromVictor/Modern/KaritianaH.bam'
+
+Genos_Moreno2019:
+  "Yes"
+
+#=============================================================================#
+# Sampling alleles
+
+# Should all observed alleles be considered when computing 
+# allele frequencies to sample a base
+# "" or "--allmutations"
+allmutations: 
+    ""
+
+#=============================================================================#
+# Chromosomes included in the panel
+#chromosomes: list(range(1, 23)) # 23 not nicluded in python
+
+#=============================================================================#
+# Bamlists 
+# Each value defined for bamlists will lead to merging all the bam files
+# defined in the path to each panel.
+bamlists:
+    # 23Boto_inc:
+    #     paths:
+    #         Botocudos: "~/americas/Botocudos/Merge/2019_10_15/bams/Botocudos/*bam"
+    #         MN0008_L3U: "~/americas/Botocudos/BAM/2019_09_23/MN0008/L3U/library_rmdup/L3U.bam"
+    #         LagoaSanta_15x: "~/americas/fromVictor/Ancient/LagoaSta.bam"
+    #         Mixe: "~/americas/fromVictor/Modern/Mixe*bam"
+    #         Huichol: "~/americas/fromVictor/Modern/Huichol.bam"
+    #         Surui: "~/americas/fromVictor/Modern/Surui*bam"
+    #         Karitiana: "~/americas/fromVictor/Modern/Karitiana*bam"
+    #         Aymara: "~/americas/fromVictor/Modern/Aymara*bam"
+    #         Ayayema: "~/americas/fromVictor/Ancient/Ayayema.bam"
+    # Bot8_and_others:
+    #     paths:
+    #         MN0008_L3U: "~/americas/Botocudos/BAM/2019_09_23/MN0008/L3U/library_rmdup/L3U.bam"
+    #         MN0008: "~/americas/Botocudos/Merge/2019_10_15/bams/Botocudos/MN0008.bam"
+    #         LagoaSanta_15x: "~/americas/fromVictor/Ancient/LagoaSta.bam"
+    #         Mixe: "~/americas/fromVictor/Modern/Mixe*bam"
+    #         Huichol: "~/americas/fromVictor/Modern/Huichol.bam"
+    #         Surui: "~/americas/fromVictor/Modern/Surui*bam"
+    #         Karitiana: "~/americas/fromVictor/Modern/Karitiana*bam"
+    #         Aymara: "~/americas/fromVictor/Modern/Aymara*bam"
+    #         Ayayema: "~/americas/fromVictor/Ancient/Ayayema.bam"
+            
+    # S35A_Bot8:
+    #     paths:
+    #         MN0008_L3U: "~/americas/Botocudos/BAM/2019_09_23/MN0008/L3U/library_rmdup/L3U.bam"
+    #         MN0008: "~/americas/Botocudos/Merge/2019_10_15/bams/Botocudos/MN0008.bam"
+    #         LagoaSanta_15x: "~/americas/fromVictor/Ancient/LagoaSta.bam"
+    #         Mixe: "~/americas/fromVictor/Modern/Mixe*bam"
+    #         Huichol: "~/americas/fromVictor/Modern/Huichol.bam"
+    #         Surui: "~/americas/fromVictor/Modern/Surui*bam"
+    #         Karitiana: "~/americas/fromVictor/Modern/Karitiana*bam"
+    #         Aymara: "~/americas/fromVictor/Modern/Aymara*bam"
+    #         Ayayema: "~/americas/fromVictor/Ancient/Ayayema.bam"
+    #         French: "~/americas/fromVictor/Modern/French.bam"
+    #         Han: "~/americas/fromVictor/Modern/Han.bam"
+    #         Andaman: "~/americas/fromVictor/Ancient/Andaman.bam"
+    #         WCDesert: "~/americas/fromVictor/Modern/WC.bam"
+    # S35A_Bot8:
+    #     paths:
+    #         Botocudos: "~/americas/Botocudos/Merge/2019_10_15/bams/Botocudos/*bam"
+    #         MN0008_L3U: "~/americas/Botocudos/BAM/2019_09_23/MN0008/L3U/library_rmdup/L3U.bam"
+    #         LagoaSanta_15x: "~/americas/fromVictor/Ancient/LagoaSta.bam"
+    #         Mixe: "~/americas/fromVictor/Modern/Mixe*bam"
+    #         Huichol: "~/americas/fromVictor/Modern/Huichol.bam"
+    #         Surui: "~/americas/fromVictor/Modern/Surui*bam"
+    #         Karitiana: "~/americas/fromVictor/Modern/Karitiana*bam"
+    #         Aymara: "~/americas/fromVictor/Modern/Aymara*bam"
+    #         Ayayema: "~/americas/fromVictor/Ancient/Ayayema.bam"
+    #         French: "~/americas/fromVictor/Modern/French.bam"
+    #         Han: "~/americas/fromVictor/Modern/Han.bam"
+    #         Andaman: "~/americas/fromVictor/Ancient/Andaman.bam"
+    #         WCDesert: "~/americas/fromVictor/Modern/WC*.bam"
+            
+    # Boto_Posth_M2014_fV:
+    #     paths:
+    #         # Remember to add "/*bam" at the end
+    #         Botocudos: "~/Project/Botocudos/BAM/*bam"
+    #         Posth: "~/Project/Americas/Posth/BAM/*bam"
+    #         Malaspinas2014: "~/Project/Botocudos/Malaspinas2014/*bam"
+    #         fromVictor_Ancient: "~/Project/Americas/fromVictor/Ancient/*bam"
+    #         fromVictor_Modern : "~/Project/Americas/fromVictor/Modern/*bam"
+  MN0008:
+        paths:
+            MN0008: '~/americas/Botocudos/BAM/2019_09_23/MN0008/MN0008.bam'
+  MN0009:
+        paths:
+            MN0009: '~/americas/Botocudos/BAM/2019_06_13/MN0009/MN0009.bam'
+
+#==============================================================================#
+# Panel(s) to which samples will be merged
+panels: 
+    Maanasa_mask1_flip: 
+        # bed, vcf, bim
+        type:
+            "bed"
+        path: 
+            "Maanasa_mask1_flip.bed"
+
+    #     NGSAdmix:
+    #         run: "yes"
+    #         K: 15
+    #         rep: 100
+
+    # h:
+    #     type: 
+    #         "bed"
+    #     path: 
+    #         "h.bed"
+    #     GenoLike:
+    #          homozygous: "yes"
+    #          rmdamage: "yes"
+
+    # Jorde_Wollstein_hg19_final_noseconddegree_geno01:
+    #     type:
+    #         "bed"
+    #     path:
+    #         "Jorde_Wollstein_hg19_final_noseconddegree_geno01.bed"
+    #     GenoLike:
+    #         homozygous: "yes"
+    #         rmdamage: "yes"
+    
+    # Wollstein_mind0.95_rmtrans:
+    #     type:
+    #         "bed"
+    #     path:
+    #         "Wollstein_mind0.95_rmtrans.bed"
+    #     GenoLike:
+    #         homozygous: "yes"
+    #         rmdamage: "yes"
+
+    # v37.2.1240K_HumanOrigins:
+    #     type:
+    #         "ped"
+    #     path:
+    #         "v37.2.1240K_HumanOrigins.ped"
+    #     GenoLike:
+    #         homozygous: "yes"
+    #         rmdamage: "yes"
+
+#==============================================================================#
+# Downsample data
+
+downsample:
+  mem_sort:
+    "32G"
+  depths: ""
+  groups:
+    LagoaSta: "LagoaSta.bam"
+    # Australian
+    # Dai
+    # French
+    # Han
+    Karitiana: "Karitiana.bam"
+    KaritianaB: "KaritianaB.bam"
+    KaritianaBI16: "KaritianaBI16.bam"
+    KaritianaG: "KaritianaG.bam"
+    KaritianaH: "KaritianaH.bam"
+    # Lovelock
+    # Mandenka
+    MayaG: "MayaG.bam"
+    MayaH: "MayaH.bam"
+    # Mbuti
+    Mixe: "Mixe.bam"
+    MixeE: "MixeE.bam"
+    MixeF: "MixeF.bam"
+    # Papuan
+    PimaCEPH: "PimaCEPH.bam"
+    PimaE: "PimaE.bam"
+    PimaF: "PimaF.bam"
+    # San
+    # Sardinian
+    SuruiA: "SuruiA.bam"
+    SuruiB: "SuruiB.bam"
+    USR1: "USR1.bam"
+    # WCD
+    # Yoruba
+    
