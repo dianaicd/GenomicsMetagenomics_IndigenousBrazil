@@ -3,7 +3,7 @@ configfile: "samples_panel.yaml"
 import os,glob
 bamlists = list(config["bamlists"].keys())
 panels = list(config["panels"].keys()) 
-git_path = "/home/dcruzdav/data/Git/Botocudos-scripts/"
+git_path = "/users/dcruzdav/data/Git/Botocudos-scripts/"
 
 chromosomes = [str(x) for x in range(1,23)] 
 mind = [str(round(x*0.01, 2)) for x in range(5, 100, 5)]
