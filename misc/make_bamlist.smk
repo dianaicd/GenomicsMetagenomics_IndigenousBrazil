@@ -23,7 +23,7 @@ import glob,os
 #=============================================================================#
 
 def expand_path(wildcards):
-    paths = list(config["bamlists"][wildcards.bamlist]["paths"].values())
+    paths = list(myDict[wildcards.bamlist].values())
     full_paths = [os.path.expanduser(p) for p in paths]
     bams = [f for p in full_paths for f in glob.glob(p)]
     return(bams)
@@ -38,26 +38,27 @@ rule make_bamlist:
     input:
         expand_path 
     output:
-        "{bamlist}.txt"
+        "{bamlist}/{bamlist}.txt"
     run:
         with open(output[0], 'w') as file:
             for line in input:
                 file.write(line+"\n")
                 
 paths = {}
-bamlists = list(config["bamlists"].keys())
-def add_key(group,b):
-    paths[group] = config["bamlists"][b]["paths"][group]
+bamlists = list(myDict.keys())
+def add_key(group,ind):
+    paths[group] = myDict[group][ind]
 
 
-[add_key(group,b) for b in bamlists 
-for group in list(config["bamlists"][b]["paths"].keys())]
+[add_key(group,ind) for group in bamlists for ind in list(myDict[group].keys())]
 
 rule make_bamlist_groups:
     input:
         bams = lambda wildcards: expand_path_groups(paths[wildcards.group])#lambda wildcards: expand_path_groups(wildcards.group)
     output:
-        "Bams_group/{group}.txt"
+        "{group}/{group}.txt"
+    wildcard_constraints:
+        group = "^/"
     run:
         with open(output[0], 'w') as file:
             for line in input:
