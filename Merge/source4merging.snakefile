@@ -1,8 +1,8 @@
 # Snakefile version to merge datasets
-configfile: "samples_panel.yaml"
+configfile: "multiple_purposes.yaml"
 import os,glob
-bamlists = list(config["bamlists"].keys())
-panels = list(config["panels"].keys()) 
+bamlists = list(config['merge_sample']["bamlists"].keys())
+panels = list(config['merge_sample']["panels"].keys()) 
 git_path = "/users/dcruzdav/data/Git/Botocudos-scripts/"
 
 chromosomes = [str(x) for x in range(1,23)] 
@@ -49,15 +49,15 @@ rule link_programs:
         "ln -s {input.sample_ped} ./ ;"
         "ln -s {input.genolike} ./"
 
-def expand_path(wildcards):
-    paths = list(config["bamlists"][wildcards.bamlist]["paths"].values())
+def expand_path(bamlist):
+    paths = list(config["merge_sample"]["bamlists"][bamlist].values())
     full_paths = [os.path.expanduser(p) for p in paths]
     bams = [f for p in full_paths for f in glob.glob(p)]
     return(bams)
-#myList = expand_path(wildcards = "x") ; print(len(myList))
+
 rule make_bamlist:
     input:
-        expand_path 
+        lambda wildcards: expand_path(wildcards.bamlist)
     output:
         "{bamlist}.txt"
     log:
@@ -67,15 +67,32 @@ rule make_bamlist:
             for line in input:
                 file.write(line+"\n")
 
+def return_bai(bamlist):
+    bai = [line + ".bai" for line in expand_path(bamlist)]
+    return(bai)
+
+rule samtools_index:
+    input:
+        bam = "{file}.bam"
+    output:
+        bai = "{file}.bam.bai"
+    log:
+        "logs/index_samtools_{file}.log"
+    shell:
+        """
+        samtools index {input.bam} &>{log}
+        """
+
 rule mpileup:
     input:
+        bai = lambda wildcards: return_bai(wildcards.bamlist),
         bamlist = "{bamlist}.txt",
-        panel = lambda wildcards: config["panels"][wildcards.panel]["path"] ,
+        panel = lambda wildcards: config['merge_sample']["panels"][wildcards.panel]["path"] ,
         sites = "{panel}/{Chr}_sites.bed"
     output:
         "{panel}/{bamlist}_{Chr}.mpileup"
     params:
-        baseQ = config["BaseQuality"]    
+        baseQ = config["BaseQuality"]
     log:
         "{panel}/logs/{bamlist}_{Chr}.log"
     shell:
@@ -89,10 +106,10 @@ columns = {"vcf":"1,2,4,5", "bim":"1,4,5,6", "map":"1,4,5,6"}
 
 rule refalt:
     input:
-        panel = lambda wildcards: config["panels"][wildcards.panel]["path"]
+        panel = lambda wildcards: config['merge_sample']["panels"][wildcards.panel]["path"]
     params:
-        extension = lambda wildcards: panelExtension[config["panels"][wildcards.panel]["type"]],
-        col = lambda wildcards: columns[panelExtension[config["panels"][wildcards.panel]["type"]]]
+        extension = lambda wildcards: panelExtension[config['merge_sample']["panels"][wildcards.panel]["type"]],
+        col = lambda wildcards: columns[panelExtension[config['merge_sample']["panels"][wildcards.panel]["type"]]]
     output:
         refalt = "{panel}/sites.refalt"
     log:
@@ -124,7 +141,7 @@ rule count_and_sample:
         counts = "{panel}/{bamlist}_{Chr}.counts.gz",
         sampled = "{panel}/{bamlist}_{Chr}.sampled.gz"
     params:
-        allmutations = config["allmutations"]
+        allmutations = config['merge_sample']["allmutations"]
     log:
         "{panel}/logs/{bamlist}_{Chr}_count_and_sample.log"
     shell:
@@ -151,7 +168,7 @@ rule merge_sampled:
 
 rule panel_to_tped:
     input:
-        panel = lambda wildcards: config["panels"][wildcards.panel]["path"]
+        panel = lambda wildcards: config['merge_sample']["panels"][wildcards.panel]["path"]
     output:
         panel = "{panel}/{panel}.tped",
         tfam = "{panel}/{panel}.tfam"
