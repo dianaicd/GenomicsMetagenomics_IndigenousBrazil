@@ -8,7 +8,7 @@
 
 ##### Plot
 damage_plot <- function(ind, type, lib, d ="~/Projects/Botocudos/Files/mapDamage/2018_07_23/",
-                        asis = F, sufix = "_Human_results_mapDamage"){
+                        asis = F, sufix = "_Human_results_mapDamage", plot.title  = F){
   mean_muts <- function(mutation, ref){
     mutation <- as.character(mutation)
     ref <- as.character(ref)
@@ -82,13 +82,16 @@ damage_plot <- function(ind, type, lib, d ="~/Projects/Botocudos/Files/mapDamage
     mean_ins$right <- rowMeans(cbind(mean_ins$right, tmp[[i]]$right), na.rm = T)
     mean_ins$left <- rowMeans(cbind(mean_ins$left, tmp$left[[i]]), na.rm = T)
   }
+  if(plot.title == F){
+    plot.title <-  paste(ind, lib, sep = ", ")
+  }
   #####
 #  par(mfrow=c(1,2))
   par(mar = c(4, 3, 3, 1))
   plot(x = seq(1,25), 
        y = mean_GA$left[1:25], type = "l", xlim = c(1,25), ylim = c(0, 0.3), 
        col = NA, lwd = 3, axes = F, ylab = "Frequency", xlab = "", 
-       main = paste(ind, lib, sep = ", "))
+       main = plot.title)
   axis(side = 1, at = seq(0,25), las = 2)
   axis(side = 2, las =2)
   lines(x = seq(1,25), 
@@ -133,4 +136,76 @@ damage_plot <- function(ind, type, lib, d ="~/Projects/Botocudos/Files/mapDamage
         y = mean_CT$right[25:1], type = "l", xlim = c(-25, 0), ylim = c(0, 0.3), 
         col = "red", bty = "n", lwd = 3)
   
+}
+
+#==============================================================================#
+# Plot with input from bamdamage
+
+plot_bamdamage <- function(five_prime, three_prime, cex = 1, 
+                           y2 = 0.35, plot.title, myColor = c(),
+                           legend_only = F, ncol_legend = 3, legend_cex = 1){
+  
+  if(length(myColor) == 0){
+    myColor <- c("royalblue", "firebrick3", "lightblue3", "indianred1",
+                 "orange","orange3",
+                 "plum", "plum4",
+                 "paleturquoise3", "paleturquoise4",
+                 "rosybrown2", "rosybrown3")
+    names(myColor) <- c("C..T", "G..A","T..C", "A..G",
+                        "C..A", "C..G",
+                        "T..A", "T..G", 
+                        "A..C", "A..T",
+                        "G..C", "G..T")
+  }
+  
+  if(legend_only){
+    myIndex <- round(seq(1, 13, length.out = ncol_legend+1))
+    for(i in 1:(length(myIndex)-1)){
+      plot(1:10,1:10, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+      
+      if(i == 1){
+        legend(1,10, legend = sub("\\.\\.", " to ",
+                                  names(myColor)[myIndex[i]:(myIndex[i+1]-1)]),
+               col = myColor[myIndex[i]:(myIndex[i+1]-1)],
+               lty = 1, bty = "n", cex = legend_cex, lwd = 1.6,
+               title = "Substitution type")
+      }else{
+        legend(1,10, legend = sub("\\.\\.", " to ",names(myColor)[myIndex[i]:(myIndex[i+1]-1)]),
+               col = myColor[myIndex[i]:(myIndex[i+1]-1)],
+               lty = 1, bty = "n", cex = legend_cex, lwd = 1.6
+        )
+      }
+    }
+    return()
+  }
+  
+  plot_lines <- function(damage, left = T){
+    plot(damage$C..T[1:25], type = "n",
+         bty = "n", 
+        ylab = "Frequency", xlab = NA,
+         cex = cex, axes = F, ylim = c(0, y2))
+    if(left){
+      title(main = plot.title, xlab = "5'-position")
+      
+      axis(side = 1, at = seq(0,25,5))
+      axis(side=2)
+    }else{
+      axis(side = 1, at = seq(1,25,5), labels = seq(25, 1,-5))
+      axis(side = 4)
+      title(xlab="3'-position")
+    }
+    
+    for(type in names(myColor)){
+      lines(damage[1:25, type],
+            col = alpha(myColor[type], 0.8), 
+            lwd = 1.5, 
+            cex = cex)
+    }
+  }
+  
+  par(mar = c(4, 4, 3, 1))
+  plot_lines(damage = five_prime)
+  
+  par(mar = c(4,1,3,3))
+  plot_lines(damage = three_prime[25:1,], left = F)
 }
