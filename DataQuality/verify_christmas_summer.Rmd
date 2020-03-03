@@ -1,0 +1,164 @@
+---
+title: "MN00013_report"
+author: "DI Cruz Dávalos"
+date: "1/14/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+require(plyr)
+require(data.table)
+```
+
+```{r old statistics for MN00013, from summer 2019}
+p <- "~/Projects/Botocudos/Files/Summaries/2019_07_26/"
+myFiles <- list.files(p, pattern = ".new.summary")
+
+old <- data.frame()
+
+for(f in myFiles){
+  tmp <- read.table(paste(p,f, sep = ""), 
+                    header = T, stringsAsFactors = F, sep = "\t")
+  old <- rbind(old, tmp)
+}
+
+# old <- read.table("~/Projects/Botocudos/Files/Summaries/2019_07_26/MN00013.new.summary",
+#                   header = T, stringsAsFactors = F)
+old$Date <- "Summer2019"
+old$type <- "whole"
+old <- old[,c("sample", "library", "seq_reads_se", "seq_retained_reads",
+              "hits_raw_endogenous", "hits_clonality_endogenous", "hits_unique_endogenous",
+              "type", "Date")]
+colnames(old) <- c("SM", "LB", "reads_raw", "reads_trim", 
+                   "mapping", "duplicates", "mapping_final", "type", "Date")
+
+old$trim_prop <- old$reads_trim/old$reads_raw*100
+old$endo_prop <- old$mapping_final/old$reads_trim*100
+old$duplicates_prop <- old$duplicates/old$mapping*100
+old$endo_final_prop <- old$mapping_final/old$reads_raw*100
+old$LB <- sub("S1", "L1", old$LB)
+old$LB[old$SM == "MN0008" & old$LB == "L2"] <- "x"
+old$LB[old$SM == "MN0008" & old$LB == "L3U"] <- "L2"
+old$LB[old$SM == "MN0008" & old$LB == "x" ] <- "L3U"
+ 
+```
+
+```{r new stats for new and trimmed data, December 2019}
+myPath <- "~/Projects/Botocudos/Files/Summaries/2019_11_21/"
+dp <- "_depth.hg19.csv"
+st <- "_stats.hg19.csv"
+types <- c("sample", "library")
+
+myStats <- data.frame()
+
+for(type in types){
+
+  whole_st <- read.csv(paste(myPath, "Whole/", type, st, sep = ""))
+  trim_st <- read.csv(paste(myPath, "Trimmed/", type, st, sep = ""))
+
+  # if(type == "sample"){
+  #   whole_dp <- read.csv(paste(myPath, "Whole/", type, dp, sep = ""))
+  #   whole_dp$SM <- sub(".hg19", "", whole_dp$Sample)
+  #   trim_dp <- read.csv(paste(myPath, "Trimmed/", type, dp, sep = ""))
+  #   trim_dp$SM <- sub(".hg19", "", trim_dp$Sample)
+  #   whole <- join(whole_dp, whole_st, by = "SM")
+  #   trim <- join(trim_dp, trim_st, by = "SM")
+  #   whole$LB <- "All"
+  #   trim$LB <- "All"
+  # }else{
+  #   whole <- whole_st
+  #   trim <- trim_st
+  # }
+  if(type == "sample"){ whole_st$LB <- "All" ; trim_st$LB <- "All"}
+  whole_st$type <- "whole"
+  trim_st$type <- "trimmed"
+  myStats <- rbind(myStats, trim_st, whole_st)
+}
+
+
+myStats$type <- factor(myStats$type, levels = c("whole", "trimmed"), ordered = T)
+myStats <- myStats[order(myStats$endo_final_prop),]
+myStats$SM <- factor(myStats$SM, levels = unique(myStats$SM), ordered = T)
+myStats$Sample <- NULL
+
+myStats$Date <- "Christmas2019"
+# myStats <- myStats[myStats$SM == "MN00013",]
+
+
+
+```
+
+```{r}
+mapping <- rbind(myStats, old)
+mapping <- mapping[order(mapping$SM, mapping$LB, mapping$type, mapping$Date),]
+mapping <- mapping[mapping$type == "whole",]
+mapping <- mapping[,c("SM", "LB", "reads_raw", "reads_trim", 
+                     "mapping", "duplicates", "mapping_final", "Date")]
+
+mapping.wide <- reshape(mapping, timevar = "Date", idvar = c("SM", "LB"),
+                        direction = "wide")
+
+myVars <- c("reads_raw", "reads_trim", "mapping", "mapping_final")
+
+new_order <- c()
+for(v in myVars){
+  new_var <- paste("diff.", v, sep = "")
+  christ <- paste(v, ".Christmas2019", sep ="")
+  summer <- paste(v, ".Summer2019", sep  ="")
+  mapping.wide[,new_var] <-  mapping.wide[,christ] - mapping.wide[,summer] 
+  new_order <- c(new_order, summer, christ, new_var)
+}
+
+mapping.wide <- mapping.wide[,c("SM", "LB", new_order)]
+View(mapping.wide)
+
+
+```
+
+```{r}
+
+require(xlsx)
+wb_name <- "/Users/dcruz/Projects/Botocudos/Files/Summaries/2019_11_21/Whole/comparison_christmas_summer_2019.xlsx"
+sh_name <- "t1"
+# define workbook and sheet
+wb <- createWorkbook(type="xlsx")
+sheet <- createSheet(wb, sheetName = sh_name)
+
+# Define row style to be used
+mySamples <- data.frame(sample = levels(mapping.wide$SM), 
+                        color = rep(c("blue", "white"), 
+                                    round(length(unique(mapping.wide$SM))/2)))
+
+# Function to add a row with specified cell style
+# xlsx.addRow <- function(sheet, rowIndex, data, rowStyle, sample){
+#   rows <- createRow(sheet, rowIndex = rowIndex)
+#   sheetRow <- createCell(rows, colIndex=1)
+#   sapply(data, function(x) setCellValue(sheetRow[[1,1]], x))
+#   cells <- getCells(getRows(sheet, rowIndex = rowIndex))
+#   
+#   if(mySamples$color[mySamples$sample == sample] == "blue"){
+#      lapply(names(cells), function(ii) setCellStyle(sheetRow[[ii]], blue_row))
+#   }else{
+#     #setCellStyle(sheetRow[[1,1]], white_row)
+#   }
+# }
+
+# for(i in 1:nrow(boto_final)){
+#   xlsx.addRow(sheet = sheet, rowIndex = i, data = boto_final[i,],
+#               sample = as.character(boto_final$Sample[i]))
+# }
+
+# Add table + column name explanation
+addDataFrame(mapping.wide, sheet, startRow = 1, startColumn = 1, row.names = F)
+
+
+
+# autoSizeColumn(sheet, colIndex = 1:ncol(mapping.wide))
+saveWorkbook(wb, wb_name)
+
+```
+
