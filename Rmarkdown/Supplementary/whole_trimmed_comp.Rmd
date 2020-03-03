@@ -1,0 +1,128 @@
+---
+title: "Christmas_2019"
+author: "DI Cruz Dávalos"
+date: "12/23/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+require(plyr)
+require(ggplot2)
+require(cowplot)
+require(tidyr)
+```
+
+
+```{r}
+myPath <- "~/Projects/Botocudos/Files/Summaries/2019_11_21/"
+dp <- "sample_depth.hg19.csv"
+st <- "sample_stats.hg19.csv"
+
+whole_dp <- read.csv(paste(myPath, "Whole/", dp, sep = ""))
+whole_dp$SM <- sub(".hg19", "", whole_dp$Sample)
+whole_st <- read.csv(paste(myPath, "Whole/", st, sep = ""))
+
+trim_dp <- read.csv(paste(myPath, "Trimmed/", dp, sep = ""))
+trim_dp$SM <- sub(".hg19", "", trim_dp$Sample)
+trim_st <- read.csv(paste(myPath, "Trimmed/", st, sep = ""))
+
+whole <- join(whole_dp, whole_st, by = "SM")
+whole$type <- "whole"
+trim <- join(trim_dp, trim_st, by = "SM")
+trim$type <- "trimmed"
+
+# Temporary solution
+
+
+myStats <- rbind(trim, whole)
+myStats$type <- factor(myStats$type, levels = c("whole", "trimmed"), ordered = T)
+myStats <- myStats[order(myStats$endo_final_prop),]
+myStats$SM <- factor(myStats$SM, levels = unique(myStats$SM), ordered = T)
+```
+
+```{r}
+
+png("~/Projects/Botocudos/Plots/Sequencing/dup_trimm_sm.png", width = 12, 
+    height = 7, res = 200, units = "in")
+ggplot(myStats, aes(x = SM, y = duplicates_prop, fill = type)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  theme(axis.text.x = element_text(angle = 90))
+dev.off()
+
+```
+
+```{r}
+stats_to_plot <- myStats %>% 
+  mutate(log_reads_raw = log10(reads_raw),
+         log_reads_trim = log10(reads_trim),
+         log_mapping = log10(mapping),
+         log_duplicates = log10(duplicates),
+         log_mapping_final = log10(mapping_final),
+         log_Nseqs =  log10(Nseqs),
+         log_NchrY.NchrX = log10(NchrY.NchrX),
+         log_NchrY = log10(NchrY),
+         log_endo_prop = log10(endo_prop),
+         log_endo_final_prop = log10(endo_final_prop),
+         log_AvgReadDepth_tot = log10(AvgReadDepth_tot),
+         log_AvgReadDepth_MT = log10(AvgReadDepth_MT)) %>% 
+  gather( name, value, -Sample,-type, -SM, -Sex,-X95.CI, -SE) 
+
+stats_to_plot$name <- factor(stats_to_plot$name, levels = c("reads_raw",
+                                                            "log_reads_raw",
+                                                            "reads_trim",
+                                                            "log_reads_trim",
+                                                            "trim_prop",
+                                                            "mapping",
+                                                            "log_mapping",
+                                                            "duplicates",
+                                                            "log_duplicates",
+                                                            "duplicates_prop",
+                                                            "mapping_final",
+                                                            "log_mapping_final",
+                                                            "Nseqs",
+                                                            "log_Nseqs",
+                                                            "NchrY.NchrX",
+                                                            "log_NchrY.NchrX",
+                                                            "NchrY",
+                                                            "log_NchrY",
+                                                            "R_y",
+                                                            "endo_prop",
+                                                            "log_endo_prop",
+                                                            "endo_final_prop",
+                                                            "log_endo_final_prop",
+                                                            "AvgReadDepth_tot",
+                                                            "log_AvgReadDepth_tot",
+                                                            "AvgReadDepth_MT",
+                                                            "log_AvgReadDepth_MT",
+                                                            "AvgReadLength"),
+                             ordered = T)
+# Order plots in logical order
+png("~/Projects/Botocudos/Plots/Sequencing/comparison_whole_trimmed.png",
+    width = 15, height = 17, units = "in", res = 250, bg = NA)
+
+stats_to_plot %>%
+ggplot(  aes(x = SM, y = value, fill = type)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90, size = 10),
+        strip.text.x = element_text(size = 12)) +
+  facet_wrap(facets = vars(name), scales = "free_y", ncol = 4) +
+  # scale_fill_discrete() +
+  scale_fill_manual(values = c("#ffa6d9","#1b3644")) +
+  labs(x = NULL, y = NULL)
+
+dev.off()
+```
+
+
+```{r}
+
+ggplot(myStats, aes(x = SM, y = AvgReadDepth_tot, fill = type)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+

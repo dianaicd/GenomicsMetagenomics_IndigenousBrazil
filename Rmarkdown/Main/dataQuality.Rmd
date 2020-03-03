@@ -1,0 +1,1304 @@
+---
+title: "DataQuality"
+author: "DI Cruz Dávalos"
+date: "7/26/2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Results
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message = F, warning = F, fig.width = 16)
+```
+
+```{r}
+library(plyr)
+library(ggplot2)
+library(scales)
+library(cowplot)
+library(ggridges)
+source("~/Projects/Botocudos/Scripts/Plotting/length_distribution_plot.R")
+source("~/Projects/Botocudos/Scripts/Plotting/mapDamage_plot.R")
+source("~/Projects/Botocudos/Scripts/Complexity/preseq_functions.R")
+# Order in which DNA libraries will be displayed
+lib_order <- c("All", "mtCapture", "L1", "L2", "L3U")
+colors_per_library <- c("gray40", "#c4bf33", "#b08699","#e0b81f","#0d75ff")
+names(colors_per_library) <- lib_order
+```
+
+```{r}
+# Plot for work in progress
+workInProgress <- function(gg = FALSE){
+  if(gg){
+    X <- data.frame(x = 1, y = 1, text = "Work in progress")
+    ggplot(X, aes(x = x, y = y)) + geom_text(label = X$text)
+  
+    }else{
+    plot(1,1, type = "n")
+    text(1,1, "Work in progress")
+  }
+}
+```
+
+```{r}
+plot_letters <- function(letter = "A", at = -1, line = 1){
+  mtext(letter, side = 3, line = line, at = at, adj = 0, cex = 1.3, font = 2)
+}
+```
+
+```{r}
+paste_path <- function(end, path = "~/Projects/Botocudos/Plots/"){
+  return(paste(path, end, sep = ""))
+}
+  
+```
+
+```{r, read in summary files}
+myDir <- "~/Projects/Botocudos/Files/Summaries/2019_07_26/"
+
+files <- list.files(path = myDir, pattern = ".new.summary$")
+
+boto <- data.frame()
+
+for(file in files){
+  tmp_summary <- read.table(paste(myDir, file, sep =""), header = T, sep = "\t")
+  boto <- rbind(boto, tmp_summary)
+}
+
+boto$library <- sub("\\*", "All", boto$library)
+boto$library <- sub("S1", "L1", boto$library)
+
+boto$library <- factor(boto$library, levels = lib_order, ordered = T)
+
+```
+
+```{r, merge isotopic data}
+backbone <- read.csv("~/Projects/Botocudos/Files/Tables/Backbone_Table1.csv")
+
+colnames(backbone) <- c("sample", "CalibratedDate", "Area", "State") 
+
+boto <- join(boto, backbone, by = "sample")
+
+boto <- boto[order(boto$hits_unique_frac_endogenous, boto$library),]
+boto$sample <- factor(boto$sample, levels = unique(boto$sample), ordered = T)
+```
+
+# Sequenced reads
+
+```{r}
+# ggplot(boto[boto$library != "All",], aes(y = seq_reads_se, x = sample, fill = library)) +
+#   geom_bar(stat = "identity") +
+#   theme_void()
+
+
+data <- reshape(boto[,c("sample", "seq_reads_se", "library")],
+               timevar = "library", direction = "wide", 
+               idvar = c("sample"))
+
+myData <- t(as.matrix(data[,2:ncol(data)]))
+colnames(myData) <- data$sample
+myData[is.na(myData)] <- 0
+rownames(myData) <- sub(".*\\.", "", rownames(myData))
+
+myData <- myData[match(lib_order, rownames(myData)),]
+
+
+```
+
+## Total number of reads
+
+```{r}
+myRows <- which(rownames(myData) != "All")
+#colors <-  c("#b08699","#e0b81f","#0d75ff")
+
+sequenced <- myData[myRows,]
+myOrder <- match(rownames(sequenced), names(colors_per_library))
+# png(filename = paste_path("Sequencing/total_reads.png"),
+#     width = 7, height = 4, res = 250, units = "in", bg = NA)
+pdf(paste_path("Sequencing/total_reads.pdf"),
+    width = 9, height = 5)
+barplot(sequenced, col = NA, border = NA, 
+        main = "Total sequenced reads (per library)", las = 2, axisnames =F)
+  grid(nx = 0, ny = NULL)
+  barplot(sequenced, col = colors_per_library[myOrder], border = NA, 
+        main = "Total sequenced reads (per library)", las = 2, add = T)
+legend(x = "topleft", legend = rownames(sequenced),
+       fill = colors_per_library[myOrder], border = NA, bty = "n", title = "Library")
+
+dev.off()
+```
+
+## Reads retained after trimming
+
+```{r}
+data <- reshape(boto[,c("sample", "seq_reads_se", "seq_retained_reads",
+                        "library")],
+               timevar = "library", direction = "wide", 
+               idvar = c("sample"))
+
+myData <- t(as.matrix(data[,2:ncol(data)]))
+colnames(myData) <- data$sample
+myData[is.na(myData)] <- 0
+
+rownames(myData) <- sub(".*\\.", "", rownames(myData))
+
+myData <- myData[rep(match(lib_order, rownames(myData)), each = 2) + rep(c(0,1), 5),]
+```
+
+```{r}
+#colors <-  c("#b08699","#e0b81f","#0d75ff")
+myRows <- seq(2, nrow(myData), 2)
+myRows <- myRows[!(rownames(myData)[myRows] %in% "All")]
+
+retained <- myData[myRows,]
+myOrder <- match(rownames(retained), names(colors_per_library))
+barplot(myData[myRows,], col = colors_per_library[myOrder], border = NA, 
+        main = "Retained reads after trimming", las = 2)
+legend(x = "topleft", legend = rownames(myData)[myRows],
+       fill = colors_per_library[myOrder], border = NA, bty = "n", title = "Library")
+
+```
+
+```{r}
+myData[myRows-1,][myData[myRows-1,] == 0] <- 1
+
+
+retained_frac <- myData[myRows,]/myData[myRows-1,]
+myOrder <- match(rownames(retained), names(colors_per_library))
+
+barplot(myData[myRows,]/myData[myRows-1,], col = colors_per_library[myOrder], border = NA, 
+        main = "Retained reads after trimming (fraction)", las = 2, beside = T,
+        ylim = c(0, 1), yaxt = "n")
+
+axis(2, at = seq(0,1, 0.1), labels = percent(seq(0, 1, 0.1)), las =1)
+
+legend(x = "topright", legend = rownames(myData)[myRows],
+       fill = colors_per_library[myOrder], border = NA, bty = "n", title = "Library")
+
+```
+
+```{r, eval = F}
+  # Three plots in one figure
+
+# png(paste_path("Sequencing/total_reads.png"),
+#     width = 6, height = 7.5, res = 250, units = "in", bg = NA)
+pdf(paste_path("Sequencing/total_reads.pdf"),
+    width = 6, height = 7.5)
+  layout(matrix(seq(1, 3), byrow = T, nrow = 3, 
+                  ncol = 1), widths = c(3), heights = c(1,1,1))
+  
+  # Sequenced
+  barplot(sequenced, col = NA, border = NA, 
+          main = "Total sequenced reads", las = 2, beside = F,
+           yaxt = "n", axisnames = F)
+  grid(nx = 0, ny = NULL)
+  barplot(sequenced, col = colors_per_library[myOrder], border = NA, 
+          main = "Total sequenced reads", las = 2, beside = F,
+           yaxt = "n", add = T)
+  axis(2, las =1)
+  legend(x = "topleft", legend = rownames(myData)[myRows],
+         fill = colors_per_library[myOrder], border = NA, bty = "n", title = "Library")
+  plot_letters(letter = "A", at = -3, line = 1.5)
+  
+  # Retained
+  barplot(retained, col = NA, border = NA, 
+          main = "Retained reads after trimming", las = 2, beside = F,
+          yaxt = "n", axisnames = F)
+  grid(nx = 0, ny = NULL)
+  barplot(retained, col = colors_per_library[myOrder], border = NA, 
+          main = "Retained reads after trimming", las = 2, beside = F,
+          yaxt = "n", add = T)
+  axis(2, las =1)
+  plot_letters(letter = "B", at = -3, line = 1.5)
+  
+  # Retained, fraction
+  barplot(retained_frac, col = NA, border = NA, 
+          main = "Retained reads after trimming (percentage)", las = 2, beside = T,
+          ylim = c(0, 1), yaxt = "n", axisnames = F)
+  grid(nx = 0, ny = NULL)
+  barplot(retained_frac, col = colors_per_library[myOrder], border = NA, 
+          main = "Retained reads after trimming (percentage)", las = 2, beside = T,
+          ylim = c(0, 1), yaxt = "n", add = T)
+  axis(2, at = seq(0,1, 0.1), labels = percent(seq(0, 1, 0.1)), las =1)
+    
+  plot_letters(letter = "C", at = -12, line = 1.5)
+
+dev.off()
+```
+
+
+## Endogenous content
+
+```{r}
+data <- reshape(boto[,c("sample", "hits_unique_frac_endogenous",
+                        "library")],
+               timevar = "library", direction = "wide", 
+               idvar = c("sample"))
+
+myData <- t(as.matrix(data[,2:ncol(data)]))
+colnames(myData) <- data$sample
+
+rownames(myData) <- sub(".*\\.", "", rownames(myData))
+
+myData <- myData[rev(match(rownames(myData), lib_order)),]
+
+```
+
+```{r}
+myRows <- which(rownames(myData) == "All")
+
+
+maxEndo <- 0.6
+barplot(myData[myRows,], border = NA, 
+        main = "Endogenous content per sample", las = 2,
+        ylim = c(0, maxEndo), yaxt = "n")
+axis(2, at = seq(0, 0.5, 0.1), labels = percent(seq(0, 0.5, 0.1)))
+
+```
+
+```{r}
+myRows <- seq(1, nrow(myData))
+
+myData <- myData[(match(lib_order, rownames(myData))),]
+myOrder <- match(rownames(myData), names(colors_per_library))
+# png(paste_path("Sequencing/endogenous.png"), width = 7, height = 4,
+#     res = 250, units = "in", bg = NA)
+pdf(paste_path("Sequencing/endogenous.pdf"), width = 7, height = 4)
+  barplot(myData, border = NA, 
+          main = "Endogenous content per library", col = NA,  axes = FALSE, las = 2,
+          xlab = NA, beside = T, axisnames = F, ylim = c(0, maxEndo))
+  grid(nx = 0, ny = NULL)
+  barplot(myData, border = NA, 
+          las = 2, add =T,
+          ylim = c(0, maxEndo), yaxt = "n", beside = T, col = colors_per_library[myOrder])
+  axis(2, at = seq(0, 0.5, 0.1), labels = percent(seq(0, 0.5, 0.1)))
+  legend(x = "topleft", legend = rownames(myData),
+           fill = colors_per_library[myOrder], border = NA, bty = "n", title = "Library")
+dev.off()
+```
+
+## Read length
+
+```{r}
+# ggplot(l, aes(x = color, y = Length, weight = Freq)) + 
+#   geom_violin(trim = F) +
+#   geom_jitter()
+
+data  <- reshape(boto[,c("sample", "seq_retained_length",
+                                "hits_length_endogenous",
+                        "library")],
+               timevar = "library", direction = "wide", 
+               idvar = c("sample"))
+
+myData <- t(as.matrix(data[,2:ncol(data)]))
+colnames(myData) <- data$sample
+
+old_names <- rownames(myData)
+rownames(myData) <- sub(".*\\.", "", rownames(myData))
+
+# I want to get:
+# 3,4,5,6,1,2,7,8
+myData <- myData[rep(match(lib_order, rownames(myData)), each = 2) + rep(c(0,1)),]
+
+#myData[is.na(myData)] <- 0
+rownames(myData)[seq(1, nrow(myData), 2)] <- sub("^", "Retained, ", rownames(myData)[seq(1, nrow(myData), 2)])
+rownames(myData)[seq(2, nrow(myData), 2)] <- sub("^", "Mapped, ", rownames(myData)[seq(2, nrow(myData), 2)])
+
+
+# myData <- myData[rev(seq(1, nrow(myData))),]
+```
+
+```{r}
+colors <- rep(colors_per_library, each = 2)
+colors[seq(1,length(colors),2)] <- alpha(colors[seq(1,length(colors),2)], 0.3)
+myRows <- which(rownames(myData) != "All")
+
+density <- rep(40, 3)
+angle1 <- rep(c(0, 135), 3)
+
+# png(paste_path("Sequencing/length_ret_map.png"), width = 9,
+#     height = 5, res = 250, units = "in", bg = NA)
+ pdf(paste_path("Sequencing/length_ret_map.pdf"), width = 12,
+     height = 6)
+  barplot(myData, border = "black", 
+          main = "Average read length (retained and mapped)", las = 2,
+           beside = T, col = NA, ylab = "Length (bp)", space = c(0, 1.5),
+          ylim = c(0,90), axisnames = F
+          #density = density, angle = angle1
+          )
+  grid(nx = 0, ny = NULL)
+  barplot(myData, border = "black", 
+          main = "Average read length (retained and mapped)", las = 2,
+           beside = T, col = colors, ylab = "Length (bp)", space = c(0, 1.5),
+          ylim = c(0,90), add = T
+          #density = density, angle = angle1
+          )
+  legend(x = "top", legend = rownames(myData),
+         fill = colors, bty = "n", title = "", horiz = F, ncol = 5)
+dev.off()
+#axis(2, at = seq(0, 0.5, 0.1), labels = percent(seq(0, 0.5, 0.1)))
+
+```
+
+```{r, fig.width=20, fig.height=4}
+individuals <- unique(boto$sample)
+nInd <- length(individuals)
+nCol <- max(rowSums(table(boto[,c("sample", "library")]))) - 1
+
+# png(paste_path("Sequencing/length_dist.png"), width = 12, height = 14,
+    # res = 150, units = "in")
+pdf(paste_path("Sequencing/length_dist.pdf"), width = 10, height = 12)
+layout(matrix(seq(1, 56), byrow = T, ncol = 7),
+       widths = rep(1, 7), heights = rep(1, 1))
+i <- 0
+for(ind in individuals){
+  par(mar = c(4,4,2,2))
+  plot(1,1, bty = "n", axes = F, type = "n", xlab = NA, ylab = NA)
+  text(1,1, ind)
+  i <- i+1
+  plotted <- 6
+
+  path <- paste("~/Projects/Botocudos/Files/Length/2019_07_30/", 
+                ind,sep = "")
+  files <- unique(boto$library[boto$sample == ind])
+  files <- files[files != "All"]
+  nCol <- length(files)
+  files <- files[order(files)]
+
+  for(lib in files){
+    # print(plotted)
+    for(type in c("nuc", "mito")){
+      plotted <- plotted - 1
+      gglength(ind = ind, type = type, d = path,
+               lib = lib, gg = F, cex = 0.5, 
+               plot.title = paste(lib, type, sep = ", "))
+    }
+    # Blank plot
+  }
+      while(plotted>0 ){
+        plotted <- plotted - 1 
+        plot(1,1, bty = "n", axes = F, type = "n", xlab = NA, ylab = NA)
+    }
+}
+
+ dev.off()
+```
+
+## Molecular damage
+
+```{r, fig.width=21, fig.height=3}
+
+# png(paste_path("Sequencing/damage.png"), width = 16, height = 20,
+#     res = 150, units = "in")
+pdf(paste_path("Sequencing/damage.pdf"), width = 12, height = 16)
+
+layout(matrix(seq(1, 70), byrow = T, 
+              ncol = 7), widths = rep(3, 7), heights = rep(1, 10))
+par(mar = c(1,1,1,1))
+asis <- T
+individuals <- unique(boto$sample)
+for(ind in individuals){
+  plot(1,1,type = "n", bty = "n", axes= F, xlab = NA, ylab = NA)
+  text(1,1,ind)
+  
+  plotted <- 3
+  # layout(matrix(seq(1, 6), byrow = T, nrow = 10, 
+  #             ncol = 6), widths = rep(3, 8), heights = rep(1, 10))
+  libs <- unique(boto$library[boto$sample == ind & boto$library != "All" & boto$library != "*"])
+  type <- NULL
+  d <- "~/Projects/Botocudos/Files/mapDamage/2019_08_08/"
+  libs <- libs[order(libs)]
+  
+  # layout(matrix(seq(1, 6), byrow = T, nrow = 3, 
+  #               ncol = 2), widths = rep(3,2), heights = rep(1, 3))
+  for(lib in libs){
+    plotted <- plotted -1
+    sufix <- paste("/", lib, "/", lib, "_results_mapDamage", sep = "")
+    damage_plot(ind = ind, type = type, lib, d = d,
+                asis = asis, sufix = sufix, plot.title = lib)
+  }
+  while(plotted >0){
+    plotted <- plotted -1
+    plot(1,1, type = "n", xlab = NA, ylab = NA, bty = "n", axes = F)
+    plot(1,1, type = "n", xlab = NA, ylab = NA, bty = "n", axes = F)
+  }
+}
+dev.off()
+```
+
+## Genome coverage
+
+```{r}
+data <- data <- reshape(boto[,c("sample", 
+                                "hits_coverage_nuclear",
+                        "library")],
+               timevar = "library", direction = "wide", 
+               idvar = c("sample"))
+
+myData <- t(as.matrix(data[,2:ncol(data)]))
+colnames(myData) <- data$sample
+
+#myData[is.na(myData)] <- 0
+rownames(myData) <- sub(".*\\.", "", rownames(myData))
+```
+
+```{r}
+myData <- myData[match(lib_order, rownames(myData)),]
+myOrder <- match(rownames(myData), names(colors_per_library))
+barplot(myData, border = NA, 
+        main = "Depth of coverage (nuclear)", las = 2,
+         beside = T, col = colors_per_library[myOrder], ylab = "Depth of coverage", 
+        #density = density, angle = angle1
+  )
+
+legend(x = "topright", legend = rownames(myData),
+       fill = colors_per_library[myOrder], bty = "n", title = "", border = NA)
+
+genomeCov <- myData
+```
+
+```{r}
+
+#myRows <- match(c("L1", "L2", "L3U", "All"), rownames(myData))
+barplot(myData, border = NA, 
+        main = "Depth of coverage (nuclear, log-scale)", las = 2,
+         beside = T, col = colors_per_library[myOrder], ylab = "Depth of coverage", 
+        #density = density, angle = angle1
+        log = "y")
+
+legend(x = "topright", legend = rownames(myData),
+       fill = colors_per_library[myOrder], bty = "n", title = "", border = NA)
+
+```
+
+
+```{r}
+data <- data <- reshape(boto[,c("sample", 
+                                "hits_coverage_mitochondrial",
+                        "library")],
+               timevar = "library", direction = "wide", 
+               idvar = c("sample"))
+
+myData <- t(as.matrix(data[,2:ncol(data)]))
+colnames(myData) <- data$sample
+
+#myData[is.na(myData)] <- 0
+rownames(myData) <- sub(".*\\.", "", rownames(myData))
+```
+
+```{r, eval = F}
+myData <- myData[match(lib_order, rownames(myData)),]
+myOrder <- match(rownames(myData), names(colors_per_library))
+barplot(myData, border = NA, 
+        main = "Depth of coverage (mitochondrial)", las = 2,
+         beside = T, col = colors_per_library[myOrder], ylab = "Depth of coverage", log = "y"
+        #density = density, angle = angle1
+  )
+
+legend(x = "topright", legend = rownames(myData),
+       fill = colors_per_library[myOrder], bty = "n", title = "", border = NA)
+
+mitoCov <- myData
+```
+
+
+```{r, eval = F}
+
+# png(paste_path("Sequencing/coverage.png"), width = 7, height = 7,
+#     res = 200, units = "in", bg = NA)  
+pdf(paste_path("Sequencing/coverage.pdf"), width = 7, height = 7)
+myOrder <- match(rownames(genomeCov), names(colors_per_library))
+
+par(mfrow = c(2,1))
+  barplot(genomeCov, border = NA, col = NA,  axes = FALSE, las = 2,
+          xlab = NA, beside = T, axisnames = F, 
+          main = "Depth of coverage (nuclear)")
+  grid(nx = 0, ny = NULL)
+  barplot(genomeCov, border = NA, las = 2,
+          beside = T, col = colors_per_library[myOrder], 
+          ylab = "Depth of coverage", add = T
+  )
+  plot_letters("A", at = -12, line = 1.5)
+  legend(x = "topleft", legend = rownames(genomeCov),
+         fill = colors_per_library[myOrder], bty = "n", title = "", border = NA)
+  
+  barplot(mitoCov, border = NA, col = NA,  axes = FALSE, las = 2,
+          xlab = NA, beside = T, 
+          main = "Depth of coverage (mitochondrial)", axisnames = F)
+  grid(nx = 0, ny = NULL)
+    barplot(mitoCov, border = NA, las = 2,
+          beside = T, col = colors_per_library[myOrder], ylab = "Depth of coverage",add = T)
+  plot_letters("B", at = -12, line = 1.5)
+dev.off()
+```
+
+```{r, eval = F}
+
+# png(paste_path("Sequencing/coverage_log.png"), width = 7, height = 7,
+#     res = 200, units = "in", bg = NA)  
+pdf(paste_path("Sequencing/coverage_log.pdf"), width = 7, height = 9)
+myOrder <- match(rownames(genomeCov), names(colors_per_library))
+
+par(mfrow = c(2,1))
+  barplot(genomeCov, border = NA, col = NA,  axes = FALSE, las = 2,
+          xlab = NA, beside = T, axisnames = F, log = "y",
+          main = "Depth of coverage (nuclear, log-scale)", ylim = c(0.0001,10))
+  grid(nx = 0, ny = NULL)
+  barplot(genomeCov, border = NA, las = 2,
+          beside = T, col = colors_per_library[myOrder], 
+          ylab = "Depth of coverage", add = T, log = "y"
+  )
+  legend(x = "topleft", legend = rownames(genomeCov),
+         fill = colors_per_library[myOrder], bty = "n", title = "", border = NA)
+  
+  barplot(mitoCov, border = NA, col = NA,  axes = FALSE, las = 2,
+          xlab = NA, beside = T, log = "y",
+          main = "Depth of coverage (mitochondrial, log-scale)", axisnames = F, ylim = c(0.01, 1000))
+  grid(nx = 0, ny = NULL)
+    barplot(mitoCov, border = NA, las = 2, log = "y",
+          beside = T, col = colors_per_library[myOrder], ylab = "Depth of coverage",add = T)
+
+dev.off()
+```
+
+## Clonality
+
+```{r}
+
+boto$clon_perc <- boto$hits_clonality_endogenous/boto$hits_raw_endogenous
+data <- data <- reshape(boto[,c("sample", 
+                                "clon_perc",
+                        "library")],
+               timevar = "library", direction = "wide", 
+               idvar = c("sample"))
+
+myData <- t(as.matrix(data[,2:ncol(data)]))
+colnames(myData) <- data$sample
+
+#myData[is.na(myData)] <- 0
+rownames(myData) <- sub(".*\\.", "", rownames(myData))
+myData <- myData[match(lib_order, rownames(myData)),]
+```
+
+```{r}
+myOrder <- match(rownames(myData), names(colors_per_library))
+
+# png(paste_path("Sequencing/clonality.png"), width = 7, height = 5, 
+#     res = 200, units = "in", bg = NA)
+pdf(paste_path("Sequencing/clonality.pdf"), width = 7, height = 5)
+barplot(myData, border = NA, 
+        main = "Clonality",col = NA,  axes = FALSE, las = 2,
+          ylab = "% of duplicates",xlab = NA, beside = T, axisnames = F
+        #density = density, angle = angle1
+  )
+grid(nx = 0, ny = NULL)
+barplot(myData, border = NA,  las = 2,
+         beside = T, col = colors_per_library[myOrder],  axes = F, add = T
+        #density = density, angle = angle1
+  )
+axis(2, at = seq(0,1, 0.1), labels = percent(seq(0, 1, 0.1)), las =1)
+
+legend(x = "topleft", legend = rownames(myData),
+       fill = colors_per_library[myOrder], bty = "n", title = "", border = NA)
+dev.off()
+```
+
+## Sex determination
+
+```{r}
+boto <- boto[order(boto$sample, boto$library),]
+
+data <- reshape(boto[,c("sample", "Ry", "Ry_confint",
+                        "library")],
+               timevar = "library", direction = "wide", 
+               idvar = c("sample"))
+
+myData <- t(as.matrix(data[,2:ncol(data)]))
+colnames(myData) <- data$sample
+
+rownames(myData) <- sub(".*\\.", "", rownames(myData))
+
+index <- match(lib_order, rownames(myData))
+myData <- myData[c(index, index+1),]
+
+
+```
+
+```{r, fig.width=7, fig.height=12}
+myOrder <- match(rownames(myData), names(colors_per_library))
+nSamples <- length(unique(boto$sample))
+maxY <- ((nrow(myData)/2)*ncol(myData)) ; print(maxY)
+
+pdf(paste_path("Sequencing/sex_determination.pdf"), width = 7, height = 10)
+
+par(mar = c(4,6,6,2))
+plot(myData[1:5,], 1:maxY+1, type = "n", bty = "n", axes = F,
+      xlab = expression(R[y]), ylab = NA,
+     xlim = c(0,max(myData[1:5,]+myData[6:10,], na.rm = T)),
+     main = "Sex determination")
+
+rect(xleft = 0, xright = 0.016, col = "snow2", border = NA, 
+     ybottom  = 0, ytop = maxY+1)
+rect(xleft = 0.075, xright = 0.11, col = "snow2", border = NA, 
+     ybottom = 0, ytop = maxY+1)
+points(y = 1:maxY,x = myData[1:5,], pch = 19, col = colors_per_library[myOrder])
+abline(col = "gray", v = 0.042, lty = "dashed")
+
+segments(y0 = 1:maxY, x0 = myData[1:5,] - myData[6:10,], 
+         x1 = myData[1:5,]+myData[6:10,])
+abline(h = seq(5, nSamples*5, 5) + 0.5, lty = "solid", col = "gray")
+axis(side = 2, at =  seq(3, nSamples*5, 5) , labels = colnames(myData), las = 2)
+axis(side = 1)
+
+text(x = 0.01, y = maxY+2.5, label = "Female") 
+text( x = 0.08, y = maxY+2.5, label = "Male")
+
+legend(x = -0.001, y = maxY+8, col = colors_per_library[myOrder], pch = 19, 
+       legend = lib_order, horiz = T,
+       bg = NA, bty = "n")
+dev.off()
+```
+
+
+
+## Contamination estimates
+
+Work in progress
+
+### Mitochondrial
+
+
+```{r}
+prefix <- "~/Projects/Botocudos/Files/Contamination/2019_08_06/"
+samples <-unique(boto$sample)
+rmTrans <- c("all", "rmTrans")
+
+
+# subsample_contammmix <- function(path, sample, rmTrans, size = 100, lib = "All",
+#                                  burnIn = 0.1){
+#   if(lib == "All"){
+#       myRda <- paste(path, sample, "/",sample, "_", rmTrans, ".Rdata", sep = "")
+#   }else{
+#     myRda <- paste(path, sample, "/", lib, "_", rmTrans, ".Rdata", sep = "")
+#   }
+#   print(myRda)
+#   load(myRda)
+#   notBurnIn <- as.integer(burnIn*size)
+#   tiny <- # sample(
+#     #remove burnin
+#     c(res$chains[[1]][size - ((size- notBurnIn):0),2])#,
+#                  #res$chains[[2]][,2], res$chains[[3]][,2])#, size)
+#   result <- data.frame(estimate = tiny, damage = rmTrans, lib = lib,
+#                        sample = sample)
+#   return(result)
+# }
+# 
+# contammix <- data.frame()
+# for(s in samples){
+#   libs <- unique(boto$library[boto$sample == s])
+#   for(l in libs){
+#     for(r in rmTrans){
+#       tmp_contam <- subsample_contammmix(prefix, s, r, 100000, l)
+#       contammix <- rbind(contammix, tmp_contam)
+#     }
+#   }
+# }
+
+```
+
+```{r}
+# contammix$lib <- factor(contammix$lib,
+#                         levels = c("L1", "L2", "L3U", "mtCapture","All"), ordered = T)
+# contammix$coverage <- 0
+# for(s in unique(contammix$sample)){
+#   for(l in unique(contammix$lib[contammix$sample == s])){
+#     contammix$coverage <- boto$hits_coverage_mitochondrial[boto$sample == s & boto$library == l]
+#   }
+# }
+
+# save(contammix, file="~/Projects/Botocudos/Files/Contamination/2019_08_06/contamination.Rdata")
+load("~/Projects/Botocudos/Files/Contamination/2019_08_06/contamination.Rdata")
+```
+
+```{r}
+path <- "~/Projects/Botocudos/Files/Contamination/2019_08_06/"
+samples <- unique(boto$sample)
+rmTrans <- c("all", "rmTrans")
+annot_mito <- data.frame()
+
+for(s in samples){
+  libs <- unique(boto$library[boto$sample == s])
+  for(lib in libs){
+    for(r in rmTrans){
+      if(lib == "All"){
+        myRda <- paste(path, s, "/",s, "_", r, ".Rdata", sep = "")
+      }else{
+        myRda <- paste(path, s, "/", lib, "_", r, ".Rdata", sep = "")
+      }
+      #print(myRda)
+      load(myRda)
+      nReads <- dim(res$mnMatrix)[1]
+      coverage <- boto$hits_coverage_mitochondrial[boto$sample == s & boto$library == lib]
+      annot_tmp <- data.frame(nReads = nReads, coverage = coverage, damage = r, lib = lib,
+                           sample = s)
+      
+      annot_mito <- rbind(annot_mito, annot_tmp)
+    }
+  }
+}
+
+
+
+MAP <- read.csv("~/Projects/Botocudos/Files/Contamination/2019_08_06/estimates.txt", header = F)
+
+colnames(MAP) <- c("sample", "lib", "damage","map", "low", "high")
+MAP$lib <- sub("S1", "L1", MAP$lib)
+annot_mito <- join(annot_mito, MAP, by = c("sample", "lib", "damage"))
+
+```
+
+```{r, fig.width=14}
+# ggplot(contammix, aes(x = sample, y = 1-estimate, color = damage, fill = lib)) +
+#   geom_violin(draw_quantiles = c( 0.025, 0.5, 0.975), trim = F
+#              )
+
+# ggplot(contammix, aes(x = sample, y = 1-estimate, fill = lib, linetype = damage) )+
+#   geom_violin(draw_quantiles = c( 0.025, 0.5, 0.975), trim = F) +
+#   geom_abline(intercept = 0.05, slope = 0) + 
+#   theme(axis.text.x = element_text(angle = 90))
+```
+
+
+Text on plots:
+
+Mitochondrial coverage, 
+
+number of reads (all polymorphisms),  number of reads (removing transitions)
+
+```{r ggrides, fig.width=16, fig.height=16}
+colors <- colors_per_library#c("#b08699","#e0b81f","#0d75ff", "gray")
+
+# png(paste_path("Sequencing/contamination.png"), width = 12, height = 9,
+#     res = 200, units = "in"#, bg = NA
+#     )
+pdf(paste_path("Sequencing/contamination.pdf"), width = 12, height = 10 )
+ggplot(contammix, aes(y = lib, x = 1-estimate, fill = lib, linetype = damage) )+
+  geom_density_ridges(scale = 0.98)+
+  labs(title = "Contamination estimates (mitochondrial data)",
+       x = NULL, y = "Estimate") +
+  facet_wrap(sample~., ncol = 5)+
+  geom_vline(xintercept = 0.05, color = "red") + 
+  theme(axis.text.x = element_text(angle = 90, size = 10)) +
+  scale_linetype_manual(name = "Polymorphisms considered", 
+                        values = c("solid", "dotted")) +
+  scale_fill_manual(values = colors_per_library, name = "Libraries") +
+  geom_text(data = annot_mito, 
+            nudge_y = 0.3,
+            aes(y = lib, x = 0.2 + ifelse(damage == "all",0,0.3),
+            label = prettyNum(nReads, big.mark = ",")),
+            size = 2.4) +
+  geom_text(data = annot_mito[annot_mito$damage == "all",], 
+            nudge_y = 0.8, 
+            aes(y = lib, x = 0.2,
+            label = paste(prettyNum(round(coverage,1)), "x", sep = "")),
+            size = 2.4) +
+  coord_cartesian(xlim = c(0, 1)) +
+  scale_x_continuous(labels = percent) 
+
+dev.off()
+```
+
+
+
+```{shell, eval = F}
+for mn in ${MN[@]} 
+do  
+  for type in all rmTrans 
+  do 
+    map=$(cat ${mn}/${mn}_${type}.txt |grep MAP |sed 's/.*: //' |cut -f1 -d ' ') 
+    low=$(head -n9 ${mn}/${mn}_${type}.txt |tail -n1 |cut -f1 -d ' ') 
+    high=$(head -n9 ${mn}/${mn}_${type}.txt |tail -n1 |cut -f2 -d ' ')
+    echo "${mn},All,$type,$map,$low,$high" 
+    for lib in L1 S1 L2 L3U  
+    do 
+      if [ -e ${mn}/${lib}_${type}.txt ] 
+      then 
+        map=$(cat ${mn}/${lib}_${type}.txt |grep MAP |sed 's/.*: //' | cut -f1 -d ' ') 
+        low=$(head -n9 ${mn}/${lib}_${type}.txt |tail -n1 |cut -f1 -d ' ') 
+        high=$(head -n9 ${mn}/${lib}_${type}.txt |tail -n1 |cut -f2 -d ' ') 
+        echo "${mn},$lib,$type,$map,$low,$high"
+      fi 
+    done  
+  done 
+done >estimates.txt
+
+```
+
+
+### X
+
+Work in progress
+
+```{r}
+minDepth <- seq(1,3)
+path <- "~/Projects/Botocudos/Files/Contamination/2019_08_06/X/"
+mySamples <- unique(boto$sample)
+libs <- unique(boto$library)
+
+s <- mySamples[1]
+l <- libs[2]
+md <- minDepth[3]
+
+empty_df <- function(sample, lib){
+  myDF <- data.frame(method = c("One-cns", "Two-cns"),
+                     estimate = c(NA, NA), lb = c(NA, NA), ub = c(NA, NA),
+                     err = c(NA, NA), nSites = c(NA, NA))
+  return(myDF)
+}
+
+x_cont <- data.frame()
+for(s in mySamples){
+  for(l in libs){
+    for(md in minDepth){
+      if(l == "All"){
+        tmp_res <- tryCatch(tmp_res <- read.table(paste(path, s, "/", s, 
+                                                        "_md", md, ".result", sep = "")),
+                            error = function(e) empty_df(s, l),
+                            finally = function() return(tmp_res)
+                            )
+      }else{
+        tmp_res <- tryCatch(tmp_res <- read.table(paste(path, s, "/", l, 
+                                                        "/", l, "_md", md, ".result", sep = "")),
+                            error =  function(e) empty_df(s, l),
+                            finally = function() return(tmp_res))
+      }
+      colnames(tmp_res) <- c("method", "estimate", "lb", "ub", "err", "nSites")
+      tmp_res$sample <- s
+      tmp_res$library <- l
+      tmp_res$depth <- md
+      x_cont <- rbind(x_cont, tmp_res)
+    }
+  }
+}
+
+
+```
+
+```{r}
+x_cont <- join(x_cont, boto[, c("sample", "library", "sex")], by = c("sample", "library"))
+x_cont <- x_cont[!is.na(x_cont$sex),]
+
+males <- x_cont[x_cont$sex %in% c("XY", "consistent with XY but not XX"),]
+
+# ggplot(males[males$method == "Two-cns" & males$depth >1,], aes(x = sample,
+#                                                 y = estimate,
+#                                                 ymin = lb, ymax = ub,
+#                                                 color = library, shape = factor(depth))) +
+#   geom_point(position = position_dodge(width = .2)) +
+#   geom_errorbar(position = position_dodge(width = .2))
+
+```
+
+```{r}
+males <- males[males$method == "Two-cns",]
+males <- males[order(males$sample, males$library),]
+
+# write.table(males, "~/Projects/Botocudos/Files/Contamination/2019_08_06/X/estimates_X_males.txt", 
+            # sep = "\t", quote = F, col.names = T, row.names = F)
+```
+
+```{r}
+males_fmt <- males
+
+males_fmt$estimate <- percent(males_fmt$estimate)
+males_fmt$lb <- percent(males_fmt$lb)
+males_fmt$ub <- percent(males_fmt$ub)
+
+#males_fmt
+```
+
+```{r}
+males_dp3 <- males[males$depth == 3,]
+colnames(annot_mito) <- c("mito_num_Reads", "mito_coverage", "mito_polymorphic_sites",
+                          "library", "sample", "mito_estimate", "mito_low_est",
+                          "mito_upper_est")
+colnames(males_dp3) <- c("X_method", "X_estimate", "X_low_est", "X_upper_est",
+                         "X_error", "X_num_sites", "sample", "library", "X_min_depth",
+                         "sex")
+estimates <- join(males_dp3, annot_mito[annot_mito$mito_polymorphic_sites == "all",],
+                  by = c("sample", "library"))
+
+estimates <- estimates[,c("sample", "library",
+                          "mito_estimate", "mito_low_est", "mito_upper_est",
+                          "X_estimate", "X_low_est", "X_upper_est",
+                          "mito_num_Reads", "mito_coverage",
+                          "X_num_sites", "X_min_depth",
+                          "sex")]
+
+estimates$mito_estimate <- 1 - estimates$mito_estimate
+estimates$mito_low_est <- 1 - estimates$mito_low_est
+estimates$mito_upper_est <- 1 - estimates$mito_upper_est
+tmp_cont <- estimates$mito_low_est
+estimates$mito_low_est <- estimates$mito_upper_est
+estimates$mito_upper_est <- tmp_cont
+
+for(myColumn in c("mito_estimate", "mito_low_est", "mito_upper_est",
+                  "X_estimate", "X_low_est", "X_upper_est",
+                  "mito_coverage") ){
+  estimates[, myColumn] <- signif(estimates[,myColumn], 3)
+}
+
+for(myColumn in c("mito_estimate", "mito_low_est", "mito_upper_est",
+                  "X_estimate", "X_low_est", "X_upper_est"
+                  ) ){
+  estimates[, myColumn] <- percent(estimates[,myColumn], 2)
+}
+```
+
+```{r, eval = F}
+knitr::kable(estimates, format = "markdown")
+```
+
+### Supplementary table 1
+
+```{r}
+mito <- MAP
+colnames(mito) <- c("sample", "library","damage", "cont_MT", "cont_MT_upper", "cont_MT_lower")
+mito[,c("cont_MT", "cont_MT_upper", "cont_MT_lower")] <- 1 - mito[,c("cont_MT", "cont_MT_upper", "cont_MT_lower")]
+mito <- mito[mito$damage == "all",]
+mito$damage <- NULL
+
+X <- males_dp3
+colnames(X) <- c("X_method", "cont_X","cont_X_lower", "cont_X_upper", "X_err","X_sites_dp3", "sample", "library", "depth", "sex")
+X <- X[,c("sample", "library","cont_X", "cont_X_lower", "cont_X_upper")]
+
+
+mito[,c("cont_MT", "cont_MT_upper", "cont_MT_lower")] <- round( mito[,c("cont_MT", "cont_MT_upper", "cont_MT_lower")], 2)
+X[, c("cont_X", "cont_X_lower", "cont_X_upper")] <- round(X[, c("cont_X", "cont_X_lower", "cont_X_upper")], 2)
+
+```
+
+```{r}
+boto_complete <- join(boto, mito, by = c("sample", "library"))
+boto_complete <- join(boto_complete, X, by = c("sample", "library"))
+
+
+
+boto_complete$cont_MT <- paste(percent(boto_complete$cont_MT), 
+                               " (", percent(boto_complete$cont_MT_lower), 
+                               ", ", percent(boto_complete$cont_MT_upper), ")",
+                               sep = "")
+
+boto_complete$cont_X <- paste(percent(boto_complete$cont_X), 
+                               " (", percent(boto_complete$cont_X_lower), 
+                               ", ", percent(boto_complete$cont_X_upper), ")",
+                               sep = "")
+boto_complete$seq_retained_frac <- 1 - boto_complete$seq_trash_se_frac
+
+to_round <- as.data.frame(matrix(data=c("Ry", 3,
+              "Ry_confint", 3,
+              "seq_trash_se_frac", 2,
+              "seq_retained_length", 1,
+              "hits_raw_frac_endogenous", 4,
+              "hits_unique_frac_endogenous", 4, 
+              "hits_coverage_endogenous", 3,
+              "hits_length_endogenous", 1,
+              "hits_unique_frac_mitochondrial", 6,
+              "hits_coverage_mitochondrial",1,
+              "hits_length_mitochondrial", 1,
+              "hits_length_nuclear",1,
+              "hits_coverage_nuclear", 3),
+              ncol = 2, byrow = T), stringsAsFactors = F)
+to_round$V2 <- as.integer(to_round$V2)
+
+#to_round_digits <- c(3,3,2,1,4,4,3,1,6,1,1,3)
+for(i in 1:nrow(to_round)){
+  boto_complete[,to_round[i,1]] <- round(boto_complete[, to_round[i,1]], 
+                                       to_round[i,2])
+
+}
+
+# Compute other numbers to report in the table
+boto_complete$hits_clonality_endogenous_frac <- percent(boto_complete$hits_clonality_endogenous/boto_complete$hits_raw_endogenous)
+
+boto_complete$hits_raw_frac_endogenous <- percent(boto_complete$hits_raw_frac_endogenous, accuracy = 0.01)
+boto_complete$hits_unique_frac_endogenous <- percent(boto_complete$hits_unique_frac_endogenous, accuracy = 0.01)
+
+#boto_complete$hits_raw_frac_nuclear <- percent(boto_complete$hits_raw_frac_nuclear, accuracy = 0.01)
+boto_complete$hits_unique_frac_nuclear <- percent(boto_complete$hits_unique_frac_nuclear, accuracy = 0.01)
+
+boto_complete$hits_unique_frac_mitochondrial <- percent(boto_complete$hits_unique_frac_mitochondrial, accuracy = 0.0001)
+boto_complete$seq_trash_se_frac <- percent(boto_complete$seq_trash_se_frac)
+boto_complete$seq_retained_frac <- percent(boto_complete$seq_retained_frac)
+
+boto_complete$Ry <- paste(boto_complete$Ry, " (", boto_complete$Ry-boto_complete$Ry_confint, ", ",
+                 boto_complete$Ry+boto_complete$Ry_confint, ")", sep = "")
+
+# Add thousands separator
+need_comma <- which(unlist(sapply(1:ncol(boto_complete), 
+                                  function(x) class(boto_complete[,x])) == "integer"))
+
+boto_complete[,need_comma] <- sapply(need_comma, 
+                                     function(x) prettyNum(boto_complete[,x], big.mark = ","))
+```
+
+```{r}
+myColNames <- c("sample",                         "Sample", "National Museum of Brazil (Museu Nacional, MN) identifier",
+                # "target",                         "Sample2",
+                "Area",                           "Region", "Sample origin (region) according to MN's archives",
+                "State",                          "State", "Sample origin (state) according to MN's archives", 
+                "CalibratedDate",                 "Calibrated date (AD)", "OxCal estimated mean and standard deviation for calibrated dates",
+                
+                "library",                        "Library", "DNA library identifier",
+                "lib_type",                       "library_type", "Library type",
+                
+                "seq_reads_se",                   "sequenced_reads", "Number of sequenced reads",
+                #"seq_trash_se",                   "trashed_reads_trimming", 
+                #"seq_trash_se_frac",              "fraction_trashed_reads_trimming",
+                "seq_retained_reads",             "retained_reads_trimming", "Number of reads retained after trimming",
+                "seq_retained_frac",              "percent_retained_reads_trimming", "Percentage of sequenced reads retained after trimming",
+                #"seq_retained_nts",               "retained_nucleotides_trimming",
+                "seq_retained_length",            "length_retained_reads", "Average read length for retained reads after trimming",
+                
+                "hits_clonality_endogenous",      "duplicated_reads", "Number of reads flagged as PCR duplicates by picardtools MarkDuplicates",
+                "hits_clonality_endogenous_frac", "percent_duplicated_reads", "Percentage of reads flagged as PCR duplicates by picardtools MarkDuplicates",
+                
+                "hits_unique_endogenous",         "unique_reads_endogenous", "Number of unique reads mapped to the human genome (build 37.1)",
+                "hits_unique_frac_endogenous",    "percent_unique_reads_endogenous", "Percentage of retained reads that were uniquely mapped to the human genome",
+                "hits_length_endogenous",         "length_reads_endogenous", "Average length of uniquely mapped reads",
+                "hits_coverage_endogenous",       "DoC_endogenous", "Depth of coverage on human genome (number of unique bases divided by the length of the human genome reference build 37.1)",
+                
+                #"hits_unique_nuclear",            "unique_reads_nuclear",
+                #"hits_coverage_nuclear",          "DoC_nuclear",
+                "hits_unique_mitochondrial",      "unique_reads_MT", "Number of unique reads mapped to the mitochondrial genome",
+                "hits_coverage_mitochondrial",    "DoC_MT", "Depth of coverage on mitochondrial genome (number of unique bases divided by the length of the mitochondrial genome, build 37.1)",
+                #"hits_raw_endogenous",            "reads_endogenous_raw",
+                #"hits_raw_frac_endogenous",       "fraction_reads_raw_endogenous",
+
+
+                #"hits_unique_frac_nuclear",       "percent_unique_reads_nuclear",
+                #"hits_length_nuclear",            "length_reads_nuclear",
+                
+                #"hits_unique_frac_mitochondrial", "fraction_unique_reads_mitochondrial",
+                "hits_length_mitochondrial",      "length_reads_mitochondrial", "Average length of uniquely mapped reads on mitochondrial genome",
+                
+                "cont_MT",                        "contamination_MT", "Maximum a posteriori estimate and 95% credible interval for contamination based on the mitochondrial genome (contamMix)",
+                #"cont_MT_upper",                  "contamination_mitochondrial_upper",
+                #"cont_MT_lower",                  "contamination_mitochondrial_lower",
+                "cont_X",                         "contamination_X", "Maximum likelihood estimate and 95% confidence interval for contamination based on X-chromosome data (contaminationX)",
+                #"cont_X_lower",                   "contamination_X_lower",
+                #"cont_X_upper",                   "contamination_X_upper",
+                
+                "Ry",                             "Ry", "Ratio of the reads mapping to the Y-chromosome and the reads mapping to sexual chromosomes (X and Y) and 95% confidence interval",
+                #"Ry_confint",                     "Ry_confint",
+                "sex",                            "Sex", "Molecular sex determined by the Ry ratio"
+                )
+
+change_name <- function(name){
+  new_name <- myColNames[which(myColNames == name)[1] + 1]
+  ifelse(is.na(new_name), return(name), return(new_name))
+}
+
+
+colnames(boto_complete) <- sapply(colnames(boto_complete), function(name) change_name(name))
+
+boto_complete <- boto_complete[,myColNames[seq(2, length(myColNames), 3)]]
+
+boto_complete$Library <- factor(boto_complete$Library, levels = c("mtCapture",
+                                                                  "L1",
+                                                                  "L2",
+                                                                  "L3U",
+                                                                  "All"),
+                                ordered = T)
+
+boto_final <- subset(boto_complete, select = myColNames[seq(2, length(myColNames), 3)])
+```
+
+
+```{r, eval = F}
+# boto_complete <- boto_complete[order( boto_complete$Sample, boto_complete$Library,boto_complete$percent_unique_reads_endogenous ),]
+boto_final <- boto_final[order(boto_final$Sample, boto_final$Library, boto_final$percent_unique_reads_endogenous),]
+write.table(boto_final, "~/Projects/Botocudos/Files/Summaries/2019_07_26/Sup_Table_1.txt",
+            col.names = T, row.names = F, sep = "\t", quote = F)
+
+```
+
+```{r}
+require(xlsx)
+wb_name <- "tabla1.xlsx"
+sh_name <- "SI_Table1"
+# define workbook and sheet
+wb <- createWorkbook(type="xlsx")
+sheet <- createSheet(wb, sheetName = sh_name)
+
+# Define row style to be used
+mySamples <- data.frame(sample = levels(boto_final$Sample), 
+                        color = rep(c("blue", "white"), 
+                                    round(length(unique(boto_final$Sample))/2)))
+white_row <- CellStyle(wb) 
+blue_row <- CellStyle(wb) + Fill(foregroundColor = "lightblue")
+
+# Function to add a row with specified cell style
+# xlsx.addRow <- function(sheet, rowIndex, data, rowStyle, sample){
+#   rows <- createRow(sheet, rowIndex = rowIndex)
+#   sheetRow <- createCell(rows, colIndex=1)
+#   sapply(data, function(x) setCellValue(sheetRow[[1,1]], x))
+#   cells <- getCells(getRows(sheet, rowIndex = rowIndex))
+#   
+#   if(mySamples$color[mySamples$sample == sample] == "blue"){
+#      lapply(names(cells), function(ii) setCellStyle(sheetRow[[ii]], blue_row))
+#   }else{
+#     #setCellStyle(sheetRow[[1,1]], white_row)
+#   }
+# }
+
+# for(i in 1:nrow(boto_final)){
+#   xlsx.addRow(sheet = sheet, rowIndex = i, data = boto_final[i,],
+#               sample = as.character(boto_final$Sample[i]))
+# }
+
+# Add table + column name explanation
+addDataFrame(boto_final, sheet, startRow = 1, startColumn = 1, row.names = F)
+
+# Add color
+rows <- getRows(sheet, rowIndex = 2:(nrow(boto_final)+1))
+cells <- getCells(rows, colIndex = 1:ncol(boto_final))
+values <- lapply(cells, getCellValue)
+
+highlight_blue <- c()
+for(i in names(values)){
+  if(values[i] %in% mySamples$sample){
+    currentSample <- values[i]
+  }
+  if(mySamples$color[mySamples$sample == currentSample] == "blue"){
+    highlight_blue <- c(highlight_blue, i)
+  }
+}
+lapply(names(cells[highlight_blue]), function(ii) setCellStyle(cells[[ii]], blue_row))
+  
+
+
+myLegend <- as.data.frame(matrix(myColNames, ncol = 3, byrow = T) )[,2:3]; #print(myLegend)
+addDataFrame(myLegend, sheet, startRow = nrow(boto_final) + 3,
+             startColumn = 1, row.names = F, col.names = F)
+
+autoSizeColumn(sheet, colIndex = 1:ncol(boto_final))
+saveWorkbook(wb, wb_name)
+
+```
+
+
+<!-- ## Complexity curves -->
+
+<!-- For some libraries -->
+
+```{r, eval = F}
+complexity <- function(myTable, maxSize = 5, total_sequenced){
+  constructor <- get_constructor(myTable, r=1)
+  
+  exp_sizes <- seq(0, maxSize, 0.1)
+  
+  df <- data.frame(sequenced = exp_sizes*total_sequenced ,
+                   expected = sapply(exp_sizes, 
+                                     function(x) constructor$f(x)),
+                   lower = sapply(exp_sizes, 
+                                  function(x) constructor$lb(x)),
+                   upper = sapply(exp_sizes, 
+                                  function(x) constructor$ub(x)))
+  return(df)
+}
+
+
+L2 <- read.table("~/Projects/Botocudos/Files/PreSeq/2019_08_12/MN0008/L2.duphist")
+L3U  <- read.table("~/Projects/Botocudos/Files/PreSeq/2019_08_12/MN0008/L3U.duphist")
+
+l2_complex <- complexity(L2, maxSize = 15, 
+                         total_sequenced = boto$seq_reads_se[
+                           boto$sample == "MN0008" & boto$library == "L2"])
+l3_complex <- complexity(L3U, maxSize = 15, 
+                         total_sequenced = boto$seq_reads_se[
+                           boto$sample == "MN0008" & boto$library == "L3U"])
+```
+
+
+```{r, eval = F}
+oneLane <- 400000000
+already_seq <- data.frame(lib = boto$library[boto$sample == "MN0008"],
+                          sequenced = boto$seq_reads_se[boto$sample == "MN0008"],
+                          expected = boto$hits_unique_endogenous[boto$sample == "MN0008"],
+                          lower = boto$hits_unique_endogenous[boto$sample == "MN0008"],
+                          upper = boto$hits_unique_endogenous[boto$sample == "MN0008"],
+                          coverage = boto$hits_coverage_endogenous[boto$sample == "MN0008"])
+
+myResult <- list(L2 = l2_complex, L3U = l3_complex)
+plots <- vector("list", 2)
+libs <- c("L2", "L3U")
+myCoverage <- round(already_seq$coverage[already_seq$lib == "L2"],1)
+myMapped <- already_seq$expected[already_seq$lib == "L2"]/already_seq$sequenced[already_seq$lib == "L2"]
+for(i in 1:2){
+  lib <- libs[i]
+  plots[[i]] <- ggplot(myResult[[lib]], aes(x = sequenced, y = expected,
+                                            ymin = lower, ymax = upper)) +
+    geom_line() +
+    geom_ribbon(alpha = 0.6, col = "chartreuse4") +
+    geom_vline( xintercept = seq(oneLane,max(myResult[[lib]]$sequenced),oneLane), 
+                linetype = "dashed", color = "gray") +
+    geom_hline( yintercept = myMapped*seq(oneLane,max(myResult[[lib]]$sequenced),oneLane), 
+                linetype = "dashed", color = "gray") +
+    geom_point(data = already_seq[already_seq$lib == lib,], color = "blue") +
+    scale_x_continuous(labels = seq(oneLane,max(l2_complex$sequenced),oneLane)/oneLane,
+                       breaks = seq(oneLane,max(l2_complex$sequenced),oneLane)) +
+    labs(x = "Sequenced lanes (~400M reads)", y = "Approximate genome coverage",
+         title = paste(lib,", MN0008", sep = "")) +
+    scale_y_continuous(labels = myCoverage*seq(oneLane,
+                                                         max(l2_complex$sequenced),oneLane)/oneLane,
+                       breaks = myMapped*seq(oneLane,max(l2_complex$sequenced),oneLane)) +
+    coord_cartesian(ylim = c(0, 6*oneLane))
+  
+}
+
+# png("~/Projects/Botocudos/Plots/Sequencing/complexity.png", width = 10,
+#     height = 6, res = 200, units = "in")
+
+plot_grid(plotlist = plots, ncol = 2)
+
+# dev.off()
+
+```
+
+```{r, eval = F}
+pdf("~/Projects/Botocudos/Plots/Sequencing/complexity_MN0008_L2.pdf", 
+    width = 7, height = 7)
+print(plots[[1]])
+dev.off() 
+
+
+```
+
+<!-- ## Admixture -->
+
+```{r, eval = F}
+path <- "~/Projects/Botocudos/Files/ADMIX/2019_09_01/Wollstein_50ind_MN0008_libs_k"
+myColors <- c("#b08699", "#c74300", "#5c8a73", "#008aa1", "#ff4dc9", "#b319ab", "#718600", "#06004f")
+names <- read.table("~/Projects/Botocudos/Files/ADMIX/2019_09_01/wollstein_ordered.txt", stringsAsFactors = F)[,5]
+names <- c("L2", "L3U", "L1", "MN0008_merged", names)
+myLines <- sapply(unique(names), function(x) max(which(names == x)))
+myNames <- sapply(unique(names), function(x) mean(which(names == x)))
+
+pdf("~/Projects/Botocudos/Plots/Sequencing/admixture_MN0008.pdf", height = 6)
+par(mfrow = c(8,1))
+par(mar = c(2, 4 , 1, 2))
+for(k in paste(seq(2, 8 ), c( 91,96,26,76,96,71,16 ), sep = '_')){
+  file <- read.table(paste(path, k, ".qopt", sep = ""))
+  myAdmix <- t(as.matrix(file))
+  barplot(myAdmix, col = myColors, border = NA, space = 0,
+          xlab = NULL, ylab = sub("_.*", "",k))
+  abline(v = myLines, col = "white")
+}
+
+text(myNames-0.5, -1., names(myNames), xpd=NA, cex = 1, srt = 90)
+dev.off()
+```
+

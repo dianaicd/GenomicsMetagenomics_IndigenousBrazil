@@ -1,0 +1,836 @@
+---
+title: "Supplementary tables for mapping statistics and contamination"
+author: "DI Cruz Dávalos"
+date: "1/23/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = F, warning = F)
+```
+
+```{r}
+require(plyr)
+require(ggplot2)
+require(cowplot)
+require(tidyr)
+require(scales)
+require(knitr)
+```
+
+```{r}
+#------------------------------------------------------------------------------#
+# Load isotopic data if available
+backbone <- read.csv("~/Projects/Botocudos/Files/Tables/Backbone_Table1_2020.csv")
+colnames(backbone) <- c("Sample", "CalibratedDate", "Area", "State") 
+
+```
+
+```{r read in file}
+myPath <- "~/Projects/Botocudos/Files/Summaries/2019_11_21/"
+dp <- "sample_depth.hg19.csv"
+st <- "sample_stats.hg19.csv"
+
+whole_dp <- read.csv(paste(myPath, "Whole/", dp, sep = ""))
+whole_dp$SM <- sub(".hg19", "", whole_dp$Sample)
+whole_st <- read.csv(paste(myPath, "Whole/", st, sep = ""))
+
+trim_dp <- read.csv(paste(myPath, "Trimmed/", dp, sep = ""))
+trim_dp$SM <- sub(".hg19", "", trim_dp$Sample)
+trim_st <- read.csv(paste(myPath, "Trimmed/", st, sep = ""))
+
+whole <- join(whole_dp, whole_st, by = "SM")
+whole$type <- "whole"
+trim <- join(trim_dp, trim_st, by = "SM")
+trim$type <- "trimmed"
+
+
+myStats <- rbind(trim, whole)
+myStats$type <- factor(myStats$type, levels = c("whole", "trimmed"), ordered = T)
+myStats <- myStats[order(myStats$endo_final_prop),]
+myStats$SM <- factor(myStats$SM, levels = unique(myStats$SM), ordered = T)
+```
+
+## Supplementary Table 1:  Mapping stats per sample
+
+```{r define column names}
+
+myColNames <- c("Sample",            "Sample",                          "National Museum of Brazil (Museu Nacional, MN) identifier",
+                
+                "SM",            "Sample",                          "National Museum of Brazil (Museu Nacional, MN) identifier",
+                "library",                        "Library", "DNA library identifier",
+                "LB",                        "Library", "DNA library identifier",
+                
+                "Area",              "Region",                          "Sample origin (region) according to MN's archives",
+                "State",             "State",                           "Sample origin (state) according to MN's archives", 
+                "CalibratedDate",    "Calibrated date (AD)",            "OxCal estimated mean and standard deviation for calibrated dates",
+                
+                "reads_raw",         "sequenced_reads",                 "Number of sequenced reads", 
+                "reads_trim",        "retained_reads_trimming",         "Number of reads retained after trimming",
+                
+                "duplicates",        "duplicated_reads",                "Number of reads flagged as PCR duplicates by picardtools MarkDuplicates",
+                "duplicates_prop",   "percent_duplicated_reads",        "Percentage of reads flagged as PCR duplicates by picardtools MarkDuplicates",
+                 
+                "mapping_final",     "unique_reads_endogenous",         "Number of unique reads mapped to the human genome (build 37.1)",
+                "endo_prop",         "percent_unique_reads_endogenous", "Percentage of retained reads that were uniquely mapped to the human genome",
+                
+                "AvgReadDepth_tot",  "DoC_endogenous",                  "Depth of coverage on human genome (number of unique bases divided by the length of the human genome reference build 37.1)",
+                "AvgReadDepth_MT",   "DoC_MT",                          "Depth of coverage on mitochondrial genome (number of unique bases divided by the length of the mitochondrial genome, build 37.1)",
+                
+                "AvgReadLength",     "length_reads_endogenous",         "Average length of uniquely mapped reads",
+                
+                "R_y",               "Ry_95CI",                          "Ratio of the reads mapping to the Y-chromosome and the reads mapping to sexual chromosomes (X and Y) and 95% confidence interval",
+                "Sex",               "Sex",                              "Molecular sex determined by the Ry ratio"
+                )
+
+change_name <- function(name){
+  new_name <- myColNames[which(myColNames == name)[1] + 1]
+  ifelse(is.na(new_name), return(name), return(new_name))
+}
+
+```
+
+```{r prepare caption}
+myCaption <- paste(paste(myColNames[seq(2, length(myColNames), 3)], 
+                   myColNames[seq(3, length(myColNames), 3)], sep = ": "),
+                   collapse = "\n\n")
+```
+
+```{r prepare numbers format}
+# colname, accuracy, percent
+myNumFormat <- matrix(c("sequenced_reads", 1, 0, 
+                 "retained_reads_trimming", 1, 0,
+                 "duplicated_reads", 1, 0,
+                 "percent_duplicated_reads", 3, 1,
+                 "unique_reads_endogenous", 1, 0,
+                 "percent_unique_reads_endogenous", 4, 1,
+                 "DoC_endogenous", 3, 0,
+                 "DoC_MT", 1, 0,
+                 "length_reads_endogenous", 1, 0), ncol = 3, byrow = T)
+
+format_column_num <- function(col_name, percent, accuracy, myT1){
+  if(percent){
+    myT1[,col_name]  <- percent(myT1[,col_name], accuracy = accuracy)
+  }else{
+    myT1[,col_name] <- round(myT1[,col_name], accuracy)
+  }
+  myT1[,col_name] <- prettyNum(myT1[,col_name], big.mark = ",")
+  return(myT1)
+}
+
+```
+
+```{r prepare table}
+myT1 <- myStats[myStats$type == "whole",]
+
+myT1$R_y <-  paste(myT1$R_y, " ( ", myT1$X95.CI, ")", sep = "")
+
+myT1 <- myT1[,c("Sample", "reads_raw", "reads_trim", "trim_prop", 
+                "duplicates", "duplicates_prop", "mapping_final",
+                "endo_prop", "AvgReadDepth_tot", "AvgReadDepth_MT", "AvgReadLength",
+                "Sex", "R_y")]
+
+myT1 <- join(backbone, myT1, by = "Sample")
+
+colnames(myT1) <- sapply(colnames(myT1), function(name) change_name(name))
+
+myT1$percent_duplicated_reads <- myT1$percent_duplicated_reads/100
+myT1$percent_unique_reads_endogenous <- myT1$percent_unique_reads_endogenous/100
+
+samples_order <- myT1$Sample[order(myT1$DoC_endogenous)]
+
+myT1$Sample <- factor(myT1$Sample, levels = samples_order, ordered = T)
+myT1 <- myT1[order(myT1$Sample, decreasing = T),]
+```
+
+```{r format prettyNum}
+for(i in seq(1, nrow(myNumFormat))){
+  myT1 <- format_column_num(myNumFormat[i, 1], 
+                            as.numeric(myNumFormat[i,3]), 
+                            as.numeric(myNumFormat[i,2]),
+                            myT1)
+}
+```
+
+```{r}
+kable(myT1, caption = myCaption, digits = 1, row.names = F)
+```
+
+```{r}
+# add plot for merged libraries
+```
+
+
+## Supplementary Table 2: Mapping stats per library
+
+```{r prepare number format}
+myNumFormat <- matrix(c("sequenced_reads", 1, 0, 
+                 "retained_reads_trimming", 1, 0,
+                 "duplicated_reads", 1, 0,
+                 "percent_duplicated_reads", 3, 1,
+                 "unique_reads_endogenous", 1, 0,
+                 "percent_unique_reads_endogenous", 4, 1
+                 ), ncol = 3, byrow = T)
+```
+
+```{r}
+lib_st <- read.csv("~/Projects/Botocudos/Files/Summaries/2019_11_21/Whole/library_stats.hg19.csv")
+whole_st$LB <- "All"
+
+myT2 <- rbind(whole_st, lib_st)
+myT2 <- myT2[order(myT2$SM, myT2$LB),]
+myT2$LB <- factor(myT2$LB, levels = c("mtCapture", "L3U", "L2", "L1", "All"),
+                  ordered = T)
+myT2$SM <- factor(myT2$SM, levels = samples_order, ordered = T)
+myT2 <- myT2[order(myT2$SM, myT2$LB, decreasing = T),]
+
+
+
+myT2 <- myT2[,c("SM", "LB","reads_raw", "reads_trim", "trim_prop", 
+                "duplicates", "duplicates_prop", "mapping","mapping_final",
+                "endo_prop")]
+
+myT2_final <- myT2
+myT2_final <- myT2_final[, c("SM", "LB", "reads_raw", "reads_trim", "trim_prop",
+                             "duplicates", "duplicates_prop", "mapping_final", "endo_prop")]
+colnames(myT2_final) <- sapply(colnames(myT2_final), function(name) change_name(name))
+myT2_final$percent_duplicated_reads <- myT2_final$percent_duplicated_reads/100
+myT2_final$percent_unique_reads_endogenous <- myT2_final$percent_unique_reads_endogenous/100
+
+for(i in seq(1, nrow(myNumFormat))){
+  myT2_final <- format_column_num(myNumFormat[i, 1], 
+                            as.numeric(myNumFormat[i,3]), 
+                            as.numeric(myNumFormat[i,2]),
+                            myT2_final)
+}
+```
+
+
+```{r}
+kable(myT2_final, row.names = F, digits = 1)
+
+```
+
+
+Figure for internal discussion; will we add any figure for SI?
+
+```{r, fig.width=14, fig.height=14}
+stats_to_plot <- myT2 %>% 
+  mutate(log_reads_raw = log10(reads_raw),
+         log_reads_trim = log10(reads_trim),
+         log_mapping = log10(mapping),
+         log_duplicates = log10(duplicates),
+         log_mapping_final = log10(mapping_final),
+         log_endo_prop = log10(endo_prop)) %>% 
+  gather( name, value,  -SM, -LB) 
+
+
+stats_to_plot$name <- factor(stats_to_plot$name, levels = c("reads_raw",
+                                                            "log_reads_raw",
+                                                            "reads_trim",
+                                                            "log_reads_trim",
+                                                            "trim_prop",
+                                                            "mapping",
+                                                            "log_mapping",
+                                                            "duplicates",
+                                                            "log_duplicates",
+                                                            "duplicates_prop",
+                                                            "mapping_final",
+                                                            "log_mapping_final",
+                                                            "Nseqs",
+                                                            "log_Nseqs",
+                                                            "NchrY.NchrX",
+                                                            "log_NchrY.NchrX",
+                                                            "NchrY",
+                                                            "log_NchrY",
+                                                            "R_y",
+                                                            "endo_prop",
+                                                            "log_endo_prop",
+                                                            "endo_final_prop",
+                                                            "log_endo_final_prop",
+                                                            "AvgReadDepth_tot",
+                                                            "log_AvgReadDepth_tot",
+                                                            "AvgReadDepth_MT",
+                                                            "log_AvgReadDepth_MT",
+                                                            "AvgReadLength"),
+                             ordered = T)
+
+####
+# y-axis to meaningful numbers (i.e., 10^10, 10^4, etc...)
+
+# one plot in linear scale, another in log
+
+stats_to_plot %>%
+ggplot(  aes(x = SM, y = value, fill = LB)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90, size = 10),
+        strip.text.x = element_text(size = 12)) +
+  facet_wrap(facets = vars(name), scales = "free_y", ncol = 3) +
+   # scale_fill_discrete() +
+  scale_fill_manual(values =  c("#c4bf33","#0d75ff",
+                                "#e0b81f","#b08699",
+                                 "gray40"
+                                )) +
+  labs(x = NULL, y = NULL)
+
+```
+
+
+### Length
+
+Lots of plots per library, merged in one pdf
+
+```{r load files per sample}
+myPath <- "~/Projects/Botocudos/Files/bamdamage/2020_01_23/Whole/"
+
+samples <- as.character(unique(lib_st$SM))
+if(!"MN0008_L3U" %in% samples){
+  samples <- c(samples, "MN0008_L3U", "MN0008_non_U")  
+}
+myLength <- vector("list", length = length(samples))
+names(myLength) <- samples
+
+for(s in samples){
+  path_length <- paste(myPath, s, sep = "/")
+  path_length <- paste(path_length, "/", s, ".hg19.length.csv", sep = "")
+  tmp_length <- read.csv(path_length)
+  myLength[[s]] <- tmp_length
+  }   
+
+
+```
+
+```{r plots per sample, eval = T, fig.width=16, fig.height=16}
+myColor <- "royalblue"
+nCol <- 6 
+# samples_per_row <- 5
+cex <- 1.2
+
+blank_plot <- function(){
+  plot(1,1, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+}
+
+# pdf("~/Projects/Botocudos/Plots/Sequencing/Length_dist.pdf",
+    # width = 9, height = 12)
+layout(matrix(seq(1, nCol*nCol), ncol = nCol, byrow = T))
+
+for(s in samples){
+    le <- myLength[[s]]
+    le <- le[le$counts >0,]
+    plot.title <- s
+    plot(x = le$length, y = le$counts/sum(le$counts), type = "b",
+         col = myColor, bty = "n", 
+         xlab = "Length", ylab = "Frequency", lwd = 1.5, 
+         main = plot.title, cex = cex)
+}
+
+# dev.off()
+```
+
+```{r load files per library}
+myPath <- "~/Projects/Botocudos/Files/bamdamage/2020_01_23/Whole/"
+
+myLength <- vector("list", length = length(samples))
+names(myLength) <- samples
+
+for(s in samples){
+  myLibs <- lib_st$LB[lib_st$SM == s]
+  some_length <- vector("list", length = length(myLibs))
+  names(some_length) <- myLibs
+  
+  for(l in myLibs){
+    path_length <- paste(myPath, s, l, "library_bamdamage", sep = "/")
+    path_length <- paste(path_length, "/", l, ".hg19.length.csv", sep = "")
+    tmp_length <- read.csv(path_length)
+    some_length[[l]] <- tmp_length
+  }
+  myLength[[s]] <- some_length
+  }
+
+
+```
+
+```{r plots per library, eval = F}
+myColor <- "royalblue"
+nCol <- max(sapply(myLength, length))
+samples_per_page <- 5
+cex <- 1.2
+
+blank_plot <- function(){
+  plot(1,1, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+}
+
+pdf("~/Projects/Botocudos/Plots/Sequencing/Length_dist.pdf",
+    width = 9, height = 12)
+layout(matrix(seq(samples_per_page*nCol), nrow = samples_per_page, byrow = T))
+
+for(s in samples){
+  myLibs <- lib_st$LB[lib_st$SM == s]
+  myRow <- which(samples == s)
+  
+  if(!myRow %% samples_per_page){
+    # plot.new()
+    layout(matrix(seq(samples_per_page*nCol), nrow = samples_per_page, byrow = T))  
+  }
+  
+  for(l in myLibs){
+    le <- myLength[[s]][[l]]
+    le <- le[le$counts >0,]
+    plot.title <- paste(s, l)
+    plot(x = le$length, y = le$counts/sum(le$counts), type = "b",
+         col = myColor, bty = "n", 
+         xlab = "Length", ylab = "Frequency", lwd = 1.5, 
+         main = plot.title, cex = cex)
+  }
+  plots_left <- nCol - length(myLibs)
+  while(plots_left > 0){
+    blank_plot()
+    plots_left <- plots_left - 1
+  }
+}
+
+dev.off()
+```
+
+### Damage
+
+Lots of plots per library, merged in one pdf
+
+
+```{r load damage per sample}
+myPath <- "~/Projects/Botocudos/Files/bamdamage/2020_01_23/Whole"
+
+if(!"MN0008_L3U" %in% samples){
+  samples <- c(samples, "MN0008_L3U", "MN0008_non_U")  
+}
+
+myDam <- vector("list", length = length(samples))
+names(myDam) <- samples
+
+for(s in samples){
+  path_dam <- paste(myPath, s, sep = "/")
+  path_dam <- paste(path_dam, "/", s, ".hg19.dam_5prime.csv", sep = "")
+  tmp_dam5 <- read.csv(path_dam)
+  path_dam <- sub("5prime", "3prime", path_dam)
+  tmp_dam3 <- read.csv(path_dam)
+  
+  some_dam <- list(five_prime = tmp_dam5, three_prime = tmp_dam3)
+  myDam[[s]] <- some_dam
+}
+
+
+```
+
+```{r plot damage per sample, eval=T, fig.width=16, fig.height=16}
+myColor_CT <- "royalblue"
+myColor_GA <- "firebrick3"
+nCol <- 8
+samples_per_page <- 5
+samples <- sort(samples)
+cex <- 1.2
+
+blank_plot <- function(){
+  plot(1:10,1:10, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+}
+
+# pdf("~/Projects/Botocudos/Plots/Sequencing/Length_dist.pdf",
+    # width = 9, height = 12)
+layout(matrix(seq(nCol*nCol), ncol = nCol, byrow = T))
+
+for(s in samples){
+  
+    y2 <- max(c( myDam[[s]][["five_prime"]]$C..T,  
+                 myDam[[s]][["three_prime"]]$G..A))
+    le <- myDam[[s]][["five_prime"]]
+    
+    plot.title <- s
+    par(mar = c(4, 4, 3, 1))
+    plot(le$C..T[1:25], type = "b",
+         col = myColor_CT, bty = "n", 
+         xlab = "5' position", ylab = "Frequency", lwd = 1.5, 
+         main = plot.title, cex = cex, axes = F, ylim = c(0, y2))
+    axis(side = 1, at = seq(0,25,5))
+    axis(side=2)
+    
+    le <- myDam[[s]][["three_prime"]]
+    par(mar = c(4,1,3,3))
+    plot(rev(le$G..A[1:25]), type = "b",
+         col = myColor_GA, bty = "n", 
+          lwd = 1.5, 
+         cex = cex, axes = F, xlab = "3' position", ylab = NA, ylim = c(0, y2))
+     axis(side = 1, at = seq(1,25,5), labels = seq(25, 1,-5))
+     axis(side = 4)
+     
+
+}
+
+blank_plot()
+legend(1,10, legend = c("C -> T", "G -> A"), col = c(myColor_CT, myColor_GA),
+       lty = 1, pch = 21, bty = "n", cex = 2)
+
+# dev.off()
+```
+
+
+```{r load damage per library}
+myPath <- "~/Projects/Botocudos/Files/bamdamage/2020_01_23/Whole/"
+samples <- unique(lib_st$SM)
+myDam <- vector("list", length = length(samples))
+names(myDam) <- samples
+
+for(s in samples){
+  myLibs <- lib_st$LB[lib_st$SM == s]
+  some_dam <- vector("list", length = length(myLibs))
+  names(some_dam) <- myLibs
+  
+  for(l in myLibs){
+    path_dam <- paste(myPath, s, l, "library_bamdamage", sep = "/")
+    path_dam <- paste(path_dam, "/", l, ".hg19.dam_5prime.csv", sep = "")
+    tmp_dam5 <- read.csv(path_dam)
+    path_dam <- sub("5prime", "3prime", path_dam)
+    tmp_dam3 <- read.csv(path_dam)
+    
+    some_dam[[l]] <- list(five_prime = tmp_dam5, three_prime = tmp_dam3)
+  }
+  myDam[[s]] <- some_dam
+  }
+
+
+```
+
+```{r plot damage per library, eval=F}
+myColor_CT <- "royalblue"
+myColor_GA <- "firebrick3"
+nCol <- max(sapply(myDam, length))
+samples_per_page <- 5
+cex <- 1.2
+
+blank_plot <- function(){
+  plot(1:10,1:10, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+}
+
+# pdf("~/Projects/Botocudos/Plots/Sequencing/Length_dist.pdf",
+    # width = 9, height = 12)
+layout(matrix(seq(samples_per_page*nCol), nrow = samples_per_page, byrow = T))
+
+for(s in samples){
+  myLibs <- lib_st$LB[lib_st$SM == s]
+  myRow <- which(samples == s)
+  
+  if(!myRow %% samples_per_page){
+    # plot.new()
+    layout(matrix(seq(samples_per_page*nCol*2), nrow = samples_per_page, byrow = T))  
+  }
+  
+  for(l in myLibs){
+    y2 <- max(c( myDam[[s]][[l]][["five_prime"]]$C..T,  
+                 myDam[[s]][[l]][["three_prime"]]$G..A))
+    le <- myDam[[s]][[l]][["five_prime"]]
+    
+    plot.title <- paste(s, l)
+    par(mar = c(4, 3, 3, 1))
+    plot(le$C..T[1:25], type = "b",
+         col = myColor_CT, bty = "n", 
+         xlab = "5' position", ylab = "Frequency", lwd = 1.5, 
+         main = plot.title, cex = cex, axes = F, ylim = c(0, y2))
+    axis(side = 1, at = seq(0,25,5))
+    axis(side=2)
+    
+    le <- myDam[[s]][[l]][["three_prime"]]
+    par(mar = c(4,1,3,3))
+    plot(rev(le$G..A[1:25]), type = "b",
+         col = myColor_GA, bty = "n", 
+          lwd = 1.5, 
+         cex = cex, axes = F, xlab = "3' position", ylab = NA, ylim = c(0, y2))
+     axis(side = 1, at = seq(1,25,5), labels = seq(25, 1,-5))
+     axis(side = 4)
+  }
+  plots_left <- nCol*2 - length(myLibs)*2
+  while(plots_left > 0){
+    blank_plot()
+    plots_left <- plots_left - 1
+  }
+  legend(1,10, legend = c("C -> T", "G -> A"), col = c(myColor_CT, myColor_GA),
+       lty = 1, pch = 21, bty = "n", cex = 2)
+}
+
+# blank_plot()
+
+
+# dev.off()
+```
+
+
+## Supplementary Table 3: Contamination estimates
+
+!!!
+cleaning and gathering output from schmutzi, contaminationX and contamMix
+!!!
+
+```{r add results from contaminationX}
+#------------------------------------------------------------------------------#
+## X
+minDepth <- seq(2,3)
+path <- "~/Projects/Botocudos/Files/Contamination/2020_01_24/contaminationX/"
+mySamples <- unique(myT1$Sample)
+libs <- c("All")
+
+s <- mySamples[1]
+l <- libs[1]
+md <- minDepth[2]
+
+empty_df <- function(sample, lib){
+  myDF <- data.frame(method = c("One-cns", "Two-cns"),
+                     estimate = c(NA, NA), lb = c(NA, NA), ub = c(NA, NA),
+                     err = c(NA, NA), nSites = c(NA, NA))
+  return(myDF)
+}
+
+x_cont <- data.frame()
+for(s in mySamples){
+  for(l in libs){
+    for(md in minDepth){
+      
+      tmp_res <- tryCatch(tmp_res <- read.table(paste(path, 
+                                                      s,".hg19_", l, 
+                                                      "_md", md, ".result", sep = "")),
+                          error =  function(e) empty_df(s, l),
+                          finally = function() return(tmp_res))
+      
+      colnames(tmp_res) <- c("method", "estimate", "lb", "ub", "err", "nSites")
+      tmp_res$Sample <- s
+      tmp_res$library <- l
+      tmp_res$depth <- md
+      x_cont <- rbind(x_cont, tmp_res)
+    }
+  }
+}
+
+x_cont <- join(x_cont, myT1[,c("Sex", "Sample")], by = "Sample")
+x_cont <- x_cont[!is.na(x_cont$estimate) & x_cont$Sex %in% c("XY", "Not Assigned", "consistent with XY but not XX"),]
+
+males <- x_cont[x_cont$method == "Two-cns",]
+
+# write.table(males, "~/Projects/Botocudos/Files/Contamination/2020_01_24/contaminationX/estimates_X_males.txt", 
+# sep = "\t", quote = F, col.names = T, row.names = F)
+
+males_fmt <- males
+
+males_fmt$estimate <- percent(males_fmt$estimate)
+males_fmt$lb <- percent(males_fmt$lb)
+males_fmt$ub <- percent(males_fmt$ub)
+
+colnames(males_fmt) <- c("X_method", "X_estimate", "X_low_est", "X_upper_est",
+                         "X_error", "X_num_sites", "sample", "library", "X_min_depth",
+                         "sex")
+
+
+```
+
+```{r, eval = F}
+kable(males_fmt, row.names = F)
+```
+
+```{r add results from contammix}
+prefix <- "~/Projects/Botocudos/Files/Contamination/2020_01_24/contamMix/"
+samples <- samples_order
+rmTrans <- c("all", "rmTrans")
+
+# We ran the chains for 100k iterations, 
+# we will subsample a fraction of these samples to plot the posterior distribution
+
+subsample_contammmix <- function(path, sample, rmTrans, size = 100, lib = "All",
+                                 burnIn = 0.1){
+
+    myRda <- paste(path, sample, "/", s, ".hg19_", lib, "_", rmTrans, ".Rdata", sep = "")
+
+  print(myRda)
+  load(myRda)
+  notBurnIn <- as.integer(burnIn*size)
+  tiny <- # sample(
+    #remove burnin
+    c(res$chains[[1]][size - ((size- notBurnIn):0),2])#,
+                 #res$chains[[2]][,2], res$chains[[3]][,2])#, size)
+  result <- data.frame(estimate = tiny, damage = rmTrans, lib = lib,
+                       sample = sample)
+  return(result)
+}
+
+# contammix <- data.frame()
+# for(s in samples){
+#   libs <- (myT2$LB[myT2$SM == s])
+#   for(l in libs){
+#     for(r in rmTrans){
+#       tmp_contam <- subsample_contammmix(prefix, s, r, 100000, l)
+#       contammix <- rbind(contammix, tmp_contam)
+#     }
+#   }
+# }
+
+
+#------------------------------------------------------------------------------#
+# Order libraries and save (or load) results
+# contammix$lib <- factor(contammix$lib,
+#                         levels = c("L1", "L2", "L3U", "mtCapture","All"), 
+#                         ordered = T)
+# contammix$coverage <- 0
+# for(s in unique(contammix$sample)){
+#   for(l in unique(contammix$lib[contammix$sample == s])){
+#     contammix$coverage <- boto$hits_coverage_mitochondrial[boto$sample == s & boto$library == l]
+#   }
+# }
+
+# save(contammix, file="~/Projects/Botocudos/Files/Contamination/2020_01_24/contamMix//contamination.Rdata")
+load("~/Projects/Botocudos/Files/Contamination/2020_01_24/contamMix/contamination.Rdata")
+
+
+path <- "~/Projects/Botocudos/Files/Contamination/2020_01_24/contamMix/"
+rmTrans <- c("all", "rmTrans")
+annot_mito <- data.frame()
+
+for(s in samples){
+  libs <- (myT2$LB[myT2$SM == s])
+  for(lib in libs){
+    for(r in rmTrans){
+      myRda <- paste(path, s, "/", s, ".hg19_", lib, "_", r, ".Rdata", sep = "")
+      #print(myRda)
+      load(myRda)
+      nReads <- dim(res$mnMatrix)[1]
+      # coverage <- boto$hits_coverage_mitochondrial[boto$sample == s & boto$library == lib]
+      annot_tmp <- data.frame(nReads = nReads, #coverage = coverage, 
+                              damage = r, lib = lib,
+                           sample = s)
+      
+      annot_mito <- rbind(annot_mito, annot_tmp)
+    }
+  }
+}
+
+
+
+MAP <- read.csv("~/Projects/Botocudos/Files/Contamination/2020_01_24/contamMix/estimates.txt", header = F)
+
+colnames(MAP) <- c("sample", "lib", "damage","map", "low", "high")
+MAP$lib <- sub("S1", "L1", MAP$lib)
+annot_mito <- join(annot_mito, MAP, by = c("sample", "lib", "damage"))
+
+```
+
+```{r print estimates from contamMix, eval = F}
+
+kable(mito, row.names = F)
+```
+
+```{r add results from schmutzi}
+path <- "~/Projects/Botocudos/Files/Contamination/2020_01_24/schmutzi/"
+
+schmutzi_files <- list.files(path, pattern =".est")
+
+schmutzi <- data.frame()
+
+for(f in schmutzi_files){
+  tmp_schmutzi <- read.table(paste(path, f, sep =""))
+  colnames(tmp_schmutzi) <- c("estimate", "low", "up")
+  tmp_schmutzi$sample <- strsplit(f, "_")[[1]][1]
+  schmutzi <- rbind(schmutzi, tmp_schmutzi)
+  
+}
+```
+
+```{r print estimates from schmutzi, eval = F}
+kable(schmutzi, row.names = F)
+```
+
+```{r}
+myAccuracy <- 1
+
+# contamMix
+mito <- annot_mito[annot_mito$lib == "All" & annot_mito$damage == "all",]
+mito$damage <- NULL
+mito$lib <- NULL
+colnames(mito) <- c("contamMix_num_reads", "Sample", 
+                    "contamMix_estimate", "contamMix_low", "contamMix_up")
+
+mito$contamMix_estimate <- percent(1 - mito$contamMix_estimate, accuracy = myAccuracy)
+mito$contamMix_low <- percent(1 - mito$contamMix_low, accuracy = myAccuracy)
+mito$contamMix_up <- percent(1 - mito$contamMix_up, accuracy = myAccuracy)
+mito$contamMix_estimate <- paste(mito$contamMix_estimate, 
+                                 " (", mito$contamMix_up, 
+                                 ", ", mito$contamMix_low, ")", sep = "")
+mito <- mito[, c("Sample", "contamMix_num_reads", "contamMix_estimate")]
+
+
+# schmutzi
+mito_sch <- schmutzi
+colnames(mito_sch ) <- c("schmutzi_estimate", "schmutzi_low", "schmutzi_up", "Sample")
+mito_sch$schmutzi_estimate <- percent(mito_sch$schmutzi_estimate, accuracy = myAccuracy)
+mito_sch$schmutzi_low <- percent(mito_sch$schmutzi_low, accuracy = myAccuracy)
+mito_sch$schmutzi_up <- percent(mito_sch$schmutzi_up, accuracy = myAccuracy)
+mito_sch$schmutzi_estimate <- paste(mito_sch$schmutzi_estimate, 
+                                    " (", mito_sch$schmutzi_low, 
+                                    ", ",mito_sch$schmutzi_up, ")", sep = "")
+mito_sch <- mito_sch[,c("Sample", "schmutzi_estimate")]
+
+# contaminationX
+x <- males_fmt[males_fmt$X_min_depth == 3,]
+x$library <- NULL
+x$X_method <- NULL
+x$sex <- NULL
+x$X_error <- NULL
+x$X_min_depth <- NULL
+colnames(x) <- c("contaminationX_estimate", "contaminationX_low", 
+                 "contaminationX_up", "contaminationX_num_sites", "Sample")
+x$contaminationX_estimate <-  paste(x$contaminationX_estimate, 
+                                    " (", x$contaminationX_low, 
+                                    ", ",x$contaminationX_up, ")", sep = "")
+x <- x[,c("Sample", "contaminationX_estimate")]
+
+# Merge
+cont <- join(myT1[,c("Sample", "Sex")], mito, by = "Sample")
+cont <- join(cont, mito_sch, by = "Sample")
+cont <- join(cont, x, by = "Sample")
+
+kable(cont, row.names = F)
+```
+
+## Supplementary Table 4: Haplogroups?
+
+!!!
+Haplogroups called (whenever it was possible)
+cleaning and gathering output from haplogrep and David's script
+!!!
+
+```{r parse mt-haplogroups}
+myPath <- "~/Projects/Botocudos/Files/Haplogroups/2020_01_23/"
+hap_files <- list.files(myPath, pattern = ".haplo$")
+mt_hap <- data.frame()
+
+for(f in hap_files){
+  tmp_hap <- read.table(paste(myPath, f, sep = ""), header = T)
+  s <- sub(".haplo", "", f)
+  tmp_hap$Sample <- s
+  mt_hap <- rbind(mt_hap, tmp_hap)
+  }
+
+mt_hap <- mt_hap[,c("Sample", "Haplogroup")]
+
+
+y_hap <- data.frame(Sample = c("MN0003",
+                               "MN00064",
+                               "MN00067",
+                               "MN0008",
+                               "MN0009",
+                               "MN00346"),
+                    Haplogroup = c("Q1a2a1-L54",
+                                   "Q1a2a1a1-M3",
+                                   "Q1a2a1a1-M3",
+                                   "Q1a2a1a1-M3",
+                                   "Q1a2a1a1-M3",
+                                   "Q1a2a1a1-M3"))
+
+myHaplos <- join(myT1[,c("Sample", "Sex")], mt_hap, by = "Sample")
+myHaplos <- join(myHaplos, y_hap, by = "Sample")
+
+kable(myHaplos, row.names = F)
+```

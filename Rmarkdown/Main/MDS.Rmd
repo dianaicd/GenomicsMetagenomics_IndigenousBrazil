@@ -1,0 +1,368 @@
+---
+title: "MDS_2019_09_05"
+author: "DI Cruz Dávalos"
+date: "9/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(plyr)
+library(scales)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r}
+myWorkDir <- "~/Projects/Botocudos/Files/MDS/2019_08_21/Wollstein/"
+boto <- read.table("~/Projects/Botocudos/Files/Summaries/2019_07_26/Sup_Table_1.txt",
+                   header = T, sep = "\t")
+mySamples <- unique(boto$Sample)
+myMagicPanel <- read.table("~/Projects/Botocudos/Files/Panels/Magic.panel", header = T)
+```
+
+```{r}
+sample <- "MN0008"
+
+do_mds <- function(myWorkDir, sample, panelName, myMagicPanel, 
+                   myAes, columnToPlot, load = F, return_eig = F){
+  
+  myPath <- paste(myWorkDir, sample, "_", panelName, ".haploid.dist", sep = "")
+  
+  ind <- read.table(paste(myPath, ".id", sep = ""))
+  Dist <- as.matrix(read.table(paste(myPath, ".gz", sep = "")))
+  
+  colnames(ind) <- c("x", "indID")
+  myPanel <- join(ind, myMagicPanel, by = "indID")
+  
+  if(load){
+    load(paste(myWorkDir, sample, ".Rda", sep = ""))
+  }else{
+    res <- cmdscale(dist(Dist), k = nrow(Dist)-1, eig = T)
+    save(res, file= paste(myWorkDir, sample, ".Rda", sep = ""))
+  }
+  points <- as.data.frame(res$points)
+  points <- cbind(points, myPanel)
+  points <- join(points, myAes, by = columnToPlot)
+  if(return_eig){
+      return(res$eig)
+  }else{
+      return(points)
+  }
+
+}
+```
+
+
+## Are they clustering with Polynesians?
+```{r}
+# mat <- matrix(c("Africa", "#e62e73", 16,
+#          "Europe", "#ebd999", 16,
+#          "WestEurasia", "#a6d40d", 16,
+#          "CentralAsiaSiberia", "#328e13", 16,
+#          "EastAsia", "#a93400", 16,
+#          "SouthAsia", "#ff8c00", 16,
+#          "SouthEastAsia", "#65a98f", 16,
+#          "Oceania", "#0057ba", 16,
+#          "Americas", "#cc85d1", 16,
+#          "Botocudos", "black", 19
+#          ), ncol = 3, byrow = T)
+
+pop_color <- c("#1b8e13",
+               "#6ea900",
+               "#19cc33",
+               "#ffe600",
+               "#b8b8ff",
+               "#4f8fe6",
+               "#2619d1",
+               "#bf36e0",
+               "black")
+names(pop_color) <- c("Africa",
+                      "Europe",
+                      "CentralSouthAsia",
+                      "EastAsia",
+                      "SoutheastAsia",
+                      "NearOceania",
+                      "RemoteOceania",
+                      "Americas",
+                      "Botocudos")
+mat <- matrix(c("Bambaran", pop_color["Africa"], 16, "Africa", "Africa",
+                "Dogon",  pop_color["Africa"], 16, "Africa", "Africa",
+                "YRI",  pop_color["Africa"], 16, "Africa", "Africa",
+                
+         "CEU",  pop_color["Europe"], 16, "Europe", "Europe and West Eurasia",
+         
+         "Iraqi", pop_color["Europe"], 16, "WestEurasia", "Europe and West Eurasia",
+         "Slovenian", pop_color["Europe"], 16, "WestEurasia", "Europe and West Eurasia",
+         
+         "Kyrgyzstan", pop_color["CentralSouthAsia"], 16, "CentralAsiaSiberia", "Central and South Asia",
+         
+         "Mongolian", pop_color["EastAsia"], 16, "EastAsia", "East Asia",
+         "Thai", pop_color["EastAsia"], 16, "EastAsia", "East Asia",
+         "JPT", pop_color["EastAsia"], 16, "EastAsia", "East Asia",
+         "CHB", pop_color["EastAsia"], 16, "EastAsia", "East Asia",
+         
+         "Pakistanis", pop_color["CentralSouthAsia"], 16, "SouthAsia", "Central and South Asia",
+         "Nepalese", pop_color["CentralSouthAsia"], 16, "SouthAsia", "Central and South Asia",
+          
+         "BOR", pop_color["SoutheastAsia"], 16, "SouthEastAsia", "Southeast Asia",
+         
+         "NGH", pop_color["NearOceania"], 16, "Oceania", "Near Oceania",
+         
+         "Tongan_Samoan", pop_color["RemoteOceania"], 16, "Oceania", "Remote Oceania",
+         "POL", pop_color["RemoteOceania"], 16, "Oceania", "Remote Oceania",
+         "FIJ", pop_color["RemoteOceania"], 16, "Oceania", "Remote Oceania",
+         
+         "Totonac", pop_color["Americas"], 16, "Americas", "Americas",
+         "Bolivian", pop_color["Americas"], 16, "Americas", "Americas",
+         "Botocudos", pop_color["Botocudos"], 19, "Botocudos", "Botocudos"
+         ), ncol = 5, byrow = T)
+myAes <- data.frame(region = mat[,4],
+                    population = mat[,1],
+                    color = as.character(mat[,2]),
+                    pch = as.numeric(mat[,3]),
+                    legend = mat[,5])
+myAes <- unique(myAes)
+myLegend <- unique(myAes[,c("color", "pch", "legend")])
+
+plot(1:10, 1:10, axes = F, ylab = NA, xlab = NA, type = "n" )
+legend(1,9, legend = myLegend$legend, pt.cex = 2, col = as.character(myLegend$color),
+       pch = myLegend$pch, bty = "n")
+```
+
+```{r}
+panelName <- "Wollstein_mind0.95_rmtrans_1240Kintersection.mind0.95"
+sample <- "Nov2019"
+myWorkDir <- "~/Projects/Botocudos/Files/MDS/2019_11_29/"
+dim1 <- 1
+dim2 <- 2
+
+columnToPlot <- "population"
+
+layout(mat = matrix(seq(1,2), nrow = 1))
+
+  points <- do_mds(myWorkDir = myWorkDir, sample = sample,
+                   panelName = panelName, myMagicPanel = myMagicPanel,
+                   myAes = myAes, columnToPlot = columnToPlot, load = T)
+  eig <- do_mds(myWorkDir = myWorkDir, sample = sample,
+                   panelName = panelName, myMagicPanel = myMagicPanel,
+                   myAes = myAes, columnToPlot = columnToPlot, load = T,
+                return_eig = T)
+  
+  pct1 <- percent(eig[dim1]/sum(eig))
+  pct2 <- percent(eig[dim2]/sum(eig))
+  
+  xlab <- paste("Dim ", dim1, ": ", pct1, sep = "")
+  ylab <- paste("Dim ", dim2, ": ", pct2, sep = "")
+  points$pch[is.na(points$pch)] <- 16
+  index <- which(points$population == "Botocudos")
+
+  plot(points[,dim1], points[,dim2], col = alpha(as.character(points$color), 0.5), 
+       pch = points$pch, xlab = xlab, ylab = ylab,
+       cex = 2, bty = "n", main = "MDS", axes = F)
+  points(points[index, dim1], points[index, dim2], 
+         col = as.character(points$color[index]), 
+         pch = points$pch[index],
+         cex = 2)
+  
+plot(1:10, 1:10, axes = F, ylab = NA, xlab = NA, type = "n" )
+legend(1,9, legend = myLegend$legend, pt.cex = 2, col = as.character(myLegend$color),
+       pch = myLegend$pch, bty = "n")
+```
+
+```{r}
+require(dplyr)
+americas <- points %>%
+            filter(region == "Americas")
+
+
+ggplot(points, aes(x = V1, y = V2, color = population)) +
+  geom_point(color= "gray") +
+  theme_minimal() +
+  geom_point(data = americas,
+             size = 4,
+             aes( color = population, shape = population)) +
+  scale_shape_manual(values = rep(seq(13,19, length.out = 44))) +
+  scale_color_manual(values = rep(brewer_pal(palette ="Set1")(9), length.out = 44))
+
+
+```
+
+```{r}
+require(gganimate)
+# prepare dataset
+
+
+myAes.long <- reshape(points,
+                      v.names = "coordinate",
+                      idvar = "id",
+                      varying =  paste("V", seq(1,nrow(points)-1), sep = ""),
+                      direction = "long")
+
+# coordinates to plot
+all_coor <- seq(1,5)
+myCombs <- matrix(data = c(all_coor[1:length(all_coor)-1],
+                           all_coor[2:length(all_coor)]), ncol = 2)
+
+myCombs[seq(2, nrow(myCombs), 2),] <- myCombs[seq(2, nrow(myCombs), 2), 2:1]
+
+myAes_time <- data.frame()
+for(i in 1:nrow(myCombs)){
+  tmp1 <- myAes.long[myAes.long$time == myCombs[i,1], ]
+  tmp2 <- myAes.long[myAes.long$time == myCombs[i,2], c("id", "coordinate")]
+  colnames(tmp2) <- c("id", "coordinate2")
+  tmp3 <- join(tmp1, tmp2, by = "id")
+  tmp3$time <- min(myCombs[i,])
+  myAes_time <- rbind(myAes_time, tmp3)
+}
+
+
+theColors <- myColors[!is.na(myColors$shape),]
+theColors$language <- factor(theColors$language, levels = theColors$language, ordered = T)
+myAes_time$language <- factor(myAes_time$language)
+
+
+myLegend <- unique(myAes[,c("color", "pch", "legend")])
+p <- ggplot(myAes_time, aes(x = coordinate/2e5, y = coordinate2/2e5,
+                            color = legend)) +
+  geom_point(size = 5) +
+  scale_color_manual(breaks = myLegend$legend, 
+                     values = as.character(myLegend$color),
+                     labels = myLegend$legend) +
+  theme_minimal() +
+  labs(x = NULL, y = NULL)
+
+p
+
+
+x <- p + transition_time(time)
+
+animate(x, renderer = gifski_renderer(loop = F), nframes = max(all_coor)*5)
+
+```
+
+
+```{r}
+panelName <- "Nov2019_Wollstein_mind0.95_rmtrans_1240Kintersection.mind0.95"
+
+dim1 <- 1
+dim2 <- 2
+
+pdf(paste("~/Projects/Botocudos/Plots/MDS/24ind_", panelName, ".pdf", sep = ""),
+    width = 14, height = 14)
+layout(mat = matrix(seq(1,25), nrow = 5))
+
+for(ind in mySamples){
+  points <- do_mds(myWorkDir = myWorkDir, sample = ind,
+                   panelName = panelName, myMagicPanel = myMagicPanel,
+                   myAes = myAes, columnToPlot = "region", load = T)
+  
+  index <- which(points$indID == ind)
+  title <- points$indID[index]
+  plot(points[,dim1], points[,dim2], col = alpha(as.character(points$color), 0.5), 
+       pch = points$pch, xlab = paste("Dim", dim1), ylab = paste("Dim", dim2),
+       cex = 2, bty = "n", main = title)
+  points(points[index, dim1], points[index, dim2], 
+         col = as.character(points$color[index]), 
+         pch = points$pch[index],
+         cex = 2)
+}
+
+plot(1:10, 1:10, axes = F, ylab = NA, xlab = NA, type = "n" )
+legend(1,9, legend = myLegend$legend, pt.cex = 2, col = as.character(myLegend$color),
+       pch = myLegend$pch, bty = "n")
+dev.off()
+```
+
+```{r}
+
+sample <- "MN0008"
+
+dist_metadata <- function(myWorkDir, sample, panelName, myMagicPanel, 
+                   myAes){
+  
+  myPath <- paste(myWorkDir, sample, "_", panelName, ".haploid.dist", sep = "")
+  
+  ind <- read.table(paste(myPath, ".id", sep = ""))
+  Dist <- as.matrix(read.table(paste(myPath, ".gz", sep = "")))
+  Dist <- (Dist)/sd(Dist)
+  colnames(ind) <- c("x", "indID")
+  myPanel <- join(ind, myMagicPanel, by = "indID")
+  myPanel <- join(myPanel, myAes, by = "population")
+  return(list(Dist = Dist, myPanel = myPanel))
+}
+
+myRes <- dist_metadata(myWorkDir = myWorkDir, sample = "MN0008",
+                   panelName = panelName, myMagicPanel = myMagicPanel,
+                   myAes = myAes)
+
+myPanel <- myRes$myPanel
+# myPanel$population <- factor(myPanel$population, 
+#                              levels = c("YRI","Dogon","Bambaran",
+#                                         ""))
+Dist <- myRes$Dist
+nPop <- length(unique(myPanel$population))
+layout(matrix(seq(1, round(sqrt(nPop))**2),
+              ncol = round(sqrt(nPop)), byrow = T))
+
+plots <- list()
+for(pop in unique(myPanel$population)){
+  to_subset <- which(myRes$myPanel$population == pop)
+  pop_dist <- myRes$Dist[,to_subset ]
+  
+  hist(pop_dist, breaks = 200, main = pop)
+  
+    distances_collapsed <- reshape(as.data.frame(pop_dist), direction = "long", 
+            varying = list(colnames(as.data.frame(pop_dist))))
+  
+    myData <- data.frame(dist = distances_collapsed[,2],
+                       population = myPanel$population,
+                       region = myPanel$region)
+  
+    myData$region <- factor(myData$region, levels = c("Africa",
+                                                      "Oceania",
+                                                      "Europe",
+                                                      "WestEurasia",
+                                                      "SouthAsia",
+                                                      "SouthEastAsia",
+                                                      "EastAsia",
+                                                      "CentralAsiaSiberia",
+                                                      "Americas",
+                                                      "Botocudos"),
+                            ordered = T)
+    myData <- myData[order(myData$region),]
+    myData$population <- factor(myData$population, levels = unique(myData$population), ordered = T)
+    
+    P <- ggplot(myData, aes( x = dist, #y = population,  
+                             fill = region)) +
+    geom_histogram(bins = 200) +
+    labs(title = pop, x = "a pairwise distance") +
+    theme(legend.position = "none") +
+  #   geom_density_ridges() +
+    coord_cartesian(xlim = c(6, 13)) 
+  # 
+    plots[[length(plots)+1]] <- P
+  print(P)
+}
+
+plot_grid(plotlist = plots, ncol = 5)
+
+
+to_subset <- which(myRes$myPanel$population == "Botocudos")
+boto_dist <- myRes$Dist[to_subset, ]
+
+hist(boto_dist, breaks = 200)
+
+myData <- data.frame(dist = boto_dist,
+                     population = myRes$myPanel$region)
+
+barplot(myData$dist, beside = T)
+
+ggplot(myData, aes( x = dist, fill = population)) +
+  geom_histogram(bins = 200)
+
+```
+

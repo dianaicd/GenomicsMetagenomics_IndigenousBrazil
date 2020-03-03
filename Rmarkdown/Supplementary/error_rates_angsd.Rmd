@@ -1,0 +1,633 @@
+---
+title: "Error_angsd"
+author: "DI Cruz Dávalos"
+date: "1/20/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = F, warning = F, fig.width = 20, fig.height = 10)
+```
+
+```{r load packages and functions}
+source("~/Projects/Botocudos/Scripts/Plotting/seq_error_angsd.R")
+require(plyr)
+require(ggplot2)
+require(scales)
+```
+
+We will have a look at sequencing error rates estimated in ANGSD using the 
+method by Orlando et al., (2013).
+
+We estimated errors using the consensus sequence of a high-coverage 
+sample (NA12778 from 1000 Genomes project, ~30x DoC), and a Yoruba genome to infer
+the ancestral state. (Just as it is done in the most recent publications from Víctor Moreno)
+
+# Untrimmed vs trimmed data
+
+The plots below show the estimated error rates for specific types of errors.
+The group of bars in the center represents the error rates for C to T and G to A errors, 
+and the space on the left and on the right should represent the rates for other type of errors.
+These two groups are not visible because they were estimated to be 0 (or at least very tiny).
+
+\@Sam: friendly reminder of how you chose that grouping, please?
+
+After looking at this plot, we had two questions:
+
+- Does trimming 5 + 5 bp have an impact on the error rates?
+- Since in many cases the values seem to be capped at 2%, 
+    are we having a bug in the estimation?
+
+
+```{r}
+
+#------------------------------------------------------------------------------#
+# Read in error rates from untrimmed data
+error <- "~/Projects/Botocudos/Files/Error/2020_02_14/new_Boto.txt"
+sm <- "~/Projects/Botocudos/Files/Error/2020_02_14/Botocudos/Botocudos.txt"
+
+mySamples <- read.table(sm)
+nInd <- nrow(mySamples)
+whole <- read.table(error, skip = 0, header = TRUE, nrows = nInd)
+
+#------------------------------------------------------------------------------#
+# Read in error rates from trimmed data
+error <- "~/Projects/Botocudos/Files/Error/2020_02_14/new_Boto_trim.txt"
+sm <- "~/Projects/Botocudos/Files/Error/2020_02_14/Botocudos_trim/Botocudos_trim.txt"
+
+mySamples <- read.table(sm)
+nInd <- nrow(mySamples)
+trimmed <- read.table(error, skip = 0, header = TRUE, nrows = nInd)
+
+#------------------------------------------------------------------------------#
+# Merge dataframes
+whole$Type <- "untrimmed"
+trimmed$Type <- "trimmed"
+whole$Sample <- rownames(whole)
+trimmed$Sample <- rownames(trimmed)
+
+dat <- rbind(whole, trimmed)
+dat <- dat[order(dat$Sample),]
+dat <- dat[!dat$Sample %in% c("MN0008_L3U", "MN0008_non_U"),]
+```
+
+
+```{r plot untrimmed vs trimmed data, fig.width=20, fig.height=10}
+
+# layout(matrix(seq(1,2), byrow = T, ncol = 2), widths = c(3,1))
+par(oma=c(0,0,1,0))
+par(mar=c(10,4,4,0))
+
+myMain <- "Type-specific error rates (Untrimmed vs trimmed reads)"
+nCol <- 8
+myColors <- c("#759243", "#96bfe6")
+myDensities <-  c(10,20,30,7)
+myAngles <-  c(0,45,-45,36)
+
+if(nCol*length(unique(myAngles)) < nInd){
+    message("-------------- Not enough colors and/or angles!!! --------------")
+    break()
+}
+
+ymax <- 0.025
+names <- colnames(dat)
+
+labels = c("C->A | G->T", "G->A | C->T", 
+           "T->A | A->T\nA->C | T->G\nG->C | C->G\nT->C | A->G")
+
+if(length(myColors) == 0){
+    require("RColorBrewer")
+    myColors <- brewer.pal(nCol, "Dark2")  
+}
+
+all_colors <- repeat_aes(myColors, 2*nInd, mix = T)
+
+# Plot solid bars
+mySpace <- 0.9
+cols_to_plot <- c("C....A", "G....A", "T....A")
+barplot(as.matrix(dat[,cols_to_plot]), beside=T,
+        ylim = c(0,ymax), 
+        col = alpha(all_colors, ifelse(dat$Type == "trimmed", 1, 1)),
+        cex.names=0.6, main = myMain, 
+        ylab="Error rate",  names.arg=rep("",3),
+        border = NA, add = F, space = rep(c(mySpace, 0),  3*nrow(dat)/2))
+
+# Add texture (white lines)
+# all_densities <- repeat_aes(myDensities, nInd = nInd, mix = T)
+# all_densities <- rep(all_densities, each = 2)
+# all_angles <- repeat_aes(myAngles, mix = T, nInd = nInd)
+# all_angles <- rep(all_angles, each = 2)
+# barplot(as.matrix(dat[,cols_to_plot]),beside=T,
+#         ylim=c(0,ymax),
+#         col = "white", density = all_densities,
+#         angle = all_angles, names.arg=rep("",3), add = T, 
+#         border = "white")
+
+myLegend <- data.frame(sample = rep(mySamples$V1, 2),
+                       color = all_colors#,
+                       # density = all_densities,
+                       # angle = all_angles
+                       )
+
+grid(nx=0, ny=NULL)
+
+pos <- seq(round(0.5*nInd*(1+mySpace)), by = (2+mySpace)*nInd, length.out = 3)
+mtext(labels, at = pos, cex=0.8, padj = 1)
+
+#------------------------------------------------------------------------------#
+## print the legend
+par(xpd=T)
+myLegend <- legend_error(sm, nCol = 8, add_texture = T)
+myLegend$sample <- sub(".*/", "", myLegend$sample)
+myLegend$sample <- sub(".hg19.bam", "", myLegend$sample)
+
+numColumns <- 2
+myCex <- 1.2
+# plot(1:10, type = "n", axes = F, xlab = NA, ylab = NA)
+# legend(1,10, legend = myLegend$sample, fill = as.character(myLegend$color),
+#        bty = "n", col = NA, border = NA, 
+#        ncol = numColumns, cex = myCex, title = "Sample")
+# 
+# legend(1,10, legend = myLegend$sample, fill = "white",
+#        bty = "n", col = NA, border = NA, angle = myLegend$angle, 
+#        density = myLegend$density, ncol = numColumns, cex = myCex,
+#        title = "Sample")
+# 
+legend(1,.02,c("Untrimmed", "Trimmed"),  fill =myColors,
+       bty = "n", col = NA, border = NA,
+       ncol = numColumns, cex = myCex, title = "Data type")
+pos <- seq((1+mySpace/2)*2*nInd+1, 
+           (2+mySpace)*2*nInd-1-mySpace, 
+           length.out = nrow(myLegend))
+mtext(dat$Sample[seq(1, nrow(dat),2)], las = 3, side = 1, at = pos, srt = 90, padj = 1)
+
+```
+
+To address the first question, we are plotting the change in error rates after trimming the data.
+The type-specfic error rates (i.e., C to T or G to A) were reduced by at most 74% (actually in MN0008)
+after trimming 5 bp on each end of the reads. However, in 9 of the samples
+the error rates remained unchanged after trimming the reads. MN0008 had already low error rates (<0.7%).
+
+```{r compare trimmed untrimmed type specific}
+comparison <- data.frame(reduction = dat$G....A[seq(2,nrow(dat), 2)]/dat$G....A[seq(1, nrow(dat), 2)],
+                         sample = dat$Sample[seq(1, nrow(dat), 2)])
+
+ggplot(comparison, aes(x = sample, y = reduction)) +
+    geom_bar(stat = "identity", fill = "#7e3075") +
+    scale_y_continuous(labels = percent) +
+    labs(x = NULL, 
+         y = "Reduction in error rate (C to T or G to A) after trimming",
+        title = "Change in error rates") +
+    theme(axis.text.x = element_text(angle = 90, size = 16), 
+          title = element_text(size = 20),
+          axis.title.y = element_text(size = 18))
+
+```
+
+
+
+```{r nice colors, fig.width=18, fig.height=7, eval = F}
+#==============================================================================#
+# Make the plot
+# png("~/Projects/Botocudos/Plots/Sequencing/error_rates_22Boto.png",
+    # width = 13, height = 7, res = 250, units = "in")
+layout(matrix(seq(1,3), byrow = T, ncol = 3), widths = c(3,3,1))
+par(oma=c(0,0,1,0))
+par(mar=c(5,4,4,0))
+error <- "~/Projects/Botocudos/Files/Error/2020_02_14/new_Boto.txt"
+sm <- "~/Projects/Botocudos/Files/Error/2020_02_14/Botocudos/Botocudos.txt"
+myMain <- "Untrimmed reads"
+
+plot_bars_error(error, sm, myColors = c(), nCol = 8,
+                 add_texture = T,
+                 myMain = myMain, ymax = 0.045)
+
+error <- "~/Projects/Botocudos/Files/Error/2020_02_14/new_Boto_trim.txt"
+sm <- "~/Projects/Botocudos/Files/Error/2020_02_14/Botocudos_trim/Botocudos_trim.txt"
+myMain <- "Trimmed reads (5':5bp, 3':5bp)"
+
+plot_bars_error(error, sm, myColors = c(), nCol = 8,
+                add_texture = T,
+                myMain = myMain, ymax = 0.045)
+
+
+myTitle <- "Error rate using an outgroup and high quality genome"
+title(myTitle, outer=T, line=-0.5)
+
+## print the legend
+par(xpd=T)
+myLegend <- legend_error(sm, nCol = 8, add_texture = T)
+myLegend$sample <- sub(".*/", "", myLegend$sample)
+myLegend$sample <- sub(".hg19.bam", "", myLegend$sample)
+
+numColumns <- 1
+myCex <- 1.2
+plot(1:10, type = "n", axes = F, xlab = NA, ylab = NA)
+legend(1,10, legend = myLegend$sample, fill = as.character(myLegend$color),
+       bty = "n", col = NA, border = NA, 
+       ncol = numColumns, cex = myCex, title = "Sample")
+
+legend(1,10, legend = myLegend$sample, fill = "white",
+       bty = "n", col = NA, border = NA, angle = myLegend$angle, 
+       density = myLegend$density, ncol = numColumns, cex = myCex,
+       title = "Sample")
+
+# dev.off()
+```
+
+
+We also show the average error rates per sample for the untrimmed and trimmed data. 
+The average error rates experienced a reduction of 58% to 98% after trimming
+(except MN0008, which became twice as negative).
+
+```{r average errors}
+myMain <- "Average error rates (untrimmed vs trimmed)"
+nInd <- length(myLegend$sample)
+
+
+error_whole <- "~/Projects/Botocudos/Files/Error/2020_02_14/new_Boto.txt"
+error_trim <- "~/Projects/Botocudos/Files/Error/2020_02_14/new_Boto_trim.txt"
+minas_whole <- "~/Projects/Botocudos/Files/Error/2020_02_07/MinasGerais/MinasGerais_error.txt"
+minas_trim <- "~/Projects/Botocudos/Files/Error/2020_02_07/MinasGerais_trim/MinasGerais_trim_error.txt"
+sambaqui_whole <- "~/Projects/Botocudos/Files/Error/2020_02_07/Sambaqui/Sambaqui_error.txt"
+sambaqui_trim <- "~/Projects/Botocudos/Files/Error/2020_02_07/Sambaqui_trim/Sambaqui_trim_error.txt"
+
+#------------------------------------------------------------------------------#
+# Read in errors for 22 botocudos, untrimmed
+error_merge <- data.frame()
+error_merge <- read.table(error_whole, skip = 25, header = F, sep = "\t")
+error_merge$type <- "whole"
+#------------------------------------------------------------------------------#
+# Read in errors for MinasGerais, untrimmed
+tmp_err <- read.table(minas_whole,  skip = 1+1, header = F, sep = "\t")
+tmp_err$type <- "whole"
+error_merge <- rbind(error_merge, tmp_err)
+#------------------------------------------------------------------------------#
+# Read in errors for Sambaqui, untrimmed
+tmp_err <- read.table(sambaqui_whole, skip = 1+1, header = F, sep = "\t")
+tmp_err$type <- "whole"
+error_merge <- rbind(error_merge, tmp_err)
+#------------------------------------------------------------------------------#
+# Read in errors for 22 Botocudos, trimmed
+tmp_err <- read.table(error_trim, skip = nInd+1, header = F, sep = "\t")
+tmp_err$type <- "trim"
+error_merge <- rbind(error_merge, tmp_err)
+#------------------------------------------------------------------------------#
+# Read in errors for MinasGerais, trimmed
+tmp_err <- read.table(minas_trim, skip = 1+1, header = F, sep = "\t")
+tmp_err$type <- "trim"
+error_merge <- rbind(error_merge, tmp_err)
+#------------------------------------------------------------------------------#
+# Read in errors for Sambaqui, trimmed
+tmp_err <- read.table(sambaqui_trim, skip = 1+1, header = F, sep = "\t")
+tmp_err$type <- "trim"
+error_merge <- rbind(error_merge, tmp_err)
+
+nInd <- nrow(error_merge)/2
+
+myPercent <- data.frame(t(unlist(apply(error_merge, 1, 
+                                       function(x) unlist(strsplit(x, " "))))))
+myPercent[,2] <- as.numeric(as.character(myPercent[,2]))
+colnames(myPercent) <- c("Sample", "error", "percent", "type")
+myPercent <- myPercent[order(myPercent$Sample,myPercent$type, decreasing = T),]
+
+myPercent <- myPercent[!myPercent$Sample %in% c("MN0008_non_U", "MN0008_L3U"),]
+
+barplot(myPercent[,2], beside = T, las = 2, width = 1, 
+        main = myMain,
+        col = sapply(myPercent$type, 
+                     function(x) ifelse(x == "whole", "#759243", "#96bfe6")),
+        border = NA)
+
+sp <- 1.2
+text(x = seq(sp, 2*nInd*sp, 2*sp), par("usr")[3] - 0.04,
+     labels = myPercent[seq(1,2*nInd,2),1], srt = 90, pos = 1, xpd = TRUE)
+
+legend(x = 1, y = 1.2, bty = "n", fill =c("#759243", "#96bfe6"), 
+       legend = c("Untrimmed", "Trimmed"), border = NA, title = "Data type")
+```
+
+```{r compare trimmed untrimmed average error}
+comparison <- data.frame(reduction = abs(myPercent$error[myPercent$type == "trim"])/myPercent$error[myPercent$type == "whole"],
+                         sample = myPercent$Sample[seq(1, nrow(myPercent), 2)])
+
+ggplot(comparison, aes(x = sample, y = reduction)) +
+    geom_bar(stat = "identity", fill = "#7e3075") +
+    scale_y_continuous(labels = percent) +
+    labs(x = NULL, 
+         y = "Reduction in average error rate after trimming",
+        title = "Change in average error rates") +
+    theme(axis.text.x = element_text(angle = 90, size = 16), 
+          title = element_text(size = 20),
+          axis.title.y = element_text(size = 18))
+```
+
+
+<!-- # Fitting error rates in group or individually -->
+
+<!-- We were wondering whether I had a bug in the estimation of the errors, as it is possible -->
+<!-- to give ANGSD a list of bam files to fit the errors per individual. Therefore, I estimated -->
+<!-- error rates again, but this time runnning angsd individual by individual. -->
+<!-- The estimates are consistent in both cases, so I discard the idea of a bug in my code. -->
+
+<!-- ```{r gather error rates fitted per individual} -->
+<!-- individuals <- c(list.files("~/Projects/Botocudos/Files/Error/2020_01_09/",  -->
+<!--                             pattern = "^MN"), "Sambaqui", "MinasGerais") -->
+<!-- myPath <- "~/Projects/Botocudos/Files/Error/2020_01_09/" -->
+
+<!-- separate_errors <- data.frame() -->
+<!-- separate_errors_avg <- data.frame() -->
+
+<!-- for(ind in individuals){ -->
+<!--     path_err <- paste(myPath, ind, "/", ind, "_error.txt", sep = "") -->
+<!--     dat <- read.table(path_err, -->
+<!--                       skip = 0, header = TRUE, nrows = 1) -->
+<!--     separate_errors <- rbind(separate_errors, dat) -->
+<!--     tmp_errors_avg <- read.table(path_err,  skip = 1+1, header = F, sep = "\t") -->
+<!--     separate_errors_avg <- rbind(separate_errors_avg, tmp_errors_avg) -->
+<!-- } -->
+
+<!-- sep_file <- "~/Projects/Botocudos/Files/Error/2020_01_09/merged_individual_fit_botocudos_error.txt" -->
+<!-- write.table(separate_errors, sep_file, -->
+<!--             sep = "\t", quote = F, col.names = T, row.names = T) -->
+
+<!-- sep_file_avg <- "~/Projects/Botocudos/Files/Error/2020_01_09/merged_individual_fit_botocudos_error_avg.txt" -->
+<!-- write.table(separate_errors_avg, sep_file_avg, -->
+<!--             sep = "\t", quote = F, col.names = F, row.names = F) -->
+
+
+<!-- ``` -->
+
+<!-- ```{r read error rates group or individual} -->
+<!-- #------------------------------------------------------------------------------# -->
+<!-- # Read in error rates from group fit -->
+<!-- error <- "~/Projects/Botocudos/Files/Error/2020_01_09/whole_error.txt" -->
+<!-- sm <- "~/Projects/Botocudos/Files/Error/2020_01_09/Botocudos.txt" -->
+
+<!-- mySamples <- read.table(sm) -->
+<!-- nInd <- nrow(mySamples) -->
+<!-- whole <- read.table(error, skip = 0, header = TRUE, nrows = nInd) -->
+<!-- #------------------------------------------------------------------------------# -->
+<!-- # Read in error rates from group fit (Minas Gerais) -->
+<!-- error <- "~/Projects/Botocudos/Files/Error/2020_01_09/MinasGerais/MinasGerais_error.txt" -->
+<!-- sm <- "~/Projects/Botocudos/Files/Error/2020_01_09/MinasGerais/MinasGerais.txt" -->
+
+<!-- mySamples <- read.table(sm) -->
+<!-- nInd <- nrow(mySamples) -->
+<!-- minas <- read.table(error, skip = 0, header = TRUE, nrows = 1) -->
+<!-- #------------------------------------------------------------------------------# -->
+<!-- # Read in error rates from group fit (Sambaqui) -->
+<!-- error <- "~/Projects/Botocudos/Files/Error/2020_01_09/Sambaqui/Sambaqui_error.txt" -->
+<!-- sm <- "~/Projects/Botocudos/Files/Error/2020_01_09/Sambaqui/Sambaqui.txt" -->
+
+<!-- mySamples <- read.table(sm) -->
+<!-- nInd <- nrow(mySamples) -->
+<!-- sambaqui <- read.table(error, skip = 0, header = TRUE, nrows = 1) -->
+<!-- #------------------------------------------------------------------------------# -->
+<!-- # Merge MinasGerais and Sambaqui to the other 22 Botocudos -->
+<!-- whole <- rbind(whole, minas, sambaqui) -->
+<!-- nInd <- nrow(whole) -->
+<!-- #------------------------------------------------------------------------------# -->
+<!-- # Read in errors for separate fit -->
+<!-- sep_file <- "~/Projects/Botocudos/Files/Error/2020_01_09/merged_individual_fit_botocudos_error.txt" -->
+
+<!-- separate_errors <- read.table(sep_file, header = T) -->
+<!-- #------------------------------------------------------------------------------# -->
+<!-- # Merge dataframes -->
+<!-- whole$Type <- "group" -->
+<!-- separate_errors$Type <- "separate" -->
+<!-- whole$Sample <- rownames(whole) -->
+<!-- separate_errors$Sample <- rownames(separate_errors) -->
+
+<!-- dat <- rbind(whole, separate_errors) -->
+<!-- dat <- dat[order(dat$Sample),] -->
+<!-- ``` -->
+
+<!-- ```{r plot individual fit and all together, fig.width=18, fig.height=8, eval = F} -->
+
+
+<!-- layout(matrix(seq(1,2), byrow = T, ncol = 2), widths = c(3,1)) -->
+<!-- par(oma=c(0,0,1,0)) -->
+<!-- par(mar=c(5,4,4,0)) -->
+
+<!-- myMain <- "Group vs individual fit" -->
+<!-- nCol <- 8 -->
+<!-- myColors <- c() -->
+<!-- myDensities <-  c(10,20,30,7) -->
+<!-- myAngles <-  c(0,45,-45,36) -->
+
+<!-- if(nCol*length(unique(myAngles)) < nInd){ -->
+<!--     message("-------------- Not enough colors and/or angles!!! --------------") -->
+<!--     break() -->
+<!-- } -->
+
+<!-- ymax <- 0.025 -->
+<!-- names <- colnames(dat) -->
+
+<!-- labels = c("C->A | G->T", "G->A | C->T",  -->
+<!--            "T->A | A->T\nA->C | T->G\nG->C | C->G\nT->C | A->G") -->
+
+<!-- if(length(myColors) == 0){ -->
+<!--     require("RColorBrewer") -->
+<!--     myColors <- brewer.pal(nCol, "Dark2")   -->
+<!-- } -->
+
+<!-- all_colors <- repeat_aes(myColors, 2*nInd, mix = F) -->
+
+<!-- # Plot solid bars -->
+<!-- cols_to_plot <- c("C....A", "G....A", "T....A") -->
+<!-- barplot(as.matrix(dat[,cols_to_plot]), beside=T, -->
+<!--         ylim=c(0,ymax), col =  alpha(all_colors, ifelse(dat$Type == "separate", 0.5, 1)), -->
+<!--         cex.names=0.6, main = myMain,  -->
+<!--         ylab="Error rate",  names.arg=rep("",3), -->
+<!--         border = NA, add = F) -->
+
+<!-- # Add texture (white lines) -->
+<!-- all_densities <- repeat_aes(myDensities, nInd = nInd, mix = T) -->
+<!-- all_densities <- rep(all_densities, each = 2) -->
+<!-- all_angles <- repeat_aes(myAngles, mix = T, nInd = nInd) -->
+<!-- all_angles <- rep(all_angles, each = 2) -->
+<!-- barplot(as.matrix(dat[,cols_to_plot]),beside=T, -->
+<!--         ylim=c(0,ymax), -->
+<!--         col = "white", density = all_densities, -->
+<!--         angle = all_angles, names.arg=rep("",3), add = T,  -->
+<!--         border = "white") -->
+
+<!-- myLegend <- data.frame(sample = mySamples$V1, -->
+<!--                        color = all_colors, -->
+<!--                        density = all_densities, -->
+<!--                        angle = all_angles) -->
+
+<!-- grid(nx=0, ny=NULL) -->
+
+<!-- pos <- seq(round(nInd), by = 2*nInd, length.out = 3) -->
+<!-- mtext(labels, 1, at = pos, cex=0.8, padj = 1) -->
+
+
+<!-- ## print the legend -->
+<!-- par(xpd=T) -->
+
+<!-- numColumns <- 2 -->
+<!-- myCex <- 1.2 -->
+<!-- plot(1:10, type = "n", axes = F, xlab = NA, ylab = NA) -->
+<!-- legend(1,10, legend = dat$Sample, fill =  alpha(all_colors, ifelse(dat$Type == "separate", 0.5, 1)), -->
+<!--        bty = "n", col = NA, border = NA,  -->
+<!--        ncol = numColumns, cex = myCex, title = "Sample") -->
+
+<!-- legend(1,10, legend = dat$Sample, fill = "white", -->
+<!--        bty = "n", col = NA, border = NA, angle = all_angles,  -->
+<!--        density = all_densities, ncol = numColumns, cex = myCex, -->
+<!--        title = "Sample") -->
+
+<!-- legend(1,1,c("Group", "Individual"),  fill = alpha("black", c(1, 0.5)), -->
+<!--        bty = "n", col = NA, border = NA,  -->
+<!--        ncol = numColumns, cex = myCex, title = "Data type") -->
+
+
+<!-- ``` -->
+
+<!-- ```{r plot ind vs group fit data, two colors, fig.width=20, fig.height=10} -->
+
+<!-- # layout(matrix(seq(1,2), byrow = T, ncol = 2), widths = c(3,1)) -->
+<!-- par(oma=c(0,0,1,0)) -->
+<!-- par(mar=c(10,4,4,0)) -->
+
+<!-- myMain <- "Type-specific error rates (Group vs individual fit)" -->
+<!-- nCol <- 8 -->
+<!-- myColors <- c("#c9303e", "#bfabcc") -->
+<!-- myDensities <-  c(10,20,30,7) -->
+<!-- myAngles <-  c(0,45,-45,36) -->
+
+<!-- if(nCol*length(unique(myAngles)) < nInd){ -->
+<!--     message("-------------- Not enough colors and/or angles!!! --------------") -->
+<!--     break() -->
+<!-- } -->
+
+<!-- ymax <- 0.025 -->
+<!-- names <- colnames(dat) -->
+
+<!-- labels = c("C->A | G->T", "G->A | C->T",  -->
+<!--            "T->A | A->T\nA->C | T->G\nG->C | C->G\nT->C | A->G") -->
+
+<!-- if(length(myColors) == 0){ -->
+<!--     require("RColorBrewer") -->
+<!--     myColors <- brewer.pal(nCol, "Dark2")   -->
+<!-- } -->
+
+<!-- all_colors <- repeat_aes(myColors, 2*nInd, mix = T) -->
+
+<!-- # Plot solid bars -->
+<!-- mySpace <- 0.9 -->
+<!-- cols_to_plot <- c("C....A", "G....A", "T....A") -->
+<!-- barplot(as.matrix(dat[,cols_to_plot]), beside=T, -->
+<!--         ylim = c(0,ymax),  -->
+<!--         col = alpha(all_colors, ifelse(dat$Type == "trimmed", 1, 1)), -->
+<!--         cex.names=0.6, main = myMain,  -->
+<!--         ylab="Error rate",  names.arg=rep("",3), -->
+<!--         border = NA, add = F, space = rep(c(mySpace, 0),  3*nrow(dat)/2)) -->
+
+<!-- # Add texture (white lines) -->
+<!-- # all_densities <- repeat_aes(myDensities, nInd = nInd, mix = T) -->
+<!-- # all_densities <- rep(all_densities, each = 2) -->
+<!-- # all_angles <- repeat_aes(myAngles, mix = T, nInd = nInd) -->
+<!-- # all_angles <- rep(all_angles, each = 2) -->
+<!-- # barplot(as.matrix(dat[,cols_to_plot]),beside=T, -->
+<!-- #         ylim=c(0,ymax), -->
+<!-- #         col = "white", density = all_densities, -->
+<!-- #         angle = all_angles, names.arg=rep("",3), add = T,  -->
+<!-- #         border = "white") -->
+
+<!-- myLegend <- data.frame(sample = rep(mySamples$V1, 2), -->
+<!--                        color = all_colors#, -->
+<!--                        # density = all_densities, -->
+<!--                        # angle = all_angles -->
+<!--                        ) -->
+
+<!-- grid(nx=0, ny=NULL) -->
+
+<!-- pos <- seq(round(0.5*nInd*(1+mySpace)), by = (2+mySpace)*nInd, length.out = 3) -->
+<!-- mtext(labels, at = pos, cex=0.8, padj = 1) -->
+
+<!-- #------------------------------------------------------------------------------# -->
+<!-- ## print the legend -->
+<!-- par(xpd=T) -->
+
+
+
+<!-- numColumns <- 2 -->
+<!-- myCex <- 1.2 -->
+<!-- # plot(1:10, type = "n", axes = F, xlab = NA, ylab = NA) -->
+<!-- # legend(1,10, legend = myLegend$sample, fill = as.character(myLegend$color), -->
+<!-- #        bty = "n", col = NA, border = NA,  -->
+<!-- #        ncol = numColumns, cex = myCex, title = "Sample") -->
+<!-- #  -->
+<!-- # legend(1,10, legend = myLegend$sample, fill = "white", -->
+<!-- #        bty = "n", col = NA, border = NA, angle = myLegend$angle,  -->
+<!-- #        density = myLegend$density, ncol = numColumns, cex = myCex, -->
+<!-- #        title = "Sample") -->
+<!-- #  -->
+<!-- legend(1,.022,c("Rates fitted by group", "Rates fitted individually"),  fill =myColors, -->
+<!--        bty = "n", col = NA, border = NA, -->
+<!--        ncol = numColumns, cex = myCex, title = "Data type") -->
+<!-- pos <- seq((1+mySpace/2)*2*nInd+1,  -->
+<!--            (2+mySpace)*2*nInd-1-mySpace,  -->
+<!--            length.out = nInd) -->
+<!-- mtext(dat$Sample[seq(2,nrow(dat), 2)], las = 3, side = 1, at = pos, srt = 90, padj = 1) -->
+
+<!-- ``` -->
+
+<!-- ```{r average errors individual and group} -->
+<!-- myMain <- "Average error rates (fit: group vs individual)" -->
+<!-- nInd <- 22 -->
+
+
+<!-- error_whole <- "~/Projects/Botocudos/Files/Error/2020_01_09/whole_error.txt" -->
+<!-- minas_whole <- "~/Projects/Botocudos/Files/Error/2020_01_09/MinasGerais/MinasGerais_error.txt" -->
+<!-- sambaqui_whole <- "~/Projects/Botocudos/Files/Error/2020_01_09/Sambaqui/Sambaqui_error.txt" -->
+<!-- error_ind <- "~/Projects/Botocudos/Files/Error/2020_01_09/merged_individual_fit_botocudos_error_avg.txt" -->
+
+<!-- #------------------------------------------------------------------------------# -->
+<!-- # Read in errors for 22 botocudos, group -->
+<!-- error_merge <- data.frame() -->
+<!-- error_merge <- read.table(error_whole, skip = nInd+1, header = F, sep = "\t") -->
+<!-- error_merge$type <- "Group" -->
+<!-- #------------------------------------------------------------------------------# -->
+<!-- # Read in errors for MinasGerais, group -->
+<!-- tmp_err <- read.table(minas_whole,  skip = 1+1, header = F, sep = "\t") -->
+<!-- tmp_err$type <- "Group" -->
+<!-- error_merge <- rbind(error_merge, tmp_err) -->
+<!-- #------------------------------------------------------------------------------# -->
+<!-- # Read in errors for Sambaqui, group -->
+<!-- tmp_err <- read.table(sambaqui_whole, skip = 1+1, header = F, sep = "\t") -->
+<!-- tmp_err$type <- "Group" -->
+<!-- error_merge <- rbind(error_merge, tmp_err) -->
+<!-- #------------------------------------------------------------------------------# -->
+<!-- # Read in errors for 24 samples, individually -->
+<!-- tmp_err <- read.table(error_ind, skip = 0, header = F, sep = "\t") -->
+<!-- tmp_err$type <- "Individually" -->
+<!-- error_merge <- rbind(error_merge, tmp_err) -->
+
+
+<!-- nInd <- nrow(error_merge)/2 -->
+<!-- myColors <- c("#c9303e", "#bfabcc") -->
+<!-- myPercent <- data.frame(t(unlist(apply(error_merge, 1,  -->
+<!--                                        function(x) unlist(strsplit(x, " ")))))) -->
+<!-- myPercent[,2] <- as.numeric(as.character(myPercent[,2])) -->
+<!-- colnames(myPercent) <- c("Sample", "error", "percent", "type") -->
+<!-- myPercent <- myPercent[order(myPercent$Sample,myPercent$type, decreasing = T),] -->
+
+<!-- barplot(myPercent[,2], beside = T, las = 2, width = 1,  -->
+<!--         main = myMain, -->
+<!--         col = sapply(myPercent$type,  -->
+<!--                      function(x) ifelse(x == "Group", "#c9303e", "#bfabcc")), -->
+<!--         border = NA) -->
+
+<!-- sp <- 1.2 -->
+<!-- text(x = seq(sp, 2*nInd*sp, 2*sp), par("usr")[3] - 0.04, -->
+<!--      labels = myPercent[seq(1,2*nInd,2),1], srt = 90, pos = 1, xpd = TRUE) -->
+
+<!-- legend(x = 1, y = 1.3, bty = "n", fill =c( "#bfabcc", "#c9303e"),  -->
+<!--        legend = c("Individually", "In group"), border = NA, title = "Way in which rates were fitted") -->
+<!-- ``` -->
