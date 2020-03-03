@@ -1,0 +1,79 @@
+---
+title: "Reordering population"
+output: pdf_document
+---
+
+## Setting input file
+```{r}
+all_filename = c("Wollstein_50ind_MN0008_libs_k2_91.qopt",
+                 "Wollstein_50ind_MN0008_libs_k3_96.qopt",
+                 "Wollstein_50ind_MN0008_libs_k4_26.qopt",
+                 "Wollstein_50ind_MN0008_libs_k5_76.qopt",
+                 "Wollstein_50ind_MN0008_libs_k6_96.qopt")
+nb_k = length(all_filename)
+```
+
+
+
+## Loading all 
+```{r}
+all_admixture = list()
+index_K = 1
+for(filename in all_filename){
+   admixture = as.matrix(read.table(filename,header = F))
+   all_admixture[[index_K]] <- admixture
+   index_K <- index_K + 1
+}
+```
+
+## Plotting before the re-ordering    
+The color scheme is not consitant across K
+```{r, fig.height=3, fig.width=4}
+  for (index_K in 1:nb_k){
+barplot(t(all_admixture[[index_K]]), col = rainbow(6), 
+        border = NA, space = 0, xlab = NULL,
+        ylab = NULL,main = paste("K = ",index_K + 1))
+  }
+```
+
+
+## Defining the two functions to reorder the populations    
+```{r}
+get_reorder_admixture_pairwise <- function(admixture1, admixture2)
+{
+  overlapping_proportion = t(admixture2)%*%admixture1
+  nb_pop = ncol(admixture2)
+  position_maximum <- function(a){which(max(a)==a)}
+  new_order = apply(overlapping_proportion,2, position_maximum)
+  missing_population = which(! 1:nb_pop %in% new_order)
+  new_order = c(new_order,missing_population)
+  return(admixture2[,new_order])
+}
+
+get_reorder_admixture <- function(list_admixture){
+  for (index_K in 1:(length(list_admixture)-1)){
+    admix1 = list_admixture[[index_K]]
+    admix2 = list_admixture[[index_K + 1]]
+    admix2_reorder = get_reorder_admixture_pairwise(admix1,admix2)
+    list_admixture[[index_K + 1]] = admix2_reorder
+  }
+  return(list_admixture)
+}
+```
+
+
+## Actually doing the reordering    
+```{r}
+new_order = get_reorder_admixture(all_admixture)
+```
+
+
+## We plot it again... whouah, everything is so beautifull now
+```{r, fig.height=3, fig.width=4}
+  for (index_K in 1:nb_k){
+barplot(t(new_order[[index_K]]), col = rainbow(6), 
+        border = NA, space = 0, xlab = NULL,
+        ylab = NULL,main = paste("K = ",index_K + 1))
+  }
+```
+
