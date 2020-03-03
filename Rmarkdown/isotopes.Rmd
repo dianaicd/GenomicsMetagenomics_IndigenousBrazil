@@ -61,43 +61,47 @@ dated at the AMS 14C Centre at Aarhus University"
 ```{r age, echo = F, fig.width=15, fig.cap=fig1}
 dodge <- position_dodge(width = 0.99)
 
-m <- sapply(carbon$Ethnicity, function(x) median(carbon$Age..BP.[carbon$Ethnicity == x]))
+median_age <- sapply(carbon$Ethnicity, function(x) median(carbon$Age..BP.[carbon$Ethnicity == x]))
 #m <- m[!is.na(m)]
-m <- m[order(m)]
-n <- unique(names(m))
-m <- unique(m)
-names(m) <- n
+median_age <- median_age[order(median_age)]
+names_age <- unique(names(median_age))
+median_age <- unique(median_age)
+names(median_age) <- names_age
 
 #levels(carbon$Ethnicity) <- names(m)
 
 colors <- rep(c("cornflowerblue", "black"), 7)
 
 carbon$ID <- factor(carbon$ID, levels = unlist(
-  sapply(names(m), 
+  sapply(names(median_age), 
          function(x)
            carbon$ID[carbon$Ethnicity==x])))
 
 #id <- sapply(seq(1,14), function(x) carbon$ID[carbon$Ethnicity == names(m[x])])
 
-id <- unlist(sapply(seq(1,14),
+mn_id <- unlist(sapply(seq(1,length(median_age)),
               function(x) {
-                y <- carbon[carbon$Ethnicity == names(m[x]), c("ID", "Age..BP.")]
+                y <- carbon[carbon$Ethnicity == names(median_age[x]), c("ID", "Age..BP.")]
                 y <- y[order(y$Age..BP.),]
                 return(y$ID)
                }))
 
-carbon$ID <- factor(carbon$ID, levels = id)
+carbon$ID <- factor(carbon$ID, levels = mn_id
+                   )
 
-index <- match(id, carbon$ID)
+index <- match(mn_id
+               , carbon$ID)
 carbon <- carbon[index,]
 
-eth <- data.frame(ID = id[round(sapply(
+eth <- data.frame(ID = mn_id
+                 [round(sapply(
   unique(carbon$Ethnicity),
   function(x) 
     median(which(
       carbon$Ethnicity == x))))],
-  Ethnicity = unique(sapply(id, function(x) carbon$Ethnicity[carbon$ID == x])),
-  Age..BP. = sapply(names(m),
+  Ethnicity = unique(sapply(mn_id
+                           , function(x) carbon$Ethnicity[carbon$ID == x])),
+  Age..BP. = sapply(names(median_age),
   function(x) max(carbon$Age..BP.[carbon$Ethnicity == x]) + 80),
 SD=0
   )
@@ -117,10 +121,10 @@ boto<- ggplot(carbon[grepl("Boto.*", carbon$Ethnicity),], aes(x = ID,
                      breaks = eth$Ethnicity) +
   geom_text(data = eth[grepl("Boto", eth$Ethnicity),], 
             label = gsub("Botocudo_", "", eth$Ethnicity[grepl("Boto", eth$Ethnicity)])) +
-  theme(text = element_text(family = "Courier")) 
+  theme() 
 
 
-other <- ggplot(carbon[22:23,], aes(x = ID,
+other <- ggplot(carbon[!grepl("Boto.*", carbon$Ethnicity),], aes(x = ID,
                                                               y = Age..BP.,
                                                               ymin = Age..BP. - SD,
                                                               ymax = Age..BP. + SD,
@@ -134,33 +138,35 @@ other <- ggplot(carbon[22:23,], aes(x = ID,
                      breaks = eth$Ethnicity) +
   geom_text(data = eth[13:14,], 
             label = gsub("_.*", "", eth[13:14,]$Ethnicity)) +
-  theme(text = element_text(family = "Courier"))
+  theme()
 
 plot_grid(boto, other, ncol = 2, rel_widths = c(10,3))
+
 ```
 
 
-21 individuals were dated at ^14^CHRONO Center at Queen's University Belfast.
+22 individuals were dated at ^14^CHRONO Center at Queen's University Belfast.
 The dates are shown in Table 1 and in Figure 1, along with the dates for MN00015 (Bot15) and MN00017 (Bot17) presented in Malaspinas et al. (2014).
 The uncalibrated dates are between `r min_boto` BP and `r max_boto` BP for the Botocudo individuals, and `r native` BP and `r sambaqui` BP for the Native American and the Sambaqui individual, respectively.
 
 
 ```{r table1, echo = F}
-d <- carbon[,c(1,2,4,5,6,7,9,10,11)]
-colnames(d) <- c("ID", "Material type", "Age (BP)", "SD", 
+myT1 <- carbon[,c("ID", "Material_type", "Age..BP.", "SD", "Ethnicity",
+                  "d13C", "Endogenous","d15N", "C.N.ratio")]
+colnames(myT1) <- c("ID", "Material type", "Age (BP)", "SD", 
                  "Details", "Endogenous DNA", "d13C", "d15N", "C:N ratio")
-d <- d[order(d$`Age (BP)`),]
-rownames(d) <- seq(1, length(d$ID))
-tab <- xtable(d, caption = "Table 1. Isotope valules and calibrated dates.")
+myT1 <- myT1[order(myT1$`Age (BP)`),]
+rownames(myT1) <- seq(1, length(myT1$ID))
+myT1 <- xtable(myT1, caption = "Table 1. Isotope valules and calibrated dates.")
 
-kable(tab, caption = "Table 1. Isotope values and uncalibrated dates.")
+kable(myT1, caption = "Table 1. Isotope values and uncalibrated dates.")
 ```
 
 
 
 ## $\delta$^13^C and $\delta$^15^N measurements
 
-We measured the $\delta$^13^C and $\delta$^15^N values for the 21 individuals. 
+We measured the $\delta$^13^C and $\delta$^15^N values for the 22 individuals. 
 These values can give us an insight into the dietary habits for a given organism.
 However, we need to be careful when examining children's teeth.
 The decidious teeth ('baby teeth') develop during the embryonic stage of development,
@@ -183,14 +189,14 @@ We have to keep in mind this information for the next steps, in which we will in
 child <- grepl("child", carbon$Material_type)
 d <- grepl("deciduous", carbon$Material_type)
 child <- child | d
-b <- !(rep(TRUE, 23) & child)
-b[22:25] <- FALSE
-child[19] <- TRUE
+# b <- !(rep(TRUE, nrow(carbon)) & child)
+# b[22:25] <- FALSE
+# child[19] <- TRUE
 
 carbon$fmolar <- ifelse(grepl(".*1st.* molar.*", carbon$Material_type), 
                         yes = "First molar", no ="Other")
 carbon$child <- child
-d <- carbon[carbon$ID %in% c("MN00022", "MN00045"),]
+d <- carbon[child, ] #carbon$ID %in% c("MN00022", "MN00045"),]
 
 ggplot(carbon, aes(x = d13C, y = d15N, color = fmolar,
                    shape = child)) +
@@ -199,13 +205,13 @@ ggplot(carbon, aes(x = d13C, y = d15N, color = fmolar,
                                 "goldenrod3"),
                      name = "Tooth") +
   scale_shape_manual(values = c(1,2), name = "Child") +
-  theme(text = element_text(family = "Courier")) +
+  # theme(text = element_text(family = "Courier")) +
   #
   labs(title = "Isotope values", x = expression(delta^13 ~ C),
   #
   y = expression(delta^15 ~ N)) +
   coord_flip() +
-  geom_text(data = d, aes(x = d13C, y = d15N+1, label = ID))
+  geom_text(data = d, aes(x = d13C-.5, y = d15N+0, label = ID))
 
 ```
 
@@ -247,7 +253,7 @@ We fitted a model per individual. As suggested in the manual, we set 500,000 ite
 # The consumer data file
 #head(carbon)
   # All groups
-ind <- carbon[, c(1,10,9)]
+ind <- carbon[, c("ID", "d15N", "d13C")]
 names <- ind$ID
 ind$ID <- as.character(carbon$Ethnicity)
 colnames(ind) <- c("Code", "d15N", "d13C")
@@ -265,7 +271,7 @@ sour <- read.table("~/Projects/Botocudos/Files/Isotopic/sources.txt",
 tef <- read.csv("~/Projects/Botocudos/Files/Isotopic/TEFData.csv")
 
 # We have no data on concentration dependance
-#model1 <- siarmcmcdirichletv4(data = ind, sources = sour, tef, concdep = 0, iterations = 500000, burnin = 50000)
+model1 <- siarmcmcdirichletv4(data = ind, sources = sour, tef, concdep = 0, iterations = 500000, burnin = 50000)
 #save(model1, file="~/Projects/Botocudos/Files/Isotopic/siar_Mutum_RioDoce.Rda")
 load("~/Projects/Botocudos/Files/Isotopic/siar_Mutum_RioDoce.Rda")
 ```
