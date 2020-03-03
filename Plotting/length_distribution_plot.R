@@ -1,7 +1,7 @@
 gglength <- function(ind, type = c("nuc", "mito"),
                      d = "~/Projects/Botocudos/Files/Length/2017_09_15/", 
                      lib = "L1",
-                     gg = TRUE){
+                     gg = TRUE, cex = 1, plot.title = F){
   setwd(d)
   
   #ind <- "MN00010"
@@ -21,10 +21,12 @@ gglength <- function(ind, type = c("nuc", "mito"),
   l$Type <- factor(l$Type, levels = c("mito", "nuc"))  
   colors <- c("yellowgreen", "royalblue1")
   names(colors) <- levels(l$Type)
-  title <- paste(" ", type, ind, "\n(endogenous: ", 
-                 round(boto$hits_unique_frac_endogenous[boto$sample == ind & 
-                                                          boto$library == lib]*100, 2),"%) ",
-                 " ", lib, sep = "")
+  if(plot.title == F){
+    plot.title <- paste(" ", type, ind, "\n(endogenous: ", 
+                   round(boto$hits_unique_frac_endogenous[boto$sample == ind & 
+                                                            boto$library == lib]*100, 2),"%) ",
+                   " ", lib, sep = "")
+  }
   if(gg){
     p <- ggplot(l, aes(x = Length, y = Freq/sum(Freq), 
                        color = Type)) +
@@ -34,14 +36,14 @@ gglength <- function(ind, type = c("nuc", "mito"),
                          labels = c("Mitochondrial", "Nuclear"))+
       theme(legend.position = "none") +
       labs(y = "Frequency", 
-           title = title)
+           title = plot.title)
     return(p)
   }else{
     l <- l[order(l$Length),]
     l$color <- ifelse(l$Type == "nuc", "royalblue1", "yellowgreen")
-    plot(x = l$Length, y = l$Freq/sum(l$Freq), type = "l", col = l$color, bty = "n", 
+    plot(x = l$Length, y = l$Freq/sum(l$Freq), type = "b", col = l$color, bty = "n", 
          xlab = "Length", ylab = "Frequency", lwd = 1.5, 
-         main = title)
+         main = plot.title, cex = cex)
     
   }
 }
