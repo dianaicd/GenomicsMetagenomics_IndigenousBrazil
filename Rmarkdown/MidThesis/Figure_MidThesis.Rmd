@@ -508,6 +508,16 @@ pointsWColor$language <- factor(pointsWColor$language,
 pointsWColor <- pointsWColor[order(pointsWColor$language),]
 
 myLegend <- unique(pointsWColor[,c("language", "color", "shape", "bg")])
+myLegend$language <- factor(myLegend$language, levels = c("USR1",
+                                                          "NaDene", "EskimoAleut", "Saqqaq",
+                                                          "TrailCreek", "SpiritCave", "Clovis", "Lovelock",
+                                                          "NorthernAmerind", "SouthWesternOntario",
+                                                          "CentralAmerind", "ChibchanPaezan", "Belize",
+                                                          "Andean", "EarlyAndes", "LateCentralAndes", "Southern_Cone", "HistoricalAndean",
+                                                          "EcuatorialTucanoan", "Ge-PanoCaribean",
+                                                          "Brazil", "LagoaSanta", "Taino", 
+                                                          "Aconcagua", "PuntaSantaAna", "AncientYamana",
+                                                          "Ayayema", "AncientKaweskar", "Botocudos"))
 myLegend <- myLegend[order(myLegend$language),]
 
   
@@ -667,6 +677,109 @@ for(x in c(1,5,6,7)){
 dev.off()
 ```
 
+
+```{r make animated gift}
+
+
+ggplot(pointsWColor, aes(x = pointsWColor[,1]/2e5,
+                         y = pointsWColor[,2]/2e5,
+                         color = language,
+                         shape = language,
+                         fill = language)) +
+  geom_point(size = 5) +
+  scale_color_manual(values = myLegend$color,
+                     breaks = myLegend$language,
+                     labels = myLegend$language) +
+  scale_shape_manual(values = myLegend$shape,
+                     breaks = myLegend$language,
+                     labels = myLegend$language) +
+  scale_fill_manual(values = myLegend$bg, 
+                    breaks = myLegend$language,
+                    labels = myLegend$language) +
+  theme_minimal() +
+  labs(title = "MDS, Native Americans", x = NULL, y = NULL)
+
+
+```
+```{r}
+# prepare dataset
+
+
+myAes.long <- reshape(pointsWColor,
+                      v.names = "coordinate",
+                      idvar = "id",
+                      varying =  paste(as.character(seq(1,nrow(pointsWColor)+1)), sep = ""),
+                      direction = "long")
+```
+
+
+```{r}
+require(gganimate)
+
+# coordinates to plot
+all_coor <- seq(1,11)
+myCombs <- matrix(data = c(all_coor[1:length(all_coor)-1],
+                           all_coor[2:length(all_coor)]), ncol = 2)
+
+myCombs[seq(2, nrow(myCombs), 2),] <- myCombs[seq(2, nrow(myCombs), 2), 2:1]
+
+myAes_time <- data.frame()
+for(i in 1:nrow(myCombs)){
+  tmp1 <- myAes.long[myAes.long$time == myCombs[i,1], ]
+  tmp2 <- myAes.long[myAes.long$time == myCombs[i,2], c("id", "coordinate")]
+  colnames(tmp2) <- c("id", "coordinate2")
+  tmp3 <- join(tmp1, tmp2, by = "id")
+  tmp3$time <- min(myCombs[i,])
+  myAes_time <- rbind(myAes_time, tmp3)
+}
+
+
+
+p <- ggplot(myAes_time, aes(x = coordinate/2e5,
+                         y = coordinate2/2e5,
+                         color = language,
+                         shape = language,
+                         fill = language)) +
+  geom_point(size = 5) +
+  scale_color_manual(values = myLegend$color,
+                     breaks = myLegend$language,
+                     labels = myLegend$language,
+                     name = NULL) +
+  scale_shape_manual(values = myLegend$shape,
+                     breaks = myLegend$language,
+                     labels = myLegend$language,
+                     name = NULL) +
+  scale_fill_manual(values = myLegend$bg, 
+                    breaks = myLegend$language,
+                    labels = myLegend$language,
+                    name = NULL) +
+  theme_minimal() +
+  labs(title = "MDS, Native Americans\n(dim. 1- 10)", x = NULL, y = NULL)
+  
+  
+  # ggplot(myAes_time, aes(x = coordinate/2e5, y = coordinate2/2e5,
+  #                           color = legend)) +
+  # geom_point(size = 5) +
+  # scale_color_manual(breaks = myLegend$legend, 
+  #                    values = as.character(myLegend$color),
+  #                    labels = myLegend$legend) +
+  # theme_minimal() +
+  # labs(x = NULL, y = NULL)
+
+p
+
+
+x <- p + transition_time(time)
+
+y <- animate(x, renderer = gifski_renderer(loop = F),
+             nframes = max(all_coor)*6,
+             width =  7, height = 4, res = 200, units = "in")
+anim_save("myGif.gif", y, path = "~/")
+
+y
+```
+
+
 ```{r}
 
 myR <- unique(wholeMaanasa$region)
@@ -703,16 +816,22 @@ points(x = wholeMaanasa[wholeMaanasa$population == "Botocudos2014",1]/2e5,
 
 ```{r}
 #pdf("~/Projects/Botocudos/Plots/Map/MDS_map.pdf", width = 6, height = 8)
-png("~/Projects/Botocudos/Plots/Map/MDS_map.png", width = 6, height = 8,
+png("~/Projects/Botocudos/Plots/Map/MDS_DBC_map.png", width = 10, height = 6,
     res = 300, units = "in")
 
+layout(matrix(c(1,2), nrow = 1), widths = c(1,1), heights = c(1))
 par(fg = NULL)
-map('world', fill = T, col = "gray90",
+map('world', fill = T, col = "gray80",
     xlim=c(-168,-10), ylim = c(-60, 100),
     border="white", lforce = "e")
 
 points(x = pointsWColor$long, y = pointsWColor$lat, pch = pointsWColor$shape,
        col = pointsWColor$color, bg = pointsWColor$bg, cex = 1.2)
+plot(1:10, 1:10, axes = F, xlab=NA, ylab=NA, type = "n", bty = "n")
+legend(x = 2, y = 9, bty = "n", ncol = 1, legend = myLegend$language,
+       pt.bg = myLegend$bg,
+       pch = myLegend$shape,
+       col = myLegend$color, pt.lwd = 1.2,  cex = 0.5)
 
 dev.off()
 ```
