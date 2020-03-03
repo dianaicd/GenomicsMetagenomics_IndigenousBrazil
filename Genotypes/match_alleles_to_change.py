@@ -35,8 +35,8 @@ with open(new_alleles, 'w') as outAlleles, open(sample_bim, 'r') as bimSample, o
 
     for line in bimSample.readlines():
         chrom,old_ID,cM,pos,allele1,allele2 = line.replace("\n", "").split("\t")
-        if old_ID in panel_alleles:
-            chrom, new_ID, cM, pos, ref_allele, alt_allele = panel_alleles[old_ID].replace("\n", "").split("\t")
+        if chrom+":"+pos in panel_alleles:
+            chrom, new_ID, cM, pos, ref_allele, alt_allele = panel_alleles[chrom+":"+pos].replace("\n", "").split("\t")
             new_allele1 = change_allele(allele1, ref_allele, alt_allele)
             new_allele2 = change_allele(allele2, ref_allele, alt_allele)
 
