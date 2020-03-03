@@ -1,5 +1,5 @@
 # Snakefile to run qp3pop
-configfile: "qp3pop_test.yaml"
+configfile: "multiple_purposes.yaml"
 
 import itertools
 #=============================================================================#
@@ -10,13 +10,17 @@ def read_pops(fileName):
 #=============================================================================#
 
 
-panels = [config["panels"][d]["path"].split(".")[0] for d in list(config["panels"].keys())]
+panels = [config["f3"]["panel"][d]["path"].split(".")[0] for d in list(config["f3"]["panel"].keys())]
 
+panel = list(config["f3"]["panel"].keys())[0]
+ind_pop = config["f3"]["ind_pop"]
+
+include: "format_eigenstrat.smk"
 # In qp3pop output, the populations are
 # named as "SourceN"
-source1 = config["Source1"] if "Source1" in config.keys() else False
-source2 = config["Source2"] if "Source2" in config.keys() else False
-outgroup = config["Outgroup"] if "Outgroup" in config.keys() else "Yorubas"
+source1 = config["f3"]["Source1"] if "Source1" in config["f3"].keys() else False
+source2 = config["f3"]["Source2"] if "Source2" in config["f3"].keys() else False
+outgroup = config["f3"]["Outgroup"] if "Outgroup" in config["f3"].keys() else "Yorubas"
 
 rule all:
     input:
