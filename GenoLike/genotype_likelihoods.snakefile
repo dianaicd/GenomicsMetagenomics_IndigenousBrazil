@@ -2,12 +2,12 @@
 # a set of bam files,
 # convert a panel (bed|ped|vcf) to genotype likelihoods
 # and merge likelihoods for (panel, bam) files.
-configfile: "genolike.yaml"
+configfile: "multiple_purposes.yaml"
 import os, glob
 
-bamlists = list(config["bamlists"].keys())
-panels = list(config["panels"].keys()) 
-git_path = "/home/dcruzdva/data/Git/Botocudos-scripts/"
+bamlists = list(config["geno_like"]["bamlists"].keys())
+panels = list(config["geno_like"]["panels"].keys()) 
+
 
 chromosomes = [str(x) for x in range(1,23)] 
 
@@ -22,7 +22,7 @@ rule all:
         merged = expand("{panel}/{bamlist}_{panel}.beagle", panel = panels, bamlist = bamlists)
 
 def expand_path(wildcards):
-    paths = [list(config["bamlists"][l]["paths"].values()) for l in bamlists][0]
+    paths = [list(config["geno_like"]["bamlists"][l]["paths"].values()) for l in bamlists][0]
     #full_paths = [os.path.expanduser(p) for p in paths]
     bams = []
     for p in paths:
@@ -47,13 +47,13 @@ rule make_bamlist:
 
 rule panel_to_beagle:
     input:
-        panel = lambda wildcards: config["panels"][wildcards.panel]["path"]
+        panel = lambda wildcards: config["geno_like"]["panels"][wildcards.panel]["path"]
     output:
         panel = "{panel}/{panel}.beagle",
         ids = "{panel}/{panel}_ids.txt",
         names = "{panel}/{panel}_names.txt"
     params:
-        rmdamage = lambda wildcards: config["panels"][wildcards.panel]["GenoLike"]["rmdamage"]
+        rmdamage = lambda wildcards: config["geno_like"]["panels"][wildcards.panel]["rmdamage"]
     log:
         "logs/{panel}.log"
     shell:
@@ -84,13 +84,13 @@ rule genos_chr:
         rf = "{panel}/chr{chr}_{bamlist}.txt",
         gl = "{panel}/{bamlist}_{chr}.beagle.gz"
     params:
-        trim = lambda wildcards: config["bamlists"][wildcards.bamlist]["trim"],
-        minQ = lambda wildcards: config["bamlists"][wildcards.bamlist]["minQ"],
-        minmapQ = lambda wildcards: config["bamlists"][wildcards.bamlist]["minmapQ"]
+        trim = lambda wildcards: config["geno_like"]["bamlists"][wildcards.bamlist]["trim"],
+        minQ = lambda wildcards: config["geno_like"]["bamlists"][wildcards.bamlist]["minQ"],
+        minmapQ = lambda wildcards: config["geno_like"]["bamlists"][wildcards.bamlist]["minmapQ"]
     log:
         "logs/{bamlist}_{panel}_{chr}_genolike.log"
     threads:
-        config["nThreads"]
+        config["geno_like"]["nThreads"]
     shell:
         """ 
         cut -f 1-3 {input.panel}| sed 1d |\
@@ -130,7 +130,7 @@ rule merge_genos:
     output:
         merged = "{panel}/{bamlist}_{panel}.beagle"
     params:
-        homozygous = lambda wildcards: config["panels"][wildcards.panel]["GenoLike"]["homozygous"]
+        homozygous = lambda wildcards: config["geno_like"]["panels"][wildcards.panel]["homozygous"]
     log:
         "logs/{bamlist}_{panel}_genolike.log"
     shell:
