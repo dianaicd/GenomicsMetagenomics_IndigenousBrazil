@@ -16,6 +16,6 @@ rule merge_vcfs:
         with open(myList, "w") as bcf_list:
             [bcf_list.write(line + "\n") for line in input]
         
-        myCommand = "bcftools merge --force-samples -Ob" + output.bcf + " -l " + output.myList
+        myCommand = "bcftools merge --force-samples -Ob -o " + output.bcf + " -l " + output.myList
 
 rule find_non_diallelic:
