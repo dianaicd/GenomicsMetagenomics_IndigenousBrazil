@@ -1,0 +1,670 @@
+---
+title: "Dstat_genotype_calling_comparison"
+author: "Cruz-Dávalos, Diana I."
+date: "10/14/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+```
+
+```{r}
+library(ggplot2)
+library(plyr)
+source("~/Projects/Botocudos/Scripts/Plotting/plot_F3.R")
+source("~/Projects/Botocudos/Scripts/Plotting/plot_Dstats.R")
+library(colorspace)
+library(cowplot)
+panel <- read.table("~/Projects/Botocudos/Files/Panels/Magic.panel", 
+                    header = T, stringsAsFactors = F)
+magic <- read.table("~/Projects/Botocudos/Files/Panels/Magic.panel", 
+                    header = T, stringsAsFactors = F)
+languages <- read.table("~/Projects/Botocudos/Files/Panels/Maanasa/Maanasa.americas.Moreno_names.txt", header = F, stringsAsFactors = F)
+colnames(languages) <- c("population", "language")
+```
+
+## Z-scores from qpDstat
+
+```{r}
+# switch_h1_h2 <- function(Dstat, pop_in_h1){
+#   idx_to_switch <- which(Dstat$h2 == pop_in_h1)
+#   h2 <- Dstat$h1[idx_to_switch]
+#   Dstat$h1[idx_to_switch] <- pop_in_h1
+#   Dstat$h2[idx_to_switch] <- h2
+#   Dstat$Z[idx_to_switch] <- -Dstat$Z[idx_to_switch]
+#   return(Dstat)
+# }
+```
+
+```{r}
+
+Dstat <- read.table("~/Projects/Botocudos/Files/Dstat/2019_10_14/geno_calls/Moreno2019/h_merged_qpDstat.results",
+                    stringsAsFactors = F)
+colnames(Dstat) <- c("H1", "H2", "H3", "H4",
+                     "D", "Z", "BABA", "ABBA", "nSites")
+Dstat$population <- Dstat$H3
+
+Dstat <- join(Dstat, magic[,c("population", "region")], by = "population")
+```
+
+```{r}
+
+subset_dstat <- function(Dstat, pop){
+  new_dstat <- Dstat[Dstat$H1 == pop | Dstat$H2 == pop,]
+  new_dstat <- switch_h1_h2(Dstat = new_dstat, pop_in_h1 = pop)
+  new_dstat$h2_h3 <- paste(new_dstat$H2, new_dstat$H3, sep = "_")
+  new_dstat <- unique(new_dstat)
+  return(new_dstat)
+}
+
+victor <- subset_dstat(Dstat, "LagoaSta")
+diana <- subset_dstat(Dstat, "LagoaSanta_called")
+```
+
+```{r}
+myComparison <- diana[,c("h2_h3", "Z", "population", "region")]
+myComparison$diana <- myComparison$Z
+myComparison$Z <- NULL
+
+myComparison <- join(myComparison, victor[,c("h2_h3", "Z")], by = "h2_h3")
+myComparison$victor <- myComparison$Z
+myComparison <- myComparison[complete.cases(myComparison),]
+```
+
+```{r}
+
+make_plot_comparison <- function(myComparison, region){
+  if(sum(!(region %in% unique(myComparison$region))) > 0){
+    myRegion <- "all other regions"
+  }else{
+    myRegion <- region
+  }
+  myComparison <- myComparison[myComparison$region %in% region,]
+  myCor <- cor(myComparison$victor, myComparison$diana)
+  
+  main_txt <- paste("Z-scores for D(LagoaSta, NatAm,",
+                    myRegion, ", Yoruba)", sep = "")
+  
+  plot(myComparison$victor, myComparison$diana,
+       xlab = "H1 = LagoaSta, calls by Víctor", 
+       ylab = "H1 = LagoaSta, calls by Diana", 
+       main = main_txt,
+       bty = "n", col = as.factor(myComparison$region), xlim = c(-12,6), ylim = c(-12,6))
+  grid()
+  abline(a = 0, b = 1, col = "red")
+  text(paste("Correlation:", round(myCor,4)), 
+       x = min(myComparison$victor), y = max(myComparison$diana))
+}
+
+
+```
+
+```{r}
+layout(matrix(seq(1,12), ncol = 4))
+for(r in c("Siberia", "EastAsia", "Caucasus", "CentralAsia", "WestAsia", "Europe", "SouthAsia", "Oceania", "SEAsia", "Africa", "Archaic")){#{unique(myComparison$region)){
+  make_plot_comparison(myComparison, r)
+}
+```
+
+### Australasians vs others
+```{r}
+Dstat <- read.table("~/Projects/Botocudos/Files/Dstat/2019_10_14/h_merged_qpDstat_Oct22.results",
+                    stringsAsFactors = F)
+colnames(Dstat) <- c("H1", "H2", "H3", "H4",
+                     "D", "Z", "BABA", "ABBA", "nSites")
+Dstat$population <- Dstat$H3
+
+Dstat <- join(Dstat, magic[,c("population", "region")], by = "population")
+
+```
+
+```{r, fig.width=12, fig.height=12}
+column_to_highlight <- "region"
+to_highlight <- c("Oceania", "SEAsia")
+color_to_highlight <- c("purple", "pink")
+
+pop_in_h3 <- unique(Dstat$H3)
+pop_order <- unique(c(Dstat$H1, Dstat$H2))
+
+myPops <- c("MN0008_L3U", "MN0008_3lanes",
+            "Surui", "Karitiana", "LagoaSanta_called",
+            "LagoaSta",
+            "Mixe", "Huichol", "Quechua", "Ayayema")
+layout(matrix(seq(1,10), ncol = 5, byrow = T))
+
+for(pop_in_h2 in myPops){
+  mySubset <- prepare_set(abba = Dstat, pop_in_h2 = pop_in_h2,
+                        pop_in_h3 = pop_in_h3, 
+                        pop_order = pop_order)
+moreno_4a(abba = mySubset, pop = pop_in_h2,
+          column_to_highlight = column_to_highlight, 
+          to_highlight = to_highlight, 
+          color_to_highlight = color_to_highlight)
+}
+pop_in_h2 <- "LagoaSanta_called"
+
+
+
+
+
+```
+
+## Relationship between Botocudos and other Native Americans
+
+```{r, old results}
+
+coordinates <- read.table("~/Projects/Botocudos/Files/Maps/Magic.coordinates", header = F)
+colnames(coordinates) <- c("population", "lat", "long", "type")
+
+f3 <- read.table("~/Projects/Botocudos/Files/F3/2019_05_17/boto_maanasa.txt",
+                 header = T)
+colnames(coordinates) <- c("Source2", "lat", "long", "type")
+f3$Source2 <- sub("Conchal.*", "ConchaliSantiagoRM", f3$Source2)
+f3 <- join(f3, coordinates, by = "Source2")
+f3 <- f3[f3$SNPs >10000,]
+
+f3$population <- f3$Source2
+
+myPanel <- unique(panel[,c("population", "region")])
+f3 <- join(f3, myPanel, by = "population")
+ f3 <- join(f3, languages, by = "population")
+f3 <- f3[f3$region == "Americas",]
+
+```
+
+```{r, fig.height=20, eval = F}
+ciempies_plot(f3, main = NULL)
+```
+
+# F3
+# Arara, Surui, LagoaSanta, Karitiana
+
+```{r}
+f3 <- read.table("~/Projects/Botocudos/Files/F3/2019_10_17/f3.results",
+                 header = T, stringsAsFactors = F)
+
+f3$Source2 <- sub("Conchal.*", "ConchaliSantiagoRM", f3$Source2)
+f3 <- join(f3, coordinates, by = "Source2")
+f3 <- f3[f3$SNPs >10000,]
+
+f3$population <- f3$Source2
+
+```
+
+```{r, fig.width=12, fig.height=14}
+myPops <- c("Botocudos", "L3U",
+            "Arara", "LagoaSanta", "Surui",
+             "Karitiana")
+# pdf("~/Projects/Botocudos/Plots/F3/2019_10_17/f3_bidir.pdf",
+    # width = 12, height = 14)
+layout(matrix(seq(1,6), byrow = T, ncol = 6))
+for(p in myPops){
+  ciempies_plot(f3[f3$Source1 == p,], main = p, 
+                doLayout = F, doBar = F, cex.axis = 0.7)
+}
+# dev.off()
+```
+
+
+# ANGSD, error corrected
+  # do not trim 5bp, 
+  # MN0008
+  # All botocudos
+  # no need to rmTrans
+  
+  # Fig. 3C
+questions is:
+Compared to other Native Americans, how close are botocudos to Mixe or to Lagoa Santa?
+
+
+```{r}
+nat_americans <- list("northern" = c("Lovelock2", "Lovelock3",
+                                     "Pima", "Huichol", "Maya", "Taino"),
+                      "east_andes" = c("Yukpa", "Aconcagua",
+                                       "Aymara", "Quechua", 
+                                       "Chane", "Surui", "Karitiana",
+                                       "Piapoco"),
+                      "west_andes" = c("Ayayema", "PtaStaAna",
+                                       "AncKaweskar2", "AncKaweskar3",
+                                       "AncYamana", "AncYamana2"),
+                      "botocudos" = c("Botocudos"))
+```
+
+
+```{r}
+
+```
+
+
+### rmTrans
+```{r, fig.width=12, fig.height=6}
+abba <- read.table("~/Projects/Botocudos/Files/Dstat/2019_10_14/Corrected/23Boto_inc.ErrorCorr.TransRem.txt",
+                   header = T, stringsAsFactors = F)
+
+# first plot is D(NatAm, Mixe; LagoaSanta_15x, Yoruba)
+myAlpha <- 0.001
+pop_order <- rev(c("Botocudos", "MN0008_L3U",
+               "Surui", "Karitiana", "Ayayema", "Aymara","Huichol"))
+
+
+
+layout(matrix(seq(1,2), byrow = T, ncol = 2))
+first_set <- prepare_set(abba, pop_in_h2 = "Mixe", 
+                         pop_in_h3 = "LagoaSanta_15x",
+                         pop_order = pop_order)
+
+
+cex <- 1.2
+lwd <- 2
+par(mar = c(5,8,4,2))
+moreno_3c(first_set, 
+          title =  "D(NatAm, Mixe; LagoaSanta_15x, Yoruba)\n(rmTrans)",
+          lwd = lwd, cex = cex)
+
+# second plot is D(NatAm, LagoaSanta_15X; Mixe, Yoruba)
+second_set <- prepare_set(abba, pop_in_h3 = "Mixe", 
+                         pop_in_h2 = "LagoaSanta_15x",
+                         pop_order = pop_order)
+
+par(mar = c(5,2,4,8))
+moreno_3c(second_set, 
+          title =  "D(NatAm, LagoaSanta_15x; Mixe, Yoruba)\n(rmTrans)",
+          yaxis = F, lwd = lwd, cex = cex)
+
+
+```
+
+### all
+```{r,  fig.width=12, fig.height=6}
+abba <- read.table("~/Projects/Botocudos/Files/Dstat/2019_10_14/Corrected/23Boto_inc.ErrorCorr.txt",
+                   header = T, stringsAsFactors = F)
+
+# first plot is D(NatAm, Mixe; LagoaSanta_15x, Yoruba)
+myAlpha <- 0.001
+pop_order <- rev(c("Botocudos", "MN0008_L3U",
+               "Surui", "Karitiana", "Ayayema", "Aymara","Huichol"))
+
+cex <- 1.2
+lwd <- 2
+color <- "#0057ba"
+layout(matrix(seq(1,2), byrow = T, ncol = 2))
+first_set <- prepare_set(abba, pop_in_h2 = "Mixe", 
+                         pop_in_h3 = "LagoaSanta_15x",
+                         pop_order = pop_order)
+
+par(mar = c(5,8,4,2))
+
+moreno_3c(first_set, 
+          title =  "D(NatAm, Mixe; LagoaSanta_15x, Yoruba)\n(all)",
+          xlim = c(-0.7, 0.05), cex = cex, lwd = lwd,
+          color = color)
+
+# second plot is D(NatAm, LagoaSanta_15X; Mixe, Yoruba)
+second_set <- prepare_set(abba, pop_in_h3 = "Mixe", 
+                         pop_in_h2 = "LagoaSanta_15x",
+                         pop_order = pop_order)
+par(mar = c(5,2,4,8))
+
+moreno_3c(second_set, 
+          title =  "D(NatAm, LagoaSanta_15x; Mixe, Yoruba)\n(all)",
+           cex = cex, lwd = lwd,
+          color = color, yaxis = F)
+
+```
+
+
+## Figure S35A
+
+### Error-corrected D-stats, rmTrans
+
+```{r, fig.width=12, fig.height=12}
+abba <- read.table("~/Projects/Botocudos/Files/Dstat/2019_10_14/Corrected/S35A_Bot8.ErrorCorr.TransRem.txt",
+                   header = T, stringsAsFactors = F)
+
+pops_in_title <- c("Botocudos", 
+                   "MN0008_L3U", "LagoaSanta_15x",
+                   "Surui", "Karitiana",
+                   "Mixe", "Huichol", 
+                   "Aymara", "Ayayema")
+
+pops_in_y <- pops_in_title
+pops_in_h3 <- c("French", "Han",
+                          "Andaman", "WCDesert")
+pop_colors <- c("deepskyblue1", "darkgoldenrod1", 
+                "pink", "blueviolet", 
+                "black")
+
+plot_list <- moreno_S35A(abba = abba, 
+            pops_in_title = pops_in_title,
+            pops_in_y = pops_in_y,
+            pops_in_h3 = pops_in_h3,
+            pop_colors = pop_colors,
+            rm_legend = T)
+
+myPlot <- moreno_S35A(abba = abba,
+                      pops_in_title = c("Botocudos"),
+                      pops_in_y = pops_in_y,
+                      pops_in_h3 = pops_in_h3,
+                      pop_colors = pop_colors, rm_legend = F)
+
+legend <- get_legend(myPlot[[1]])
+plot_list[[length(plot_list)+1]] <- legend
+plot_grid(plotlist = plot_list, ncol = 3)
+
+```
+
+#### Affinities of Native Americans to non-NA (vs Mixe) 
+```{r, fig.width=12, fig.height=12}
+
+pops_to_plot <- c("WCDesert", "Andaman","Han", "French")
+colors <- c("blueviolet", "pink", 
+             "darkgoldenrod1", "deepskyblue1", 
+                "black")
+
+layout(matrix(seq(1,4), byrow = T, ncol = 2))
+for(i in 1:4){
+  pop <- pops_to_plot[i]
+  color <- colors[i]
+  myAbba <- prepare_set(abba, pop_in_h2 = "Mixe", pop_in_h3 = pop, pop_order = c("Botocudos", 
+                                                                                        "MN0008_L3U", "LagoaSanta_15x",
+                                                                                        "Surui", "Karitiana",
+                                                                                        "Mixe", "Huichol", 
+                                                                                        "Aymara", "Ayayema"))
+  
+  myAbba <- myAbba[complete.cases(myAbba),]
+  
+  moreno_3c(myAbba, 
+            title = paste("D(NatAm, Mixe; ", pop, ", Yoruba)"),
+            color = color)
+}
+
+
+```
+
+#### Affinities of Native Americans to non-NA (vs Lagoa Santa)
+
+```{r, fig.width=12, fig.height=12}
+pops_to_plot <- c("WCDesert", "Andaman","Han", "French")
+colors <- c("blueviolet", "pink", 
+             "darkgoldenrod1", "deepskyblue1", 
+                "black")
+
+layout(matrix(seq(1,4), byrow = T, ncol = 2))
+for(i in 1:4){
+  pop <- pops_to_plot[i]
+  color <- colors[i]
+  myAbba <- prepare_set(abba, pop_in_h2 = "LagoaSanta_15x", pop_in_h3 = pop, pop_order = c("Botocudos", 
+                                                                                        "MN0008_L3U", "LagoaSanta_15x",
+                                                                                        "Surui", "Karitiana",
+                                                                                        "Mixe", "Huichol", 
+                                                                                        "Aymara", "Ayayema"))
+  
+  myAbba <- myAbba[complete.cases(myAbba),]
+  
+  moreno_3c(myAbba, 
+            title = paste("D(NatAm, LagoaSta; ", pop, ", Yoruba)"),
+            color = color)
+}
+
+
+```
+
+## Error-corrected D-stats, all type of polymorphisms
+```{r, fig.width=12, fig.height=12}
+abba <- read.table("~/Projects/Botocudos/Files/Dstat/2019_10_14/Corrected/S35A_Bot8.ErrorCorr.txt",
+                   header = T, stringsAsFactors = F)
+
+plot_list <- moreno_S35A(abba = abba, 
+            pops_in_title = pops_in_title,
+            pops_in_y = pops_in_title,
+            pops_in_h3 = pops_in_h3,
+            pop_colors = pop_colors,
+            rm_legend = T)
+myPlot <- moreno_S35A(abba = abba,
+                      pops_in_title = c("Botocudos"),
+                      pops_in_y = pops_in_y,
+                      pops_in_h3 = pops_in_h3,
+                      pop_colors = pop_colors, rm_legend = F)
+
+legend <- get_legend(myPlot[[1]])
+plot_list[[length(plot_list)+1]] <- legend
+plot_grid(plotlist = plot_list, ncol = 3)
+
+```
+
+
+# D-stats, called genotypes
+```{r}
+
+```
+
+
+# qpGraph
+reporta modelo más sencillo, sin admixtures
+de todos modos intenta todas las combinaciones
+
+fit score es usado como log-likelihood
+
+fija los admixtures proportions para todas las ramas, excepto para las que estás preguntando
+
+# Admixture graph
+# 2012 Reich
+# India - qpWave or qpGraph
+# Heterozygosity
+
+```{r}
+het_dir <- "~/Projects/Botocudos/Files/Heterozygosity/2019_10_30/"
+
+files <- list.files(het_dir, pattern = "Nigeria") ; files
+
+get_samples <- function(pattern){
+  x <- sapply(strsplit(files[grep(pattern, files)], "_"), 
+              function(x) c(x[[1]], x[[2]]))
+  
+  samples <- unique(c(x[1,], x[2,]))
+  return(samples)
+}
+
+
+boto_sm <- get_samples(pattern = "MN")
+wcd_sm <- get_samples("WCD")
+surui_sm <- get_samples("Surui")
+lovelock_sm <- get_samples("Lovelock")
+mixe_sm <- get_samples("Mixe")
+maya_sm <-get_samples("Maya")
+pima_sm <- get_samples("Pima")
+usr_sm <- get_samples("USR")
+
+mbuti_sm <- c("HGDP00456", "SS6004471")
+dai_sm <- c("SS6004467", "HGDP01307")
+french_sm <- c("SS6004468", "HGDP00521")
+han_sm <- c("SS6004469", "HGDP00778")
+mandenka_sm <- c("SS6004470", "HGDP01284")
+papuan_sm <- c("SS6004472", "HGDP00542")
+san_sm <- c("SS6004473", "HGDP01029")
+sardinian_sm <- c("SS6004474", "HGDP00665")
+yoruba_sm <- c("SS6004475", "HGDP00927")
+karitiana_sm <- c("SS6004476", "HGDP00998")
+australian_sm <- c("SS6004477", "SS6004478")
+lagoa_sm <- c("LagoaSta", "LS4", "LS6", "LS7", "LS8")
+
+myGroups <- list(
+                 WCD = wcd_sm,
+                 Surui = surui_sm,
+                 Lovelock = lovelock_sm,
+                 Mixe = mixe_sm,
+                 Maya = maya_sm,
+                 Pima = pima_sm,
+                 USR = usr_sm,
+                 Mbuti = mbuti_sm,
+                 Dai = dai_sm,
+                 French = french_sm,
+                 Han = han_sm,
+                 Mandenka = mandenka_sm,
+                 Papuan = papuan_sm,
+                 San = san_sm,
+                 Sardinian = sardinian_sm,
+                 Yoruba = yoruba_sm,
+                 Karitiana = karitiana_sm,
+                 Australian = australian_sm,
+                 LagoaSta = lagoa_sm,
+                 Botocudos = boto_sm
+                 )
+myRegions <- matrix(data = c("WCD", "Australian_WCD", "Oceania",
+                             "Surui", "Surui", "Americas",
+                             "Lovelock", "Lovelock", "Americans_anc",
+                             "Mixe", "Mixe", "Americas",
+                             "Maya", "Maya", "Americas",
+                             "Pima", "Pima", "Americas",
+                             "USR", "USR", "Americas_anc",
+                             "Mbuti", "Mbuti", "Africa",
+                             "Dai", "Dai", "SotuhAsia",
+                             "French", "French", "Europe",
+                             "Han", "Han", "EastAsia",
+                             "Mandenka", "Mandenka", "Africa",
+                             "Papuan", "Papuan", "Oceania",
+                             "San", "San", "Africa",
+                             "Sardinian", "Sardinian", "Europe",
+                             "Yoruba", "Yoruba", "Africa",
+                             "Karitiana", "Karitiana", "Americas",
+                             "Australian", "Australian", "Oceania",
+                             "LagoaSta", "LagoaSanta", "Americas_anc",
+                             "Botocudos", "Botocudos", "Botocudos"
+                             ), ncol = 3, byrow = T)
+
+myRegions <- data.frame(myRegions)
+colnames(myRegions) <- c("group", "population", "region")
+```
+
+```{r}
+match_files <- function(group, files){
+  x <- sapply(strsplit(files, "_"), 
+              function(x) x[[1]])
+
+  index <- which(x %in% group)
+  return(index)
+}
+
+lagoa_file <- match_files(lagoa_sm, files = files)
+
+```
+
+```{r}
+num_files <- function(files){
+  myTable <- table(sapply(files, function(x) strsplit(x, "_")[[1]][1]))
+  return(myTable)
+}
+```
+
+```{r}
+blank_plot <- function(){
+  plot(1,1, type = "n", axes = F, xlab = NA, ylab = NA)
+}
+```
+
+```{r}
+plot_pairwise_het <- function(samples){
+  index <- match_files(samples, files = files)
+  
+  sub_files <- files[index]
+  nFiles <- num_files(sub_files)
+  nFiles <- nFiles[order(nFiles, decreasing = T)]
+  individuals <- names(nFiles)[order(nFiles, decreasing = T)]
+  individuals2 <- c(individuals, samples[!samples %in% individuals])
+  nInd <- length(individuals)+1
+  
+  layout(matrix(1:((nInd-1)*(nInd-1)), byrow = T, ncol = nInd-1))
+  
+  for(ind1 in individuals){
+    individuals2 <- individuals2[!( individuals2 == ind1) ]
+    for(ind2 in individuals2){
+      to_read <- paste(het_dir, ind1, 
+                       "_", ind2, "_Nigeria_B_Yoruba-3.pi.stats.txt",
+                       sep = "")
+      if(file.exists(to_read)){
+        print(to_read)
+        myPi <- read.table(to_read, header = F)
+        colnames(myPi) <- c("estimate",	"bias",	"stderror",	"confint1",	"confint2")
+        
+        plot(myPi$estimate, ylim = c(0, 0.5), axes = F,
+             xlab = ind1, ylab = ind2)
+        segments(x0 = 1, y0 = myPi$confint1, y1 = myPi$confint2)
+        axis(2)
+        grid()
+      }
+      else{
+        blank_plot()
+      }
+    }
+    if(ind1 != tail(individuals,1)){
+      to_plot <- nInd - length(individuals2) -1
+      while(to_plot > 0){
+        to_plot <- to_plot -1
+        blank_plot()
+      }
+    }
+    
+  }
+}
+```
+
+```{r}
+plot_pairwise_het(karitiana_sm)
+
+for(group in names(myGroups)){
+  nInd <- length(myGroups[[group]])
+  png(paste("~/Projects/Botocudos/Plots/Het/2019_11_01/", group, ".pi.pairwise.png", sep = ""),
+      width = 2*nInd, height = 2*nInd, re = 250, units = "in")
+  plot_pairwise_het(myGroups[[group]])
+  dev.off()
+}
+
+```
+
+```{r}
+myFile <- file[1]
+myPi <- read.table(paste(het_dir, myFile, sep = ""), header = F)
+
+ind1 <- strsplit(myFile, "_")[[1]][1]
+ind2 <- strsplit(myFile, "_")[[1]][2]
+
+
+```
+
+```{r}
+
+match_groups <- function(file, groups, regions){
+  ind <- strsplit(file, "_")[[1]][1]
+  for(group in names(groups)){
+    if(ind %in% groups[[group]]){
+      return(regions[regions$group == group,])
+    }
+  }
+}
+
+x <- match_groups(files[1], myGroups, myRegions)
+
+```
+
+```{r}
+myPi <- data.frame()
+for(f in files){
+  x <- read.table(paste(het_dir, f, sep = ""))
+  regions <- match_groups(f, myGroups, myRegions)
+  colnames(x) <- c("estimate",	"bias",	"stderror",	"confint1",	"confint2")
+  x <- cbind(x, regions)
+  myPi <- rbind(myPi, x)
+}
+
+
+```
+
+```{r}
+ggplot(myPi, aes(x = population, y = estimate, col = region)) +
+  #geom_point() +
+  geom_jitter() +
+  geom_violin()
+
+```
+
