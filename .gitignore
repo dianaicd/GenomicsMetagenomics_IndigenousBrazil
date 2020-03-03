@@ -6,3 +6,4 @@
 *_files/
 *.png
 .DS_Store
+.snakemake/
