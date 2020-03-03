@@ -1,5 +1,5 @@
-#!/usr/local/bin/Rscript
-####!/usr/bin/Rscript
+#!/software/R/3.5.1/bin/Rscript
+####!/software/R/3.5.1/bin/Rscript
 
 library(contamMix)
 library(getopt)
