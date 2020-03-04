@@ -113,14 +113,15 @@ rule do_AncError:
         threads
     params:
         minQ = config["BaseQuality"] if "BaseQuality" in config.keys() else 20,
-        minMapQ = config["MapQuality"] if "MapQuality" in config.keys() else 30
+        minMapQ = config["MapQuality"] if "MapQuality" in config.keys() else 30,
+        basename = "{group}/{group}_perfect.{perfect}_outgroup.{outgroup}_ancErr".format(group = "{group}", perfect = "{perfect}", outgroup = "{outgroup}")
     log:
         "logs/do_AncError_{group}_{perfect}_{outgroup}.log"
     shell:
         """
         angsd -doAncError 1 -anc {input.outgroup} \
         -ref {input.perfect} \
-        -out {wildcards.group}/{wildcards.group}_ancErr \
+        -out {params.basename} \
         -bam {input.bam_group} \
         -nThreads {threads} \
         -minQ {params.minQ} -minMapQ {params.minMapQ} &>{log}
