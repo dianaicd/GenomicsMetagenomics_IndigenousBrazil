@@ -10,11 +10,11 @@ enough_jobs(){
     fi
 }
 
-maxJobs=40
+maxJobs=15
 i=0
-nThreads=4
+nThreads=10
 if [ ! -e log ] ; then mkdir log ; fi
-for k in $(seq 11 15)
+for k in $(seq 2 10)
 do
     if [ ! -d $k ] ; then mkdir $k ; fi
     for rep in $(seq 1 100)

@@ -8,6 +8,7 @@ def param_is_defined(name, default_par = False):
 #-----------------------------------------------------------------------------#
 # Variables and functions to begin with
 chromosomes = [str(x) for x in range(1,23)] 
+chromosomes.append("X")
 
 samples_names = [list(myPaths)[0] for mySamples in config["bamlists"].values() for myPaths in mySamples.values()]
 bamfile = list(config["bamlists"].keys())
@@ -68,7 +69,8 @@ rule call_genos:
             if [ {params.moreno2019} == "Yes" ]
             then
                 samtools mpileup -q {params.minMapQ} \
-                -t DP -C50 -uf {params.ref} -l {input.positions} \
+                -t DP -C50 -uf {params.ref} \
+                -r {wildcards.chr} -l {input.positions} \
                 {input.bamfile} | bcftools call -f GQ -c \
                 --threads {params.threads} \
                 -Ob -o {output.raw_genos}  \
@@ -135,7 +137,7 @@ rule filter_genos:
 
 rule concat_genos:
     input:
-        expand("Filtered/{bamfile}_{panel}_{chr}_allDepths.bcf", bamfile = "{bamfile}", chr = chromosomes, panel = panels)
+        expand("Filtered/{bamfile}_{panel}_{chr}_allDepths.bcf", bamfile = "{bamfile}", chr = chromosomes, panel = "{panel}")
     output:
         genos_all_depths = "Filtered/{bamfile}_{panel}_allDepths.bcf"
     params:
@@ -198,7 +200,7 @@ rule recode_plink:
         bcftools view -Ov -o {output.vcf} {input.bcf}
         plink --recode --vcf {output.vcf} \
             --out Filtered/{wildcards.bamfile}_{wildcards.panel}_depth_filter \
-            --make-bed --double-id --set-missing-var-ids @:#
+            --make-bed --double-id #--set-missing-var-ids @:#
         """
 
 rule update_alleles:
@@ -207,6 +209,7 @@ rule update_alleles:
         panel_bim = "{panel}.bim"
     output:
         alleles_to_change = "Filtered/{bamfile}_{panel}_change_alleles.txt",
+        alleles_to_remove = "Filtered/{bamfile}_{panel}_rm_alleles.txt",
         new_bed = "Filtered/{bamfile}_{panel}_depth_filter_refalt.bed",
         old_bim = "Filtered/{bamfile}_{panel}_depth_filter_old.bim"
     shell:
@@ -218,9 +221,33 @@ rule update_alleles:
             --output_alleles {output.alleles_to_change} \
             --output_bim {input.sample_bim}
 
-        plink --bfile Filtered/{wildcards.bamfile}_{wildcards.panel}_depth_filter \
+        if [ $(grep -cP "0\t0$" {output.alleles_to_change}) -eq 0 ]
+        then
+            echo "no alleles to remove"
+            touch {output.alleles_to_remove}
+            
+            plink --bfile Filtered/{wildcards.bamfile}_{wildcards.panel}_depth_filter \
             --update-alleles {output.alleles_to_change} \
             --make-bed --out Filtered/{wildcards.bamfile}_{wildcards.panel}_depth_filter_refalt
+        else
+            echo "will remove $(grep -cP "0\t0$" {output.alleles_to_change}) alleles"
+            grep -P "0\t0$" {output.alleles_to_change} > {output.alleles_to_remove}
+
+            plink \
+                --bfile Filtered/{wildcards.bamfile}_{wildcards.panel}_depth_filter \
+                --exclude {output.alleles_to_remove} \
+                --make-bed \
+                --out Filtered/{wildcards.bamfile}_{wildcards.panel}_depth_filter_diallelic
+
+            grep -vP "0\t0$" {output.alleles_to_change} > {output.alleles_to_change}.tmp
+            mv {output.alleles_to_change}.tmp {output.alleles_to_change}
+
+            plink --bfile Filtered/{wildcards.bamfile}_{wildcards.panel}_depth_filter_diallelic \
+            --update-alleles {output.alleles_to_change} \
+            --make-bed --out Filtered/{wildcards.bamfile}_{wildcards.panel}_depth_filter_refalt
+        fi
+
+
         """
 
 rule make_merge_list:
