@@ -1,11 +1,11 @@
 # Snakemake to change a bed panel to eigenstrat format
-configfile: "qp3pop_test.yaml"
+#configfile: "qp3pop_test.yaml"
 
 # This file should have a column with indId and
 # one column with population ID
-ind_pop = config["ind_pop"]
+#ind_pop = config["ind_pop"]
 
-panel = [config["panels"][d]["path"].split(".")[0] for d in list(config["panels"].keys())][0]
+#panel = [config["panels"][d]["path"].split(".")[0] for d in list(config["panels"].keys())][0]
 
 #=============================================================================#
 # Mess, mess, mess
@@ -31,10 +31,10 @@ def read_pops(fileName):
 
 #=============================================================================#
 # Define rules
-rule all:
-    input:
-        par_conversion = "{panel}_ped2eigenstrat.par".format(panel = panel),
-        mod_ind = "{panel}.mod.ind".format(panel = panel)
+# rule all:
+#     input:
+#         par_conversion = "{panel}_ped2eigenstrat.par".format(panel = panel),
+#         mod_ind = "{panel}.mod.ind".format(panel = panel)
 #=============================================================================#
 # Clean data and get things in the rigth format
 # The genotypes should be converted to eigenstrat format

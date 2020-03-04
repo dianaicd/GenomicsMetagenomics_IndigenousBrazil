@@ -8,6 +8,12 @@ ind_pop:
   "ind_pop.txt"
   
 panels: 
+  MalTa_h_merged:
+    type:
+      "bed"
+    path:
+      "MalTa_h_merged.bed"
+
     # Maanasa_mask1_flip:
         
     #     # bed, vcf, bim
@@ -29,11 +35,11 @@ panels:
     #         K: 15
     #         rep: 100
 
-  h:
-    type: 
-      "bed"
-    path: 
-      "h_merged.bed"
+  # h:
+  #   type: 
+  #     "bed"
+  #   path: 
+  #     "h_merged.bed"
     #     GenoLike:
     #          homozygous: "yes"
     #          rmdamage: "yes"

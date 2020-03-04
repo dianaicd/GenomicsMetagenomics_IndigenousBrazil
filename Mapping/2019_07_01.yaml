@@ -1,8 +1,8 @@
 contammix:
-    /Users/dcruz/Projects/Botocudos/Scripts/Contamination/contamMix/exec/estimate.R
+    ~/data/Git/Botocudos-scripts/Contamination/contamMix/exec/estimate.R
 
 mt311:
-    /Users/dcruz/Projects/Botocudos/Files/Contamination/311humans.fasta
+    311humans.fasta
 
 Mitochondrial:
     MT
@@ -11,6 +11,27 @@ nIter:
     10000
 
 samples:
+    MN00010
+    MN00013
+    MN00016
+    MN00021
+    MN00022
+    MN00023
+    MN0003
+    MN00039
+    MN00045
+    MN00019
+    MN00056
+    MN00064
+    MN00066
+    MN00067
+    MN00068
+    MN00069
+    MN0009
+    MN00118
+    MN00119
+    MN00316
+    MN00346
+    MN01701
     MN1943
-    #MN01701
-
+    MN0008

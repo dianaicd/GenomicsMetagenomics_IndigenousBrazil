@@ -11,20 +11,32 @@ samples:
 #  MA2391:  MN00019
 #  MA2392:  MN00056
 #  MA2393:  MN00064
- MA2394:  MN00066
- MA2395:  MN00067
- MA2396:  MN00068
- MA2397:  MN00069
- MA2398:  MN0009
- MA2399:  MN00118
- MA2400:  MN00119
- MA2401:  MN00316
+#  MA2394:  MN00066
+#  MA2395:  MN00067
+#  MA2396:  MN00068
+#  MA2397:  MN00069
+#  MA2398:  MN0009
+#  MA2399:  MN00118
+#  MA2400:  MN00119
+#  MA2401:  MN00316
  MA2402:  MN00346
- MA2403:  MN01701
- MA2404:  MN1943
+#  MA2403:  MN01701
+#  MA2404:  MN1943
 #  MA2776:  Quack_MA2776
 #  MA2777:  Quack_MA2777
 #  MA2778:  MN0008
 
 ref:
   /archive/unibe/eg/amalaspi/group/genomes/reference_human/hs.build37.1/hs.build37.1.fa
+
+contammix:
+    ~/data/Git/Botocudos-scripts/Contamination/contamMix/exec/estimate.R
+
+mt311:
+    311humans.fasta
+
+Mitochondrial:
+    MT
+
+nIter:
+    10000
