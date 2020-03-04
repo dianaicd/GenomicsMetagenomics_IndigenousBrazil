@@ -8,3 +8,4 @@
 .DS_Store
 .snakemake/
 .ipynb_checkpoints/
+.Rproj.user
