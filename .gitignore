@@ -10,3 +10,4 @@
 .ipynb_checkpoints/
 .Rproj.user
 *.log
+*_cache/
