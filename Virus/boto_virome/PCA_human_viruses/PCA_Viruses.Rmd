@@ -17,7 +17,7 @@ library(plyr)
 library(data.table)
 library(stringr)
 library(gplots)
-source("~/Projects/Botocudos/Scripts/misc/translate_ids.R")
+# source("~/Projects/Botocudos/Scripts/misc/translate_ids.R")
 ```
 
 Add the information regarding: input reads; number of alignments and number of reads aligned.  
@@ -53,7 +53,31 @@ input_reads_bpoly[, algnts:=fread(file = "~/axiom_virome/Boto_virome/Boto_poly/v
 input_reads_bpoly[, rds_algnd:=fread(file = "~/axiom_virome/Boto_virome/Boto_poly/virome/DIAMOND_output/alignment_output/reads_aligned_botopoly.txt")]
 
 reads_boto_bpolys <- rbind(input_reads_bpoly, input_reads_boto)
+write.csv(x = reads_boto_bpolys, file = "reads_boto_bpolys.csv", quote = F, sep = ',', row.names = F)
 ```
+
+Information about: total number of sequenced reads, tissue
+```{r other info}
+# Load
+sequenced_reads <- fread(input = "Sup_T1.csv", nrows = 26, header = T, select = c("Sample", "reads_raw"))
+# Change character to numeric type
+sequenced_reads$reads_raw <- sequenced_reads$reads_raw %>% 
+  str_replace_all(., pattern = " ", replacement = "") %>% 
+  as.numeric()
+# Remove "MN0008_L3U" & "MN0008_non_U" libraries
+sequenced_reads <- sequenced_reads[Sample != "MN0008_L3U" & Sample != "MN0008_non_U"]
+
+# Add boto-poly reads
+sequenced_reads <- rbind(sequenced_reads, data.table(matrix(c("Bot15", 1582021045, "Bot17", 647045202), 
+                  ncol = 2, 
+                  byrow = T, 
+                  dimnames = list(c(1,2), c("Sample", "reads_raw"))
+                  ))
+      )
+
+```
+
+1,315 human viruses
 
 Load human virus hits
 ```{r}
@@ -63,8 +87,7 @@ hvirush <- fread(file = "~/axiom_virome/Boto_virome/Boto_poly/virome/DIAMOND_out
 Frequencies
 ```{r Freqs}
 hist(as.matrix(sweep(hvirush[, 3:28], reads_boto_bpolys$input, MARGIN = 2, FUN = '/')), 
-     breaks = 50
-     )
+     breaks = 50)
 hist(as.matrix(log(sweep(hvirush[, 3:28], reads_boto_bpolys$input, MARGIN = 2, FUN = '/')+1e-30)))
 ```
 
@@ -72,12 +95,15 @@ The figure on top corresponds to a heatmap on the number of hits per virus,
 divided by the total number of reads given to DIAMOND, and the figure below 
 is a heatmap taking the logarithm on the same data.
 
-```{r}
+```{r Load hits}
 virus <- read.csv("~/Projects/Botocudos/Files/Microbiome/Virome/HumanVirus2.txt",
                   skip=2, header = T, sep = "\t")
 
 rownames(virus) <- gsub("_", " ", gsub("-", " ", virus[,1]))
+```
 
+
+```{r}
 ####
 # Normalising by dividing by input reads
 heatmap(as.matrix(sweep(hvirush[, 3:28], reads_boto_bpolys$input, MARGIN = 2, FUN = '/')),
@@ -123,16 +149,89 @@ heatmap(as.matrix(log(virus[4:38,2:25]/as.numeric(virus[1, 2:25])+ 1e-30)),
 
 ```
 
+Export to excel 
+```{r excel}
+## Formatting can be applied simply through the write functions 
+#==============================================================================#
+## create a workbook and add a worksheet
+wb <- createWorkbook()
+addWorksheet(wb, paste("Sup_T1_", data_type, sep = ""))
+#--------------
+## headerStyles
+hs1 <- createStyle(fgFill = "white", halign = "CENTER", textDecoration = "Bold",
+                   border = c("top", "bottom", "left", "right"),
+                   borderStyle = "thin",
+                   fontColour = "black", fontSize = 16)
 
+showGridLines(wb, 1, showGridLines = FALSE)
+setColWidths(wb, 1, cols = 1:ncol(myT1), widths = "auto")
+#-------------
+# write table
+writeData(wb, 1, df, startRow = 1, startCol = 1, headerStyle = hs1,
+          borders = "columns", borderStyle = "thin")
+#-------------------
+# add column styles
+# percent
+percent_cols <- which(colnames(df) %in% c("trim_prop", "duplicates_prop"))
+s <- createStyle(numFmt = "0.0%")
+addStyle(wb, 1, style = s,  cols = percent_cols, 
+         rows = 1:nrow(df)+1, gridExpand = TRUE, stack = T)
+# thousands separator
+comma_cols <- which(colnames(df) %in% c("reads_raw", "reads_trim", "mapping", 
+                                        "duplicates", "mapping_final"))
+s <- createStyle(numFmt = "COMMA")
+addStyle(wb, 1, style = s, rows = 1:nrow(df)+1, cols = comma_cols,
+         gridExpand = TRUE, stack = T)
+# trim decimal places and format %
+decimal_cols <- which(colnames(df) %in% c("endo_prop", "endo_final_prop"))
+s <- createStyle(numFmt = "#0.00%")
+addStyle(wb, 1, style = s, rows = 1:nrow(df)+1, cols = decimal_cols,
+         gridExpand = TRUE, stack = T)
+# trim decimal places
+decimal_cols <- which(colnames(df) %in% c("DoC_MT", "length_reads_endogenous"))
+s <- createStyle(numFmt = "0.0")
+addStyle(wb, 1, style = s, rows = 1:nrow(df)+1, cols = decimal_cols,
+         gridExpand = TRUE, stack = T)
 
-```{r understand?}
-eg_matrix <- matrix(c(1, 11, 0, 2, 5, 9, 4, 5, 7, 6, 8, 8, 1, 2, 2, 7, 4, 0, 0, 0, 5, 7, 3, 8, 4), ncol = 5, byrow = T)
+#format data font type
+theCaption <- myT1[is.na(myT1$reads_raw),]
+s <- createStyle(fontSize = 14)
+addStyle(wb, 1, style = s, rows = 1:(nrow(df)+nrow(theCaption))+1, cols = 1:ncol(df),
+         gridExpand = TRUE, stack = T)
+#------------------------------------------------------------------------------#
+# write column explanation
+writeData(wb, 1, theCaption, startRow = nrow(df)+2,
+          startCol = 1, colNames = F, 
+          borders = "none")
 
-scale(eg_matrix, center = T, scale = F)
+## writing as an Excel Table
+openXL(wb) ## opens a temp version
+saveWorkbook(wb, paste("~/Projects/Botocudos/Files/Tables/Sup_T1_",
+                       data_type, ".xlsx", sep = ""), 
+             TRUE)
 ```
 
 
 
+
+```{r understand?}
+eg_matrix <- matrix(c(1, 11, 0, 2, 5, 9, 4, 5, 7, 6, 8, 8, 1, 2, 2, 7, 4, 0, 0, 0, 5, 7, 3, 8, 4), ncol = 5, byrow = T)
+rownames(eg_matrix) <- c("a", "b", "c", "d", "e")
+scale(eg_matrix, center = T, scale = F)
+scale(eg_matrix, center = T, scale = T)
+
+myclust <- hclust(dist(eg_matrix))
+mydendro <- as.dendrogram(myclust)
+plot(mydendro)
+plot(reorder(mydendro, wts = rowMeans(eg_matrix)))
+heatmap.2(eg_matrix)
+
+heatmap(eg_matrix)
+heatmap(t(eg_matrix))
+
+rowMeans(eg_matrix)
+sweep(eg_matrix, 1, rowMeans(eg_matrix))
+```
 
 Save the values in variables. *raw_hits*: with the raw numbers; *div_by_input*: each value is divided the number of input reads of the corresponding sample.
 ```{r matrixes for heatmaps}
@@ -145,12 +244,65 @@ div_by_input <- hvirush[, 3:28] %>%
   as.matrix
 ```
 
-Using the raw counts. Without scaling (scale deffault in heatmap is "row"): rows are not centered (substraction of the row means) and scaled (divide centered rows by standar deviation)
+Using the raw counts. Without scaling (scale deffault in heatmap is "row"): rows are not centered (substraction of the row means) nor scaled (divide centered rows by standard deviation of the centered rows).
+By default heatmap computes euclidean distance (this is by rows).
+By default, heatmap transpose your matrix, calculates the distance of the transposed, and finally clusters. Then calculates distance and clusters for rows. Distacne by deffaults calculates the distance of the rows in a matrix.
+
+Both heatmap and heatmap.2 reorder the branches (respecting the dendrogram) using the means (rowMeans & colMeans) going from the lowest to the highest value from right to left, or from bottom to top.
+
+In heatmap.2 the dotted lines represent the median of the breaks. In the color key there is a histogram. The horizontal lines to help find the value of the bin.
+
 ```{r}
-heatmap(raw_hits,
+heatmap(x = div_by_input,
+        col = rev(heat.colors(350)),
+        scale = "row",
+        labRow = hvirush[, v_names],
+        main = "Scaled by row. Hits/input")
+
+heatmap(x = div_by_input,
+        col = rev(heat.colors(350)),
+        scale = "col",
+        labRow = hvirush[, v_names],
+        main = "Scaled by col. Hits/input")
+
+heatmap(x = div_by_input,
         col = rev(heat.colors(350)),
         scale = "none",
+        labRow = hvirush[, v_names],
+        main = "wo scaling. Hits/input")
+
+heatmap(x = log10(div_by_input*1321270631 + 1),
+        col = rev(heat.colors(350)),
+        scale = "none",
+        labRow = hvirush[, v_names],
+        main = "log10(hits/input * max + 1)")
+
+#pdf(file = "heatmap_normalized_hits.pdf", height = 9.5, width = 15.5)
+heatmap.2(x = log10(div_by_input*1321270631 + 1),
+        col = rev(heat.colors(350)),
+        scale = "none",
+        # trace = "none",
+        denscol = "saddlebrown",
+        tracecol = "saddlebrown",
+        density.info = "histogram",
+        main = "log10(hits/input * max_input + 1)",
+        cexCol = 0.9,
+        srtCol = 45,
+        cexRow = 0.6,
+        #margins = c(15, 17),
+        #keysize = 1,
+        offsetRow = 0.25,
+        offsetCol = 0.25,
         labRow = hvirush[, v_names])
+
+heatmap.2(x = div_by_input,
+        col = rev(heat.colors(350)),
+        scale = "none",
+        denscol = "saddlebrown",
+        tracecol = "saddlebrown",
+        density.info = "histogram",
+        labRow = hvirush[, v_names],
+        main = "hits/input")
 ```
 
 
