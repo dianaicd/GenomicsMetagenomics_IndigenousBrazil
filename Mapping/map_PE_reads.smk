@@ -9,7 +9,7 @@ def get_fastqFiles(sample, library, fileID):
         fastqFiles = [fastqFiles[1], fastqFiles[0]]
     return(fastqFiles)
 
-ref = "ref.fa"#config['ref']
+ref = config['ref']
 baseQ = config['baseQ'] if 'baseQ' in config.keys() else 20
 mapQ = config['mapQ'] if 'mapQ' in config.keys() else 30
 minLength = config['minLength'] if 'minLength' in config.keys() else 30
@@ -26,7 +26,7 @@ fastqIDs = {sample+"_"+library:list(config['pe_reads'][sample][library].keys())
 
 rule all:
     input:
-        expand("{sample}/{sample}.bam", sample = samples)
+        expand("{sample}/{sample}.mapQ{mapQ}.realn.calmd.bam", sample = samples, mapQ = mapQ)
 
 rule samtools_index:
     input:
@@ -45,7 +45,6 @@ rule adapter_removal:
         fastq = "{sample}/{library}/{id}/{id}.collapsed.gz"
     params:
         basename = "{sample}/{library}/{id}/{id}",
-        baseQ = baseQ,
         minLength = minLength
     shell:
         """
@@ -53,7 +52,7 @@ rule adapter_removal:
             --file2 {input.fastq[1]} \
             --basename {params.basename} \
             --trimns --trimqualities \
-            --qualitybase {params.baseQ} \
+            --qualitybase 33 \
             --minlength {params.minLength} \
             --collapse --gzip
         """
@@ -84,7 +83,7 @@ rule bwa_samse:
     shell:
         """
         bwa samse {input.ref} \
-            -r '@RG\tID:{params.id}\tSM:{params.sm}' \
+            -r '@RG\\tID:{params.id}\\tSM:{params.sm}' \
             {input.sai} {input.fastq} | \
             samtools view -bSh - > {output.bam}
         """
@@ -106,7 +105,7 @@ rule sort_bam:
         bam = "{file}.mapQ{mapQ}.sort.bam".format(mapQ = mapQ, file = "{file}")
     shell:
         """
-        samtools sort {input.bam} {wildcards.file}.mapQ{mapQ}.sort
+        samtools sort -o {output.bam} {input.bam}
         """
 
 rule merge_LB:
@@ -153,7 +152,7 @@ rule merge_SM:
                                         library =  libraries[wildcards.sample],
                                         mapQ = mapQ)
     output:
-        bam = "{sample}/{sample}.merge.bam"
+        bam = "{sample}/{sample}.mapQ{mapQ}.merge.bam".format(mapQ = mapQ, sample = "{sample}")
     shell:
         """
         samtools merge {output.bam} {input.bam}
@@ -175,21 +174,22 @@ rule realign_gatk:
     threads: 8
     shell:
         """
-        GenomeAnalisysTK -I {input.bam} -R {input.ref} \
+        GenomeAnalysisTK -I {input.bam} -R {input.ref} \
             -T RealignerTargetCreator \
             -o {output.intervals} \
+            --num_threads {threads}
 
-        GenomeAnalisysTK -I {input.bam} -T IndelRealigner \
+        GenomeAnalysisTK -I {input.bam} -T IndelRealigner \
             -R {input.ref} -targetIntervals {output.intervals} \
-            -o {output.bam}
+            -o {output.bam} 
         """
             
 rule samtools_calmd:
     input:
         ref = ref,
-        bam = "{sample}/{sample}.realn.bam"
+        bam = "{file}.realn.bam"
     output:
-        bam = "{sample}/{sample}.bam"
+        bam = "{file}.realn.calmd.bam"
     threads: 8
     shell:
         """
