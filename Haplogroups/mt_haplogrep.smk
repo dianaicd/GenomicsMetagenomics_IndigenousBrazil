@@ -26,8 +26,9 @@ rule all:
     input:
         fasta = expand("{mito}/{sample}/{sample}_{mito}_{type}.fa", 
                         mito = mito, sample = samples, type = ["all", "rmTrans"]),
-        haplo = expand("{mito}/{sample}/{sample}_{mito}_{type}.haplo",
-                         mito = mito, sample = samples, type = ["all", "rmTrans"])
+        haplos = expand("{mito}/{sample}/{sample}_{mito}_{type}.haplo",
+                         mito = mito, sample = samples, type = ["all", "rmTrans"]),
+        haplos_table = "{mito}/haplogroups.txt".format( mito = mito ) 
 
 rule index:
     input:
@@ -88,3 +89,26 @@ rule haplogrep:
          java -jar ~/Project_popgen/americas/install/haplogrep-cmd/haplogrep-2.1.25.jar \
             --in {input.fasta} --format fasta --out {output.haplo} --extend-report
         """
+
+rule haplo_table:
+    input:
+        haplo = expand("{mito}/{sample}/{sample}_{mito}_{type}.haplo",
+                         mito = mito, sample = samples, type = ["all", "rmTrans"])
+    output:
+        table = "{mito}/haplogroups.txt"
+    run:
+        def parse_haplogroup( file_name ):
+            sample = file_name.split("/")[1]
+            rmTrans = file_name.split("_")[-1].split(".")[0]
+            
+            with open( file_name, "r" ) as haplo_file:
+                # Haplogroup is on the third column of the second line
+                haplogroup = haplo_file.readlines()[1].split("\t")[2]
+            
+            new_line = ("\t").join( [ sample, rmTrans, haplogroup ] ) + "\n"
+            
+            return( new_line )
+        
+        text_to_write = [ parse_haplogroup( file_name ) for file_name in input.haplo ]
+        with open( output.table , "w" ) as haplogroups_table:
+            [ haplogroups_table.write( line ) for line in text_to_write ]

@@ -1,6 +1,6 @@
 configfile: "multiple_purposes.yaml"
 import os,glob,pysam, subprocess
-
+include: "parse_resources.smk"
 
 myPath = os.path.expanduser(config["Microbiome"]["bam2fastq"]["Samples"])
 myFiles = glob.glob(myPath) 
@@ -67,6 +67,9 @@ rule filter_bam:
         bam = "Microbiome/BAM_unmapped/{sample}/{library}/{sample}_{library}.bam"
     log:
         "Microbiome/logs/filter_bam_{sample}_{library}.txt"
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("filter_bam_mem", attempt, 4),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("filter_bam_time", attempt, 48),      
     shell:
         """
         samtools view -bf4 -l {wildcards.library} {input.bam} > {output.bam} 2>{log}
@@ -117,10 +120,13 @@ rule bam2fastq:
         lib_type = lambda wildcards: paired(wildcards.sample, wildcards.library)
     wildcard_constraints:
         end = "(_R1.fastq.gz|_R2.fastq.gz|.fastq.gz)",
-        # file = "\S+(?!_R[12])"
+    threads: 4
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("bam2fastq_mem", attempt, 4),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("bam2fastq_time", attempt, 48), 
     shell:
         """
-        if [ {params.lib_type} -eq 'paired' ]
+        if [ {params.lib_type} == 'paired' ]
         then
             # samtools view -u -f 12 -F 304 -b {input.bam} | \
             # samtools sort -n - | \
@@ -156,7 +162,7 @@ def write_stats(sample, lib, type, file_out):
         if lib == "all":
             sample_lib = sample + "/" + sample + ".hg19_low_qual.bam" 
         else:
-            sample_lib = "-l " + lib + " " + sample + "/" + "/" + sample + ".hg19_low_qual.bam" 
+            sample_lib = "-l " + lib + " " + sample  + "/" + sample + ".hg19_low_qual.bam" 
         unmapped = str(count_unmapped(sample_lib))
         
     elif lib == "all":
@@ -192,6 +198,9 @@ rule get_stats_bam_unmapped:
         stats = "Microbiome/stats/{sample}_unmapped_bam.txt"
     log:
         "Microbiome/logs/get_stats_bam_unmapped_{sample}.txt"
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("stats_unmapped_mem", attempt, 2),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("stats_unmapped_time", attempt, 12), 
     run:
         libs = lib_samples[wildcards.sample]
         print("libs are" + str(len(libs)))
@@ -213,6 +222,9 @@ rule get_stats_fastq_unmapped:
         stats = "Microbiome/stats/{sample}_unmapped_fastq.txt"
     log:
         "Microbiome/logs/get_stats_fastq_unmapped_{sample}.txt"
+    resources:
+        memory = lambda wildcards, attempt: get_memory_alloc("stats_unmapped_mem", attempt, 2),
+        runtime = lambda wildcards, attempt: get_runtime_alloc("stats_unmapped_time", attempt, 12), 
     run:   
 
         libs = lib_samples[wildcards.sample]
@@ -239,6 +251,9 @@ rule md5:
         extension = "(.bam|.fastq.gz|_R1.fastq.gz|_R2.fastq.gz)"
     log:
         "Microbiome/logs/md5_{dir}_{sample}_{library}_{extension}.txt"
+    resources:
+        memory = lambda wildcards, attempt: get_memory_alloc("md5_mem", attempt, 2),
+        runtime = lambda wildcards, attempt: get_runtime_alloc("md5_time", attempt, 24), 
     shell:
         """
         md5sum {input.unmapped} > {output.md5} 2>{log}
