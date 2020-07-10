@@ -1,3 +1,4 @@
 MN*/
 .snakemake/
 reference_length/
+.vscode

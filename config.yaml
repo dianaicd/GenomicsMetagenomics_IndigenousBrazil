@@ -8,3 +8,6 @@ refs: ["AY083234_1", "NC_004295_1", "AJ717293_1"]
 mapping_quality: 0
 
 samples: ../samples_24botocudos.txt
+
+path2_read_length: "/scratch/axiom/FAC/FBM/DBC/amalaspi/virome/yarizmen/virome/Botocudos-scripts/\
+DataQuality/read_length.py"
