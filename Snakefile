@@ -7,12 +7,6 @@ wildcard_constraints:
     reference = '\w+(_\d+)?_\d',
     lib = 'L\d+'
 
-rule all:
-    input:
-        expand("{query}/stats/quality_{q}/{query}_stats.txt", query="{query}", 
-            q=config['mapping_quality']),
-        "all_samples/input_reads_samples.txt"
-
 # Get libraries per sample using the sample.txt file from Sam's mapping pipeline.
 # Get the paths to the original fastq files.
 samples_file = open(config['samples'], 'r')
@@ -32,7 +26,14 @@ while True:
             fastqs[line[5]] = line[1]
     else:
         break
+samples = [*sample_libs]
 samples_file.close()
+
+rule all:
+    input:
+        expand("{query}/stats/quality_{q}/{query}_stats.txt", query=samples, 
+            q=config['mapping_quality']),
+        "all_samples/input_reads_samples.txt"
 
 # Count the number of input reads
 rule count_reads_input:
@@ -56,7 +57,7 @@ rule count_reads_input:
 # Join the counts of input reads of all samples
 rule join_reads_input:
     input:
-        expand("{query}/input_reads/counts_input_reads.txt", query="{query}")
+        expand("{query}/input_reads/counts_input_reads.txt", query=samples)
     output:
         "all_samples/input_reads_samples.txt"
     shell:
@@ -67,10 +68,9 @@ rule count_rds_b4_rmdup:
     input:
         "../{query}/{lib}/library_bam_merge/{lib}.{reference}.bam"
     output:
-        expand("{query}/mapped_before_rmdup/quality_{q}/per_lib/{lib}.{reference}_counts.txt",
-        query="{query}", q=config['mapping_quality'], lib="{lib}", reference="{reference}")
+        "{query}/mapped_before_rmdup/quality_{q}/per_lib/{lib}.{reference}_counts.txt"
     params:
-        q=config['mapping_quality']
+        q= lambda wildcards: wildcards.q
     shell:
         '''
         module load Bioinformatics/Software/vital-it;
@@ -83,12 +83,11 @@ rule merge_lib_counts_rds_b4_rmdup:
     input:
         lambda wildcards:
         expand("{query}/mapped_before_rmdup/quality_{q}/per_lib/{lib}.{reference}_counts.txt",
-        query="{query}", q=config['mapping_quality'], lib=sample_libs[wildcards.query],
-        reference=wildcards.reference)
+            query="{query}", q="{q}", lib=sample_libs[wildcards.query], 
+            reference=wildcards.reference)
     output:
-        expand("{query}/mapped_before_rmdup/quality_{q}/merge_counts_lib/{query}.{reference}"
-            "_counts_b4_rmdup.txt", query="{query}", q=config['mapping_quality'],
-            reference="{reference}")
+        "{query}/mapped_before_rmdup/quality_{q}/merge_counts_lib/{query}.{reference}"
+        "_counts_b4_rmdup.txt"
     shell:
         "cat {input} | awk '{{sum+=$1}} END {{print sum}}' > {output}"
 
@@ -96,11 +95,9 @@ rule merge_lib_counts_rds_b4_rmdup:
 rule join_counts_rds_b4_rmdup:
     input:
         expand("{query}/mapped_before_rmdup/quality_{q}/merge_counts_lib/{query}.{reference}"
-            "_counts_b4_rmdup.txt", query="{query}", q=config['mapping_quality'],
-            reference=config['refs'])
+            "_counts_b4_rmdup.txt", query="{query}", q="{q}", reference=config['refs'])
     output:
-        expand("{query}/mapped_before_rmdup/quality_{q}/counts_b4_rmdup_all_refs.txt",
-            query="{query}", q=config['mapping_quality'])
+        "{query}/mapped_before_rmdup/quality_{q}/counts_b4_rmdup_all_refs.txt"
     shell:
         "cat {input} > {output}"
 
@@ -109,10 +106,9 @@ rule count_final_reads:
     input:
         "../{query}/{query}.{reference}.bam"
     output:
-        expand("{query}/count_final_reads/quality_{q}/{query}.{reference}_final_reads.txt",
-        query="{query}", q=config['mapping_quality'], reference="{reference}")
+        "{query}/count_final_reads/quality_{q}/{query}.{reference}_final_reads.txt"
     params:
-        q=config['mapping_quality']
+        q= lambda wildcards: wildcards.q
     shell:
         '''
         module load Bioinformatics/Software/vital-it;
@@ -123,10 +119,9 @@ rule count_final_reads:
 rule join_counts_final_reads:
     input:
         expand('{query}/count_final_reads/quality_{q}/{query}.{reference}_final_reads.txt',
-        query="{query}", q=config['mapping_quality'], reference= config['refs'])
+            query="{query}", q="{q}", reference= config['refs'])
     output:
-        expand("{query}/count_final_reads/quality_{q}/counts_final_rds_all_refs.txt",
-        query="{query}", q=config['mapping_quality'])
+        "{query}/count_final_reads/quality_{q}/counts_final_rds_all_refs.txt"
     shell:
         "cat {input} > {output}"
 
@@ -153,10 +148,9 @@ rule get_avg_rd_lgth:
     input:
         "../{query}/{query}.{reference}.bam"
     output:
-        expand("{query}/average_read_length/quality_{q}/{reference}_avg_rd_lgth.txt", 
-            query="{query}", q=config['mapping_quality'], reference="{reference}")
+        "{query}/average_read_length/quality_{q}/{reference}_avg_rd_lgth.txt"
     params:
-        q=config['mapping_quality'],
+        q=lambda wildcards: wildcards.q,
         d_script=config['path2_read_length']
     shell:
         '''
@@ -179,10 +173,9 @@ rule get_avg_rd_lgth:
 rule join_avg_rd_lgth:
     input:
         expand("{query}/average_read_length/quality_{q}/{reference}_avg_rd_lgth.txt", 
-            query="{query}", q=config['mapping_quality'], reference=config['refs'])
+            query="{query}", q="{q}", reference=config['refs'])
     output:
-        expand("{query}/average_read_length/quality_{q}/avg_rd_lgth_all_refs.txt", query="{query}",
-            q=config['mapping_quality'])
+        "{query}/average_read_length/quality_{q}/avg_rd_lgth_all_refs.txt"
     shell:
         '''
         cat {input} > {output}
@@ -192,10 +185,9 @@ rule get_genome_coverage:
     input:
         "../{query}/{query}.{reference}.bam"
     output:
-        expand("{query}/genome_coverage/quality_{q}/{reference}_genome_cov.txt", 
-            query="{query}", q=config['mapping_quality'], reference="{reference}")
+        "{query}/genome_coverage/quality_{q}/{reference}_genome_cov.txt"
     params:
-        q=config['mapping_quality']
+        q= lambda wildcards: wildcards.q
     shell:
         '''
         module load Bioinformatics/Software/vital-it;
@@ -208,20 +200,32 @@ rule get_genome_coverage:
 # Join the genome coverage
 rule join_genome_coverage:
     input:
-        expand("{query}/genome_coverage/quality_{q}/{reference}_genome_cov.txt", 
-            query="{query}", q=config['mapping_quality'], reference=config['refs'])
+        expand("{query}/genome_coverage/quality_{q}/{reference}_genome_cov.txt", query="{query}", 
+            q="{q}", reference=config['refs'])
     output:
-        expand("{query}/genome_coverage/quality_{q}/genome_coverage_all_refs.txt", query="{query}",
-            q=config['mapping_quality'])
+        "{query}/genome_coverage/quality_{q}/genome_coverage_all_refs.txt"
     shell:
         '''
         cat {input} > {output}
         '''
 
-# rule create_table:
-#     input:
-#         expand('{query}/{query}.NC_004295_1_final_reads.txt', query=queries)
-#     output:
-#         "tables/{reference}.txt"
-#     shell:
-#         "cat {input} > {output}"
+# Create table with statistics (per sample)
+rule create_table:
+    input:
+        b4_rmdup=expand("{query}/mapped_before_rmdup/quality_{q}/counts_b4_rmdup_all_refs.txt",
+            query="{query}", q="{q}"),
+        after_rmdup=expand("{query}/count_final_reads/quality_{q}/counts_final_rds_all_refs.txt",
+            query="{query}", q="{q}"),
+        ref_lgth="reference_length/refs_length.txt",
+        avg_rd_lgth=expand("{query}/average_read_length/quality_{q}/avg_rd_lgth_all_refs.txt", 
+            query="{query}", q="{q}"),
+        g_cov=expand("{query}/genome_coverage/quality_{q}/genome_coverage_all_refs.txt", 
+            query="{query}", q="{q}")
+    output:
+        "{query}/stats/quality_{q}/{query}_stats.txt"
+    shell:
+        '''
+        paste {input.b4_rmdup} {input.after_rmdup} {input.avg_rd_lgth} {input.g_cov} \
+        {input.ref_lgth} > {output}
+        '''
+
