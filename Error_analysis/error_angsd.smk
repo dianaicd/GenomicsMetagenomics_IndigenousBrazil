@@ -134,9 +134,11 @@ rule plot_error:
     output:
         names = "{group}/{group}_{perfect}_{outgroup}_names.txt",
         err_txt = "{group}/{group}_perfect.{perfect}_outgroup.{outgroup}_error.txt"
+    params:
+        name = "{group}/{group}_perfect.{perfect}_outgroup.{outgroup}_error".format(group = "{group}", perfect = "{perfect}", outgroup = "{outgroup}")
     shell:
         """
         cat {input.bam_group} | awk 'BEGIN {{FS="/"}} {{print $NF}}' | sed 's/.hg19.bam//' > {output.names}
-        Rscript {rscript_plot_path} file={input.error} doPng=T out="{wildcards.group}/{wildcards.group}_error" \
+        Rscript {rscript_plot_path} file={input.error} doPng=T out="{params.name}" \
         indNames={output.names}
         """
