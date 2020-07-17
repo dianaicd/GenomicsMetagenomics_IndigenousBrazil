@@ -209,23 +209,51 @@ rule join_genome_coverage:
         cat {input} > {output}
         '''
 
+# Get the deamination damage
+rule get_deam_damage:
+    input:
+        three_prime="{query}/bamdamage/quality_{q}/{reference}.dam_3prime.csv",
+        five_prime="{query}/bamdamage/quality_{q}/{reference}.dam_5prime.csv"
+    output:
+        damage="{query}/bamdamage/quality_{q}/{reference}_damage.txt",
+        value_3prime=temp("{query}/bamdamage/quality_{q}/{reference}_3prime_value"),
+        value_5prime=temp("{query}/bamdamage/quality_{q}/{reference}_5prime_value")
+    shell:
+        '''
+        cut -f3 -d',' {input.three_prime} | sed -n 2p > {output.value_3prime}
+        cut -f12 -d',' {input.five_prime} | sed -n 2p > {output.value_5prime}
+        paste {output.value_3prime} {output.value_5prime} > {output.damage}
+        '''
+
+rule join_damage:
+    input:
+        expand("{query}/bamdamage/quality_{q}/{reference}_damage.txt", query="{query}", 
+            q="{q}", reference=config['refs'])
+    output:
+        "{query}/bamdamage/quality_{q}/damage_all_refs.txt"
+    shell:
+        '''
+        cat {input} > {output}
+        '''
+
 # Create table with statistics (per sample)
 rule create_table:
     input:
-        b4_rmdup=expand("{query}/mapped_before_rmdup/quality_{q}/counts_b4_rmdup_all_refs.txt",
-            query="{query}", q="{q}"),
-        after_rmdup=expand("{query}/count_final_reads/quality_{q}/counts_final_rds_all_refs.txt",
-            query="{query}", q="{q}"),
+        b4_rmdup="{query}/mapped_before_rmdup/quality_{q}/counts_b4_rmdup_all_refs.txt",
+            # query="{query}", q="{q}",
+        after_rmdup="{query}/count_final_reads/quality_{q}/counts_final_rds_all_refs.txt",
+            # query="{query}", q="{q}",
         ref_lgth="reference_length/refs_length.txt",
-        avg_rd_lgth=expand("{query}/average_read_length/quality_{q}/avg_rd_lgth_all_refs.txt", 
-            query="{query}", q="{q}"),
-        g_cov=expand("{query}/genome_coverage/quality_{q}/genome_coverage_all_refs.txt", 
-            query="{query}", q="{q}")
+        avg_rd_lgth="{query}/average_read_length/quality_{q}/avg_rd_lgth_all_refs.txt", 
+            # query="{query}", q="{q}",
+        g_cov="{query}/genome_coverage/quality_{q}/genome_coverage_all_refs.txt", 
+            # query="{query}", q="{q}",
+        damage="{query}/bamdamage/quality_{q}/damage_all_refs.txt"
     output:
         "{query}/stats/quality_{q}/{query}_stats.txt"
     shell:
         '''
         paste {input.b4_rmdup} {input.after_rmdup} {input.avg_rd_lgth} {input.g_cov} \
-        {input.ref_lgth} > {output}
+        {input.ref_lgth} {input.damage} > {output}
         '''
 

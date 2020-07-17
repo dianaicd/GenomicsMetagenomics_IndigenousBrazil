@@ -42,15 +42,16 @@ create_sample_dt <- function(sample_id, quality) {
   sample[, reference_ids := reference_ids]
   
   setnames(sample, 
-           names(sample[, 1:5]), 
-           c("rds_b4_rmdup","rds_after_rmdup","avg_rd_lgth", "genome_cov", "ref_lgth"), 
+           names(sample[, 1:7]), 
+           c("rds_b4_rmdup","rds_after_rmdup","avg_rd_lgth", "genome_cov", "ref_lgth", "dam_3prime",
+           "dam_5prime"), 
            skip_absent = T)
   
   sample[, depth_cov := (rds_after_rmdup*avg_rd_lgth)/ref_lgth]
   
   setcolorder(sample, 
               c("reference_ids", "rds_b4_rmdup","rds_after_rmdup","avg_rd_lgth", "genome_cov", 
-                "ref_lgth", "depth_cov"))
+                "ref_lgth", "depth_cov", "dam_3prime", "dam_5prime"))
   
   return(sample)
 }
@@ -84,7 +85,8 @@ create_wb <- function(workbook, sample, dtable) {
   addStyle(wb = workbook, sheet = sample, style = s, rows = 1:nrow(dtable) + 1, cols = comma_cols,
            gridExpand = TRUE, stack = T)
   # trim decimal places
-  decimal_cols <- which(colnames(sample) %in% c("avg_rd_lgth", "depth_cov"))
+  decimal_cols <- which(colnames(sample) %in% c("avg_rd_lgth", "depth_cov", "dam_3prime", 
+                        "dam_5prime"))
   s <- createStyle(numFmt = "#0.00")
   addStyle(wb = workbook, sheet = sample, style = s, rows = 1:nrow(dtable) + 1, cols = decimal_cols,
            gridExpand = TRUE, stack = T)
