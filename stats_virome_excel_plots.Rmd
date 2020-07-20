@@ -1,0 +1,244 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Save the output tables of the snakemake pipeline "mystats" into excel tables.
+
+```{r}
+library(openxlsx)
+library(data.table)
+```
+
+### Excel tables
+
+```{r}
+sample <- fread(file = "MN00010/stats/quality_0/MN00010_stats.txt")
+
+# From the config.yaml file
+reference_ids <- c("AF113323_1", "AJ249437_1", "AJ717293_1", "AY083234_1", "DQ333427_1", "DQ357065_1", "FN669502_1", "HQ340602_1", "NC_000883_2", "NC_001540_1", 
+"NC_004295_1")
+
+sample[, reference_ids := reference_ids]
+setnames(sample, names(sample[, 1:5]), c("rds_b4_rmdup","rds_after_rmdup","avg_rd_lgth", "genome_cov", "ref_lgth"), skip_absent = T)
+
+sample[, depth_cov := (rds_after_rmdup*avg_rd_lgth)/ref_lgth]
+
+setcolorder(sample, c("reference_ids", "rds_b4_rmdup","rds_after_rmdup","avg_rd_lgth", "genome_cov", "ref_lgth", "depth_cov"))
+```
+
+
+Create a workbook and add a worksheet
+```{r}
+wb <- createWorkbook()
+addWorksheet(wb, sheetName = "MN00010")
+```
+
+Header styles
+```{r}
+hs1 <- createStyle(fgFill = "white", halign = "CENTER", textDecoration = "Bold",
+                   border = c("top", "bottom", "left", "right"),
+                   borderStyle = "thin",
+                   fontColour = "black", fontSize = 16)
+
+showGridLines(wb, 1, showGridLines = FALSE)
+
+setColWidths(wb, 1, cols = 1:ncol(sample), widths = "auto")
+
+writeData(wb, 1, sample, startRow = 1, startCol = 1, headerStyle = hs1,
+          borders = "columns", borderStyle = "thin")
+```
+
+Column styles
+```{r}
+# percent
+percent_cols <- which(colnames(sample) %in% c("genome_cov"))
+s <- createStyle(numFmt = "0.0%")
+addStyle(wb, 1, style = s,  cols = percent_cols, 
+         rows = 1:nrow(sample)+1, gridExpand = TRUE, stack = T)
+# thousands separator
+comma_cols <- which(colnames(sample) %in% c("rds_b4_rmdup", "rds_after_rmdup", "ref_lgth"))
+s <- createStyle(numFmt = "COMMA")
+addStyle(wb, 1, style = s, rows = 1:nrow(sample)+1, cols = comma_cols,
+         gridExpand = TRUE, stack = T)
+# trim decimal places and format %
+decimal_cols <- which(colnames(sample) %in% c("avg_rd_lgth", "depth_cov"))
+s <- createStyle(numFmt = "#0.00")
+addStyle(wb, 1, style = s, rows = 1:nrow(sample)+1, cols = decimal_cols,
+         gridExpand = TRUE, stack = T)
+
+#format data font type
+#theCaption <- sample[is.na(sample$rds_b4_rmdup),]
+s <- createStyle(fontSize = 14)
+addStyle(wb, 1, style = s, rows = 1:nrow(sample)+1, cols = 1:ncol(sample),
+         gridExpand = TRUE, stack = T)
+```
+
+Write column explanation
+```{r}
+## writing as an Excel Table
+openXL(wb) ## opens a temp version
+saveWorkbook(wb, "excel/quality_0.xlsx", TRUE)
+```
+
+### Damage plots
+
+```{r}
+library(scales)
+```
+
+
+```{r}
+# mapping quality
+q <- 30 
+
+sample_ids <- list.files(path = "~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats", pattern = "MN")
+reference_ids <- c("AF113323_1", "AJ249437_1", "AJ717293_1", "AY083234_1", "DQ333427_1", "DQ357065_1", "FN669502_1", "HQ340602_1", "NC_000883_2", "NC_001540_1", 
+"NC_004295_1")
+genotypes <- c(1, 3, 2, 3, 2, 1, 1, 2, 0, NA, 3) 
+
+myDam <- vector("list", length = length(sample_ids))
+names(myDam) <- sample_ids
+
+setwd("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats")
+for (ref in reference_ids) {
+  for (s in sample_ids) {
+    tmp_dam5 <- fread(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/bamdamage/quality_", q, "/", ref, ".dam_5prime.csv"), 
+                      drop = 1)
+    tmp_dam3 <- fread(file = paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/bamdamage/quality_", q, "/", ref, ".dam_3prime.csv"), 
+                      drop = 1)
+    setnames(tmp_dam5, names(tmp_dam5), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    setnames(tmp_dam3, names(tmp_dam3), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    some_dam <- list(five_prime = tmp_dam5, three_prime = tmp_dam3)
+    myDam[[s]] <- some_dam
+  }
+}
+```
+
+```{r}
+plot_bamdamage <- function(five_prime, three_prime, cex = 1, 
+                           y2 = 0.55, plot.title, myColor = c(),
+                           legend_only = F, ncol_legend = 3, legend_cex = 1){
+  
+  if (length(myColor) == 0) {
+    myColor <- c("royalblue", "firebrick3", "lightblue3", "indianred1",
+                 "orange","orange3", "plum", "plum4", "paleturquoise3", 
+                 "paleturquoise4", "rosybrown2", "rosybrown3")
+    
+    names(myColor) <- c("C..T", "G..A", "T..C", "A..G", "C..A", "C..G",
+                        "T..A", "T..G", "A..C", "A..T", "G..C", "G..T")
+  }
+  
+  if (legend_only) {
+    myIndex <- round(seq(1, 13, length.out = ncol_legend + 1))
+    for (i in 1:(length(myIndex) - 1)) {
+      plot(1:10, 1:10, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+      
+      if (i == 1) {
+        legend(1, 10, legend = sub("\\.\\.", " to ",
+                                  names(myColor)[myIndex[i]:(myIndex[i + 1] - 1)]),
+               col = myColor[myIndex[i]:(myIndex[i + 1] - 1)],
+               lty = 1, bty = "n", cex = legend_cex, lwd = 1.6,
+               title = "Substitution type")
+      }else{
+        legend(1, 10, legend = sub("\\.\\.", " to ", names(myColor)[myIndex[i]:(myIndex[i + 1] - 1)]),
+               col = myColor[myIndex[i]:(myIndex[i + 1] - 1)],
+               lty = 1, bty = "n", cex = legend_cex, lwd = 1.6
+        )
+      }
+    }
+    return()
+  }
+  
+  plot_lines <- function(damage, left = T){
+    plot(damage$C..T[1:25], type = "n",
+         bty = "n", 
+        ylab = "Frequency", xlab = NA,
+         cex = cex, axes = F, ylim = c(0, y2))
+    
+    if (left) {
+      title(main = plot.title, xlab = "5'-position")
+      axis(side = 1, at = seq(0, 25, 5))
+      axis(side = 2)
+    }else{
+      axis(side = 1, at = seq(1, 25, 5), labels = seq(25, 1, -5))
+      axis(side = 4)
+      title(xlab = "3'-position")
+    }
+    
+    for (type in names(myColor)) {
+      lines(damage[1:25, type, with = F],
+            col = alpha(myColor[type], 0.8), 
+            lwd = 1.5, 
+            cex = cex)
+    }
+  }
+  
+  par(mar = c(4, 4, 3, 1))
+  plot_lines(damage = five_prime)
+  
+  par(mar = c(4, 1, 3, 3))
+  plot_lines(damage = three_prime[25:1, ], left = F)
+
+}
+```
+
+```{r}
+nCol <- 8
+nRow <- 7
+cex <- 1.2
+
+for (ref in reference_ids) {
+  for (s in sample_ids) {
+    tmp_dam5 <- fread(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/bamdamage/quality_", q, "/", ref, ".dam_5prime.csv"), 
+                      drop = 1)
+    tmp_dam3 <- fread(file = paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/bamdamage/quality_", q, "/", ref, ".dam_3prime.csv"), 
+                      drop = 1)
+    setnames(tmp_dam5, names(tmp_dam5), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    setnames(tmp_dam3, names(tmp_dam3), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    some_dam <- list(five_prime = tmp_dam5, three_prime = tmp_dam3)
+    myDam[[s]] <- some_dam
+  }
+  
+
+  blank_plot <- function(){
+    plot(1:10,1:10, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+  }
+
+  pdf(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/all_samples/damageplots_", ref, "_mapQ", q, ".pdf"), width = 14, height = 12)
+  layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
+  
+  for (s in sample_ids) {
+      y2 <- 0.55
+      nreads <- scan(file = paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/count_final_reads/quality_", q, "/", s, ".", ref, "_final_reads.txt"))
+      plot.title <- paste(s, "# rds", nreads, sep = " ")
+      five_prime <- myDam[[s]][["five_prime"]]
+      three_prime <- myDam[[s]][["three_prime"]]
+      plot_bamdamage(five_prime = five_prime, three_prime = three_prime,
+                    cex = 1,
+                    y2 = y2, plot.title = plot.title,
+                    myColor = c())
+  }
+  dev.off()
+}
+
+# for (s in sample_ids) {
+#     y2 <- 0.35
+#     plot.title <- s
+#     five_prime <- myDam[[s]][["five_prime"]]
+#     three_prime <- myDam[[s]][["three_prime"]]
+#     plot_bamdamage(five_prime = five_prime, three_prime = three_prime, 
+#                   cex = 1, 
+#                   y2 = y2, plot.title = plot.title,
+#                   myColor = c())
+# }
+
+# plot_bamdamage(legend_only = T,
+#                   myColor = c(),
+#                legend_cex = 1, ncol_legend = 3)
+
+# scan(file = paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/count_final_reads/quality_", q, "/", s, ".", ref, "_final_reads.txt"))
+```
+
+
+
