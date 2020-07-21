@@ -95,7 +95,8 @@ q <- 30
 sample_ids <- list.files(path = "~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats", pattern = "MN")
 reference_ids <- c("AF113323_1", "AJ249437_1", "AJ717293_1", "AY083234_1", "DQ333427_1", "DQ357065_1", "FN669502_1", "HQ340602_1", "NC_000883_2", "NC_001540_1", 
 "NC_004295_1")
-genotypes <- c(1, 3, 2, 3, 2, 1, 1, 2, 0, NA, 3) 
+genotypes <- c(1, 3, 2, 3, 2, 1, 1, 2, NA, NA, 3)
+names(genotypes) <- reference_ids
 
 myDam <- vector("list", length = length(sample_ids))
 names(myDam) <- sample_ids
@@ -116,8 +117,9 @@ for (ref in reference_ids) {
 ```
 
 ```{r}
-plot_bamdamage <- function(five_prime, three_prime, cex = 1, 
-                           y2 = 0.55, plot.title, myColor = c(),
+plot_bamdamage <- function(five_prime, three_prime, titlecolor = "black", cex = 1, 
+                           cexmain = 2, txt_reads = F,
+                           y2 = 0.55, plot.title, plot.title2 = "", myColor = c(),
                            legend_only = F, ncol_legend = 3, legend_cex = 1){
   
   if (length(myColor) == 0) {
@@ -157,13 +159,16 @@ plot_bamdamage <- function(five_prime, three_prime, cex = 1,
          cex = cex, axes = F, ylim = c(0, y2))
     
     if (left) {
-      title(main = plot.title, xlab = "5'-position")
+      title(main = plot.title, xlab = "5'-position", cex.main = cexmain)
       axis(side = 1, at = seq(0, 25, 5))
       axis(side = 2)
     }else{
       axis(side = 1, at = seq(1, 25, 5), labels = seq(25, 1, -5))
       axis(side = 4)
-      title(xlab = "3'-position")
+      title(main = plot.title2, xlab = "3'-position", cex.main = cexmain, 
+            col.main = titlecolor)
+      nb_reads_legend <- paste0("Number of reads: ", txt_reads)
+      text(x = 12, y = 0.51, labels = nb_reads_legend, cex = 1.15)
     }
     
     for (type in names(myColor)) {
@@ -182,6 +187,8 @@ plot_bamdamage <- function(five_prime, three_prime, cex = 1,
 
 }
 ```
+
+### All samples per virus
 
 ```{r}
 nCol <- 8
@@ -205,40 +212,70 @@ for (ref in reference_ids) {
     plot(1:10,1:10, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
   }
 
-  pdf(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/all_samples/damageplots_", ref, "_mapQ", q, ".pdf"), width = 14, height = 12)
+  pdf(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/all_samples/damageplots/damageplots_", ref, "_mapQ", q, "_gtype", genotypes[ref], ".pdf"), width = 14, height = 12)
   layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
   
   for (s in sample_ids) {
       y2 <- 0.55
       nreads <- scan(file = paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/count_final_reads/quality_", q, "/", s, ".", ref, "_final_reads.txt"))
-      plot.title <- paste(s, "# rds", nreads, sep = " ")
+      plot.title <- s
+      plot.title2 <- paste0("Number of reads: ", nreads)
       five_prime <- myDam[[s]][["five_prime"]]
       three_prime <- myDam[[s]][["three_prime"]]
       plot_bamdamage(five_prime = five_prime, three_prime = three_prime,
-                    cex = 1,
-                    y2 = y2, plot.title = plot.title,
+                    cex = 1, cexmain = 1.15,
+                    y2 = y2, plot.title = plot.title, plot.title2 = plot.title2,
                     myColor = c())
   }
   dev.off()
 }
-
-# for (s in sample_ids) {
-#     y2 <- 0.35
-#     plot.title <- s
-#     five_prime <- myDam[[s]][["five_prime"]]
-#     three_prime <- myDam[[s]][["three_prime"]]
-#     plot_bamdamage(five_prime = five_prime, three_prime = three_prime, 
-#                   cex = 1, 
-#                   y2 = y2, plot.title = plot.title,
-#                   myColor = c())
-# }
-
-# plot_bamdamage(legend_only = T,
-#                   myColor = c(),
-#                legend_cex = 1, ncol_legend = 3)
-
-# scan(file = paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/count_final_reads/quality_", q, "/", s, ".", ref, "_final_reads.txt"))
 ```
 
+### Selected samples, all virus per sample
 
+```{r}
+nCol <- 6
+nRow <- 4
+cex <- 1.2
 
+selected_samples <- c("MN00013", "MN00021", "MN00039", "MN00067", "MN00119", "MN00346")
+# Sort referencs according to genotype
+sorted_refs <- names(sort(genotypes, na.last = T))
+# Colors according to genotype
+# Combinations: 242 (Diamine Green), 344 (Deep Lyons Blue), 117 (Carmine) & 337 (Aconite violet)
+gtype_colors <- c(rep("#1b8e13", 3), rep("#0024cc", 3), rep("#d60036", 3), rep("#9c52f2", 2))
+names(gtype_colors) <- sorted_refs
+
+for (s in selected_samples) {
+  for (ref in sorted_refs) {
+    tmp_dam5 <- fread(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/bamdamage/quality_", q, "/", ref, ".dam_5prime.csv"), 
+                      drop = 1)
+    tmp_dam3 <- fread(file = paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/bamdamage/quality_", q, "/", ref, ".dam_3prime.csv"), 
+                      drop = 1)
+    setnames(tmp_dam5, names(tmp_dam5), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    setnames(tmp_dam3, names(tmp_dam3), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    some_dam <- list(five_prime = tmp_dam5, three_prime = tmp_dam3)
+    myDam[[ref]] <- some_dam
+  }
+  
+  pdf(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/all_samples/damageplots/selected_samples/damageplots_", s, "_mapQ", q, ".pdf"), width = 14, height = 12)
+  layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
+  
+  for (ref in sorted_refs) {
+      y2 <- 0.55
+      nreads <- scan(file = paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/count_final_reads/quality_", q, "/", s, ".", ref, "_final_reads.txt"))
+      plot.title <- ref
+      plot.title2 <- paste0("Genotype: ", genotypes[ref])
+      five_prime <- myDam[[ref]][["five_prime"]]
+      three_prime <- myDam[[ref]][["three_prime"]]
+      plot_bamdamage(five_prime = five_prime, three_prime = three_prime,
+                    cex = 1, cexmain = 1.65, titlecolor = gtype_colors[ref],
+                    txt_reads = nreads, y2 = y2, plot.title = plot.title, 
+                    plot.title2 = plot.title2, myColor = c())
+  }
+  
+  plot_bamdamage(legend_only = T, myColor = c(), legend_cex = 1, ncol_legend = 2)
+
+  dev.off()
+} 
+```
