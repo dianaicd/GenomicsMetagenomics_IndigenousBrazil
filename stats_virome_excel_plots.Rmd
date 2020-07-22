@@ -258,7 +258,7 @@ for (s in selected_samples) {
     myDam[[ref]] <- some_dam
   }
   
-  pdf(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/all_samples/damageplots/selected_samples/damageplots_", s, "_mapQ", q, ".pdf"), width = 14, height = 12)
+  pdf(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/all_samples/damageplots/selected_samples/quality_", q, "/", "damageplots_", s, "_mapQ", q, ".pdf"), width = 14, height = 12)
   layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
   
   for (ref in sorted_refs) {
