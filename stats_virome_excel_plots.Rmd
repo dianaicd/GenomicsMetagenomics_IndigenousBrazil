@@ -279,3 +279,76 @@ for (s in selected_samples) {
   dev.off()
 } 
 ```
+
+### Coverage plots
+
+```{r}
+library(ensembldb)
+```
+
+
+```{r}
+# mapping quality
+q <- 0 
+
+sample_ids <- list.files(path = "~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats", pattern = "MN")
+reference_ids <- c("AF113323_1", "AJ249437_1", "AJ717293_1", "AY083234_1", "DQ333427_1", "DQ357065_1", "FN669502_1", "HQ340602_1", "NC_000883_2", "NC_001540_1", 
+"NC_004295_1")
+genotypes <- c(1, 3, 2, 3, 2, 1, 1, 2, NA, NA, 3)
+names(genotypes) <- reference_ids
+
+myCov <- vector("list", length = length(reference_ids))
+```
+
+```{r}
+plot_cov <- function(coverage, plot.title, myColor){
+  barplot(height = coverage, 
+          main = plot.title, 
+          ylab = "Number of reads",
+          col = myColor,
+          border = NA)
+}
+```
+
+
+```{r}
+nCol <- 3
+nRow <- 4
+cex <- 1.2
+
+selected_samples <- c("MN00013", "MN00021", "MN00039", "MN00067", "MN00119", "MN00346")
+# Sort referencs according to genotype
+sorted_refs <- names(sort(genotypes, na.last = T))
+# Colors according to genotype
+# Combinations: 242 (Diamine Green), 344 (Deep Lyons Blue), 117 (Carmine) & 337 (Aconite violet)
+gtype_colors <- c(rep("#1b8e13", 3), rep("#0024cc", 3), rep("#d60036", 3), rep("#9c52f2", 2))
+names(gtype_colors) <- sorted_refs
+names(myCov) <- sorted_refs
+
+
+setwd("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats")
+
+for (s in selected_samples) {
+  for (ref in sorted_refs) {
+    tmp_cov <- fread(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/coverage_tables/quality_", q, "/", s, ".", ref, ".mapq", q, ".coverage.tsv"), drop = 1)
+    setnames(tmp_cov, names(tmp_cov), c("position", "reads"))
+    some_cov <- list(coverage = tmp_cov)
+    myCov[[ref]] <- some_cov
+  }
+  
+  png(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/all_samples/coverage_plots/selected_samples/quality_", q, "/", s, "_mapQ", q, ".png"), width = 1024, height = 768)
+  layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
+  
+  for (ref in sorted_refs) {
+    plot_cov(coverage = myCov[[ref]]$coverage$reads, 
+             plot.title = paste0(ref, " Genotype ", genotypes[ref]), 
+             myColor = gtype_colors[ref])
+  }
+  dev.off()
+}
+
+# par(xpd = T)
+# barplot(myCov$MN00346$nb_reads)
+# rect(xleft = 3012, xright = 4676, ybottom = -5, ytop = -1, col = "#d60036", border = NA)
+```
+

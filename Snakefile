@@ -47,9 +47,9 @@ rule count_reads_input:
         nb_libs=$(wc -l output_zgrep | cut -f1 -d' ');
 
         if [[ "$nb_libs" -gt 1 ]]; then
-            cut -f2 -d':' output_zgrep | awk '{{sum+=$1}} END {{print sum}}' > {output}
+            cut -f2 -d':' output_zgrep | awk '{{sum+=$1}} END {{print sum/4}}' > {output}
         else
-            cat output_zgrep > {output}
+            awk '{{sum+=$1}} END {{print sum/4}}' output_zgrep > {output}
         fi
         rm output_zgrep;
         '''

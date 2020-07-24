@@ -14,7 +14,9 @@ samples = set(samples)
 rule all:
     input:
         expand("{sample}/bamdamage/quality_{q}/{ref}.dam_5prime.csv", sample=samples, 
-            q=config['mapping_quality'], ref=config['refs'])
+            q=config['mapping_quality'], ref=config['refs']),
+        expand("{sample}/coverage_tables/quality_{q}/{sample}.{ref}.mapq{q}.coverage.tsv", 
+            sample=samples, q=config['mapping_quality'], ref=config['refs'])
 
 # In case there is no .bai this is useful:
 # Get temporal bam & bai of certain quality
@@ -63,5 +65,15 @@ rule bamdamage:
         module add R/3.5.1;
         ../scripts/bamdamage --output {output.dam} --output_length {output.length} {input.bam} 2> {log};
         """
-
         # ../scripts/bamdamage --mapquality {params.q} --output {output.dam} --output_length {output.length} {input.bam} 2> {log};
+
+rule get_coverage:
+    input:
+        "{sample}/bamdamage/bams/{sample}.{ref}.mapq{q}.bam"
+    output:
+        "{sample}/coverage_tables/quality_{q}/{sample}.{ref}.mapq{q}.coverage.tsv"
+    shell:
+        """
+        module add UHTS/Analysis/BEDTools/2.29.2;
+        bedtools genomecov -d -ibam {input} > {output}
+        """
