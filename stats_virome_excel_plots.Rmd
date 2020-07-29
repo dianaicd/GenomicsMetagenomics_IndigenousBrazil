@@ -283,13 +283,13 @@ for (s in selected_samples) {
 ### Coverage plots
 
 ```{r}
-library(ensembldb)
+library(tidyr)
 ```
 
 
 ```{r}
 # mapping quality
-q <- 0 
+q <- 10 
 
 sample_ids <- list.files(path = "~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats", pattern = "MN")
 reference_ids <- c("AF113323_1", "AJ249437_1", "AJ717293_1", "AY083234_1", "DQ333427_1", "DQ357065_1", "FN669502_1", "HQ340602_1", "NC_000883_2", "NC_001540_1", 
@@ -301,12 +301,47 @@ myCov <- vector("list", length = length(reference_ids))
 ```
 
 ```{r}
-plot_cov <- function(coverage, plot.title, myColor){
+plot_cov <- function(coverage, plot.title, myColor, boxColors, prots_coords, limy = limy){
+  par(xpd = T)
+  
+  # limy <- lapply(coverage, function(x){x$reads}) %>% unlist %>% max
+  
   barplot(height = coverage, 
           main = plot.title, 
           ylab = "Number of reads",
           col = myColor,
-          border = NA)
+          border = NA,
+          axes = T,
+          ylim = c(0, limy), 
+          space = 0)
+  
+  # Rectangles part
+  
+  space_btwn_box <- -limy/20
+  box_width <- -limy/20
+  box_top <- box_width
+  
+  for (i in c(1:length(prots_coords$start))) {
+    if (prots_coords[i, Name] %in% c("ns", "NS", "ns1", "NS1", "vp1", "VP1", "VP1/2")) {
+      box_top <- box_width
+    } else if (prots_coords[i, Name] %in% c("VP2", "vp2")) {
+      box_top <- box_top + space_btwn_box 
+    } else {
+      box_top <- 2 * box_top + space_btwn_box
+    }
+    
+    rect(xleft = prots_coords[i, start],
+         xright = prots_coords[i, end],
+         ytop = box_top,
+         ybottom = box_top + box_width,
+         col = alpha(boxColors[prots_coords[i, Name]], 0.8),
+         border = NA)
+    
+    box_top <- box_width
+    # box_top <- box_top + space_btwn_box
+    # text()
+  }
+  
 }
 ```
 
@@ -315,6 +350,8 @@ plot_cov <- function(coverage, plot.title, myColor){
 nCol <- 3
 nRow <- 4
 cex <- 1.2
+ncol_legend <- 3
+legend_cex <- 1
 
 selected_samples <- c("MN00013", "MN00021", "MN00039", "MN00067", "MN00119", "MN00346")
 # Sort referencs according to genotype
@@ -325,30 +362,71 @@ gtype_colors <- c(rep("#1b8e13", 3), rep("#0024cc", 3), rep("#d60036", 3), rep("
 names(gtype_colors) <- sorted_refs
 names(myCov) <- sorted_refs
 
+boxColors <- c("royalblue", "firebrick3", "lightblue3", "indianred1",
+                 "orange","orange3", "plum", "plum4", "paleturquoise3",
+                 "paleturquoise4", "rosybrown2", "rosybrown3")
+
+prot_names <- c("11-kDa", "11 kDa protein", "7.5-kDa", "7.5 kDa protein", "hypothetical 11kDa protein",
+                "hypothetical protein", "ns", "NS", "ns1", "NS1", "vp1", "VP1", "VP1/2", "vp2", "VP2",
+                "VP3", "protein X", "X", "X-9 kDa protein")
+
+# prot_colors <- c(rep(NA, 2), rep(NA, 2), rep(NA, 2), rep("indianred1", 4),
+#                  rep("orange", 2), "orange3", rep("plum4", 2), NA, rep(NA, 3))
+prot_colors <- c(rep("royalblue", 2), rep("firebrick3", 2), rep("lightblue3", 2), rep("indianred1", 4), rep("orange", 2), "orange3", rep("plum", 2), "plum4", rep("seagreen", 3))
+
+names(prot_colors) <- prot_names
+
+standr_prots <- c("11kDa", "7.5kDa", "hypothetical", "NS1", "VP1", "VP1/2", "VP2", "VP3", "X")
+standr_pts_cols <- c("royalblue", "firebrick3", "lightblue3", "indianred1", "orange", "orange3", "plum", 
+                     "plum4", "seagreen")
+
+names(standr_pts_cols) <- standr_prots
 
 setwd("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats")
+
 
 for (s in selected_samples) {
   for (ref in sorted_refs) {
     tmp_cov <- fread(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/coverage_tables/quality_", q, "/", s, ".", ref, ".mapq", q, ".coverage.tsv"), drop = 1)
     setnames(tmp_cov, names(tmp_cov), c("position", "reads"))
-    some_cov <- list(coverage = tmp_cov)
+    proteins <- fread(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/refs_seqs_parvovirus_BMuhlemann/", sub(pattern = "_\\d$", "", ref), ".tsv"))
+    proteins <- proteins[complete.cases(proteins)]
+    some_cov <- list(coverage = tmp_cov, prots = proteins)
     myCov[[ref]] <- some_cov
   }
   
-  png(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/all_samples/coverage_plots/selected_samples/quality_", q, "/", s, "_mapQ", q, ".png"), width = 1024, height = 768)
+  png(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/all_samples/coverage_plots/selected_samples/quality_", q, "/", s, "_mapQ", q, ".png"), width = 7, height = 10, units = "in", res = 300)
   layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
   
+  limy <- lapply(myCov, function(x){x$coverage$reads}) %>% unlist %>% max
+  
   for (ref in sorted_refs) {
-    plot_cov(coverage = myCov[[ref]]$coverage$reads, 
+    plot_cov(coverage = myCov[[ref]]$coverage$reads, boxColors = prot_colors, 
+             prots_coords = myCov[[ref]]$prots,
              plot.title = paste0(ref, " Genotype ", genotypes[ref]), 
-             myColor = gtype_colors[ref])
+             myColor = gtype_colors[ref],
+             limy = limy)
+    
+    xtick <- c(1, 1000, 2000, 3000, 4000, 5000, 5600)
+    axis(side = 1, at = c(1, 1000, 2000, 3000, 4000, 5000, 5600), labels = F,
+         tck = -0.005)
+    
+    text(x = xtick,  par("usr")[3], labels = c("1", "1k", "2k", "3k", "4k", "5k", "5.6k"),
+         pos = 1, xpd = TRUE, cex = 0.45, offset = 0.19, srt = -45)
   }
+  
+  plot(NULL , xaxt = 'n', yaxt = 'n', bty = 'n', ylab = '', xlab = '', xlim = 0:1, ylim = 0:1,
+       main = "Genes")
+  ycoord <- 1
+  for (i in c(1:length(standr_pts_cols))) {
+    legend(0, ycoord, legend = names(standr_pts_cols)[i],
+           col = alpha(standr_pts_cols[i], 0.8),
+           lty = 1, bty = "n", cex = 1, lwd = 5)
+    ycoord <- ycoord - 0.1
+  }
+  
   dev.off()
 }
 
-# par(xpd = T)
-# barplot(myCov$MN00346$nb_reads)
-# rect(xleft = 3012, xright = 4676, ybottom = -5, ytop = -1, col = "#d60036", border = NA)
 ```
 
