@@ -39,6 +39,11 @@ create_sample_dt <- function(sample_id, quality) {
   sample <- fread(input = paste(sample_id, "/stats/quality_", quality, "/", sample_id, 
                                 "_stats.txt", sep = ""))
   
+  # CDS_positions <- fread(input = paste0("/scratch/axiom/FAC/FBM/DBC/amalaspi/virome/yarizmen/",
+  #                                       "virome/Boto_virome/true_complete/virus_mappings/",
+  #                                       "parvovirus/refs_seqs_parvovirus_BMuhlemann/fasta/CDS/",
+  #                                       "MN00346/BED_files/refs_parvo.bed"))
+  
   sample[, reference_ids := reference_ids]
   
   setnames(sample, 
@@ -48,6 +53,8 @@ create_sample_dt <- function(sample_id, quality) {
            skip_absent = T)
   
   sample[, depth_cov := (rds_after_rmdup*avg_rd_lgth)/ref_lgth]
+  
+  # sample[, depth_cov_cds := (rds_after_rmdup*avg_rd_lgth)/(ref_lgth - (CDS_positions$V3 - CDS_positions$V2))]
   
   setcolorder(sample, 
               c("reference_ids", "rds_b4_rmdup","rds_after_rmdup","avg_rd_lgth", "genome_cov", 

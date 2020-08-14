@@ -1,5 +1,11 @@
 #!/bin/awk -f
 
+# Script to generate tsv tables from genbank files. The tables store the start and end positions of 
+# CDS in the genbank file, as well as the CDS type & its name.
+
+# Example run:
+# awk -f get_cds_gb.awk GenBankFile.gb
+
 BEGIN{row=1; cds=0}
 
 {

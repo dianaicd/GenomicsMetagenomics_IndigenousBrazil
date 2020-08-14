@@ -209,6 +209,7 @@ rule join_genome_coverage:
         cat {input} > {output}
         '''
 
+# run_bamdamage.smk
 # Get the deamination damage
 rule get_deam_damage:
     input:
@@ -236,18 +237,40 @@ rule join_damage:
         cat {input} > {output}
         '''
 
+# Get genome breadth of coverage (genome coverage 2nd way)
+# rule get_breadth_of_coverage:
+#     input:
+#         "{query}/coverage_tables/quality_{q}/{query}.{ref}.mapq{q}.coverage.tsv"
+#     output:
+#         "{query}/breadth_of_coverage/quality_{q}/{reference}_breadth_cov.txt"
+#     shell:
+#         '''
+#         module load Bioinformatics/Software/vital-it;
+#         module add R/3.6.1;
+#         Rscript --vanilla get_BoC.R --cov_table {input} --output {output}
+#         '''
+
+# # Join breadth of coverage
+# rule join_breadth_coverage:
+#     input:
+#         expand("{query}/breadth_of_coverage/quality_{q}/{reference}_breadth_cov.txt", 
+#         query="{query}", q="{q}", reference=config['refs'])
+#     output:
+#         "{query}/breadth_of_coverage/quality_{q}/breadth_coverage_all_refs.txt"
+#     shell:
+#         '''
+#         cat {input} > {output}
+#         '''
+
 # Create table with statistics (per sample)
 rule create_table:
     input:
         b4_rmdup="{query}/mapped_before_rmdup/quality_{q}/counts_b4_rmdup_all_refs.txt",
-            # query="{query}", q="{q}",
         after_rmdup="{query}/count_final_reads/quality_{q}/counts_final_rds_all_refs.txt",
-            # query="{query}", q="{q}",
         ref_lgth="reference_length/refs_length.txt",
         avg_rd_lgth="{query}/average_read_length/quality_{q}/avg_rd_lgth_all_refs.txt", 
-            # query="{query}", q="{q}",
         g_cov="{query}/genome_coverage/quality_{q}/genome_coverage_all_refs.txt", 
-            # query="{query}", q="{q}",
+        # BoC="{query}/breadth_of_coverage/quality_{q}/breadth_coverage_all_refs.txt",
         damage="{query}/bamdamage/quality_{q}/damage_all_refs.txt"
     output:
         "{query}/stats/quality_{q}/{query}_stats.txt"
