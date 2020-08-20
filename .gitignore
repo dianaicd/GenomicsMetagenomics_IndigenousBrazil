@@ -12,3 +12,14 @@
 *.log
 *_cache/
 *.pdf
+MN*/
+all_samples/
+.snakemake/
+reference_length/
+.vscode
+excel/
+save2excel.Rmd
+save2excel.nb.html
+._.DS_Store
+.Rhistory
+
