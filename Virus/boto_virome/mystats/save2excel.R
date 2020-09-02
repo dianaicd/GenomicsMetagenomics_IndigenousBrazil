@@ -39,22 +39,13 @@ create_sample_dt <- function(sample_id, quality) {
   sample <- fread(input = paste(sample_id, "/stats/quality_", quality, "/", sample_id, 
                                 "_stats.txt", sep = ""))
   
-  # CDS_positions <- fread(input = paste0("/scratch/axiom/FAC/FBM/DBC/amalaspi/virome/yarizmen/",
-  #                                       "virome/Boto_virome/true_complete/virus_mappings/",
-  #                                       "parvovirus/refs_seqs_parvovirus_BMuhlemann/fasta/CDS/",
-  #                                       "MN00346/BED_files/refs_parvo.bed"))
-  
   sample[, reference_ids := reference_ids]
   
   setnames(sample, 
-           names(sample[, 1:8]), 
+           names(sample[, 1:10]), 
            c("rds_b4_rmdup", "rds_after_rmdup", "avg_rd_lgth", "BoC", "DoC", "SD_BoC", "SD_DoC", 
-           "ref_lgth"),
+           "dam_3prime", "dam_5prime", "ref_lgth"),
            skip_absent = T)
-  
-  # sample[, depth_cov := (rds_after_rmdup*avg_rd_lgth)/ref_lgth]
-  
-  # sample[, depth_cov_cds := (rds_after_rmdup*avg_rd_lgth)/(ref_lgth - (CDS_positions$V3 - CDS_positions$V2))]
   
   # setcolorder(sample, 
   #             c("reference_ids", "rds_b4_rmdup","rds_after_rmdup","avg_rd_lgth", "genome_cov", 
@@ -92,7 +83,8 @@ create_wb <- function(workbook, sample, dtable) {
   addStyle(wb = workbook, sheet = sample, style = s, rows = 1:nrow(dtable) + 1, cols = comma_cols,
            gridExpand = TRUE, stack = T)
   # trim decimal places
-  decimal_cols <- which(colnames(sample) %in% c("avg_rd_lgth", "DoC", "SD_BoC", "SD_DoC"))
+  decimal_cols <- which(colnames(sample) %in% c("avg_rd_lgth", "DoC", "SD_BoC", "SD_DoC", 
+                        "dam_3prime", "dam_5prime"))
   s <- createStyle(numFmt = "#0.00")
   addStyle(wb = workbook, sheet = sample, style = s, rows = 1:nrow(dtable) + 1, cols = decimal_cols,
            gridExpand = TRUE, stack = T)
