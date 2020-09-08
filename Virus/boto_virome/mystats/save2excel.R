@@ -83,7 +83,7 @@ create_wb <- function(workbook, sample, dtable) {
   addStyle(wb = workbook, sheet = sample, style = s, rows = 1:nrow(dtable) + 1, cols = comma_cols,
            gridExpand = TRUE, stack = T)
   # trim decimal places
-  decimal_cols <- which(colnames(sample) %in% c("avg_rd_lgth", "DoC", "SD_BoC", "SD_DoC", 
+  decimal_cols <- which(colnames(dtable) %in% c("avg_rd_lgth", "DoC", "SD_BoC", "SD_DoC", 
                         "dam_3prime", "dam_5prime"))
   s <- createStyle(numFmt = "#0.00")
   addStyle(wb = workbook, sheet = sample, style = s, rows = 1:nrow(dtable) + 1, cols = decimal_cols,
