@@ -1,0 +1,197 @@
+#==============================================================================#
+# NGS Admix
+{
+    "time": 15,
+    "mem": 8,
+    "ngs_admix": {
+        "panels":{
+            "9botocudos_0.3x_744ind_39k_mind0.9": {
+                "path": "9botocudos_0.3x_744ind_39k_mind0.9.beagle",
+                "min_K": 2,
+                "max_K": 17,
+                "replicates": 10
+            },
+            "9botocudos_0.3x_trim_744ind_39k_mind0.9": {
+                "path": "9botocudos_0.3x_trim_744ind_39k_mind0.9.beagle",
+                "min_K": 2,
+                "max_K": 17,
+                "replicates": 10
+            }
+        }
+    }
+}
+    # 9botocudos_0.3x_665ind_200k_mind0.9:
+    #   path: "9botocudos_0.3x_665ind_200k_mind0.9.beagle"
+    #   min_K: 2
+    #   max_K: 17
+    #   replicates: 10
+    # 9botocudos_0.3x_trim_665ind_200k_mind0.9:
+    #   path: "9botocudos_0.3x_trim_665ind_200k_mind0.9.beagle"
+    #   min_K: 2
+    #   max_K: 17
+    #   replicates: 10
+    # Maanasa_Tupiniquim_Guarani_39k_mind0.10:
+    #   path: "Maanasa_Tupiniquim_Guarani_39k_mind0.10.beagle"
+    #   min_K: 2
+    #   max_K: 17
+    #   replicates: 100
+    # 817ind_Maanasa_Tupiniquim_Guarani_mind0.90:
+    #   path: "817ind_Maanasa_Tupiniquim_Guarani_mind0.90.beagle"
+    #   min_K: 2
+    #   max_K: 17
+    #   replicates: 100
+    # 722ind_Maanasa_mind0.90:
+    #   path: "722ind_Maanasa_mind0.90.beagle"
+    #   min_K: 2
+    #   max_K: 17
+    #   replicates: 100
+
+    # Nov2019_Wollstein_mind0.95_rmtrans: 
+    #   path: "Nov2019_Wollstein_mind0.95_rmtrans.beagle"
+    #   max_K: 10
+    #   replicates: 100
+    # Jan2020_Wollstein_mind0.95_rmtrans:
+    #   path: "Wollstein_mind0.95_rmtrans/Jan2020_Wollstein_mind0.95_rmtrans.beagle"
+    #   max_K: 7
+    #   min_K: 6
+    #   replicates: 100
+    # MN00010:
+    #   path: "Wollstein_mind0.95/MN00010_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN01701:
+    #   path: "Wollstein_mind0.95/MN01701_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00019:
+    #   path: "Wollstein_mind0.95/MN00019_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00069:
+    #   path: "Wollstein_mind0.95/MN00069_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN1943:
+    #   path: "Wollstein_mind0.95/MN1943_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00039:
+    #   path: "Wollstein_mind0.95/MN00039_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00023:
+    #   path: "Wollstein_mind0.95/MN00023_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00022:
+    #   path: "Wollstein_mind0.95/MN00022_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00068:
+    #   path: "Wollstein_mind0.95/MN00068_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00016:
+    #   path: "Wollstein_mind0.95/MN00016_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00045:
+    #   path: "Wollstein_mind0.95/MN00045_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00316:
+    #   path: "Wollstein_mind0.95/MN00316_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00064:
+    #   path: "Wollstein_mind0.95/MN00064_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN0003:
+    #   path: "Wollstein_mind0.95/MN0003_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00066:
+    #   path: "Wollstein_mind0.95/MN00066_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00119:      
+    #   path: "Wollstein_mind0.95/MN00119_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00021:
+    #   path: "Wollstein_mind0.95/MN00021_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00067:
+    #   path: "Wollstein_mind0.95/MN00067_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00346:
+    #   path: "Wollstein_mind0.95/MN00346_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00118:
+    #   path: "Wollstein_mind0.95/MN00118_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN0009:
+    #   path: "Wollstein_mind0.95/MN0009_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00013:
+    #   path: "Wollstein_mind0.95/MN00013_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN00056:
+    #   path: "Wollstein_mind0.95/MN00056_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # MN0008_non_U:
+    #   path: "Wollstein_mind0.95_rmtrans/MN0008_non_U_Wollstein_mind0.95_rmtrans.beagle"
+    #   max_K: 7
+    #   min_K: 6
+    #   replicates: 10
+    # MN0008_L3U:
+    #   path: "Wollstein_mind0.95_rmtrans/MN0008_L3U_Wollstein_mind0.95_rmtrans.beagle"
+    #   max_K: 7
+    #   min_K: 6
+    #   replicates: 10
+    # MN0008:
+    #   path: "Wollstein_mind0.95/MN0008_Wollstein_mind0.95.beagle"
+    #   max_K: 7
+    #   min_K: 7
+    #   replicates: 10
+    # Bot15:
+    #   path: "Wollstein_mind0.95_rmtrans/Bot15_Wollstein_mind0.95_rmtrans.beagle"
+    #   max_K: 7
+    #   min_K: 6
+    #   replicates: 10
+    # Bot17:
+    #   path: "Wollstein_mind0.95_rmtrans/Bot17_Wollstein_mind0.95_rmtrans.beagle"
+    #   max_K: 7
+    #   min_K: 6
+    #   replicates: 10
