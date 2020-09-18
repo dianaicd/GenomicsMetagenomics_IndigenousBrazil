@@ -1,0 +1,453 @@
+---
+title: "Non NatAm ancestry"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, mmessage = F, warning = F)
+```
+
+```{r}
+require(ggplot2)
+require(cowplot)
+require(scales)
+```
+
+# Results
+## Addressing a trans-Pacific contact
+
+The discovery of two individuals of Polynesian ancestry in the Botocudo
+collection has led to several speculations about the origins and fate of those two individuals.
+Their remains were presumably collected around the Doce River, 
+a river spanning 853 kilometers in the state of Minas Gerais. 
+It remains a mystery how they could have reached the Eastern part of Brazil, and 
+whether they were the only Polynesians in the area at the time they were alive (that is, around or prior to 1500 AD).
+Furthermore, it is unknown whether they could have mixed with local groups in Minas Gerais.
+
+One of the questions we seek to address in this project is whether any of the 
+newly sequenced individuals are admixed with groups out of the Americas.
+Of particular interest is to know if we can detect recent admixture from Polynesian
+populations into the Botocudo groups.
+
+We performed admixture analyses for the 24 newly sequenced individuals and a panel of
+$n$ worldwide populations (described in Wollstein et al., 2010 and Malaspinas et al., 2014),
+including the two Polynesians found in the Botocudo collection in 2014.
+
+As the depth of coverage is highly variable among these samples, the number of SNPs
+with data per individual varied too.
+Thus, we merged each of the target individuals separately to the reference panel, 
+generating 24 different genotype likelihood matrices.
+The number of SNPs varied from matrix to matrix, as we kept only sites were
+there were data for the target individual.
+
+NGSadmix was then run assuming K = 7 ancestral components, and 10 replicates per input matrix.
+Based on these seven components, and to help with the discussion, 
+we suggest a manual grouping of the 20 populations into 7 regions: 
+
+* Africa
+* Europe and West Asia
+* East and Southeast Asia
+* Central and South Asia
+* Near Oceania
+* Remote Oceania
+* Americas
+
+For all 24 individuals, at least 79% main ancestry is derived from a source population 
+related to the people in the Americas included in this analysis. 
+However, it is noteworthy to mention that **eleven** of the samples had a depth of coverage 
+smaller than **0.05**$\times$ (and less than 10,000 SNPs with data), and **seven** of those
+samples had a coverage smaller than **0.01**$\times$ (and less than 3,000 SNPs with data).
+
+
+Remove outliers (DoC < threshold)
+
+```{r}
+
+make_model_plot <- function( x, xlab, title, color, model){
+  
+  summary_model <- summary( model )
+  
+  confidence_model <- predict( model, interval = "confidence")
+  
+  model$model$low <- confidence_model[,2]
+  model$model$up <- confidence_model[,3]  
+  
+  r_sq <- round( summary_model$adj.r.squared, digits = 3 )
+  p_val <- round(summary_model$coefficients[2, "Pr(>|t|)"], digits = 3 )
+  slope <- round(summary_model$coefficients[2, "Estimate"], digits = 3 )
+  
+  model_plot  <- ggplot(model$model, aes( x = x , y = model$model[,1])) +
+                        geom_point( col = color) +
+                        theme_minimal() +
+                        labs( title = title,
+                              x = xlab, 
+                              y = "Percentage of non-Native-American ancestry") +
+                        geom_abline( intercept = summary_model$coefficients[1,1],
+                                     slope = summary_model$coefficients[2,1],
+                                     linetype = "dashed") +
+                        geom_line(aes(y = low), linetype = "dashed", color = "gray") +
+                        geom_line(aes(y = up), linetype = "dashed", color = "gray") +
+                        scale_y_continuous(labels = percent) +
+                        annotate("text", x = min(x), y = max(model$model[,1]),
+                                      label =  paste("paste(italic(R) ^ 2, \" = \" ,", r_sq, 
+                                                     ", \"; slope = \", ", slope,
+                                                     ", \"; p-value = \", ", p_val,
+                                                     ")"), 
+                                 parse = TRUE,
+                                 vjust = 0, hjust = 0
+                                  )
+
+  return( model_plot )
+}
+
+query_model_details <- function( model, parameter ){
+  summary_model <- summary( model )
+  if( parameter == "R^2"){
+    my_value <- round( summary_model$adj.r.squared, digits = 3 )
+  }else if( parameter == "p_value"){
+    my_value <- round(summary_model$coefficients[2, "Pr(>|t|)"], digits = 3 )
+  }else if( parameter == "slope"){
+    my_value <- round(summary_model$coefficients[2, "Estimate"], digits = 3 )
+  }
+  return(my_value)
+}
+
+make_hist_plot <- function(data, x, title, xlab) {
+  hist_plot <- ggplot( data, aes(x = x) ) +
+    geom_histogram(bins = 10) +
+    theme_minimal() + 
+    labs(title = title, x  = xlab)
+  return(hist_plot)
+}
+```
+
+```{r residuals plot}
+make_residuals_plot <- function(d, model, x, title, xlab){
+  
+  d$predicted <- predict( model )
+  d$residuals <- residuals( model )
+  
+  res_plot <- ggplot(d, aes(x = x, y = non_NatAm)) +
+                  geom_smooth(method = "lm", se = FALSE, color = "lightgrey") +
+                  geom_segment(aes(xend = x, yend = predicted), alpha = .2) +
+                  # > Color AND size adjustments made here...
+                  geom_point(aes(color = abs(residuals), size = abs(residuals))) + # size also mapped
+                  scale_color_continuous(low = "black", high = "red") +
+                  guides(color = FALSE, size = FALSE) +  # Size legend also removed
+                  # <
+                  geom_point(aes(y = predicted), shape = 1) +
+                  theme_bw() +
+    labs(x = xlab, title = title)
+  return(res_plot)
+}
+
+
+```
+
+```{r simple model, fig.width=12, fig.height=12}
+anc_err <- read.csv("~/Projects/Botocudos/Files/ADMIX/2020_06_04/non_NatAm_anc.txt")
+
+index <- anc_err$non_NatAm  >= 0
+error_model <- lm(non_NatAm  ~ error, anc_err[ index, ] )
+cont_model <-  lm(non_NatAm ~ contamMix_est_all , anc_err[ index, ] ) 
+doc_model <- lm(non_NatAm ~  DoC_endogenous , anc_err[ index, ] )  
+
+simple_model <- data.frame(model = "Simplest model",
+                           explanatory_variable = c( "Error rate", "DoC", "Contamination"),
+                           r_sq = sapply(list(error_model, doc_model, cont_model), 
+                                         function(model) query_model_details(model, parameter = "R^2")),
+                           p_val = sapply(list(error_model, doc_model, cont_model), 
+                                          function(model) query_model_details(model, parameter = "p_value")),
+                           slope = sapply(list(error_model, doc_model, cont_model), 
+                                          function(model) query_model_details(model, parameter = "slope")))
+
+err_plot <- make_model_plot( x = error_model$model$error, 
+                 xlab = "Error rate (%)", 
+                 title = "Error rate",
+                 color = "gold2",
+                 model = error_model) + scale_x_continuous(labels = percent) 
+
+doc_plot <- make_model_plot( x = doc_model$model$DoC_endogenous, 
+                 xlab = "Depth of coverage", 
+                 title = "Depth of coverage",
+                 color = "deepskyblue1",
+                 model = doc_model) 
+
+cont_plot <- make_model_plot( x = cont_model$model$contamMix_est_all, 
+                 xlab = "Contamination estimate", 
+                 title = "Contamination",
+                 color = "salmon",
+                 model = cont_model) 
+
+err_hist <- make_hist_plot(data = anc_err[index, ], 
+                           x = anc_err$error[index], 
+                           title = "Error rate", xlab = "Error rate (%)")
+doc_hist <- make_hist_plot(data = anc_err[index, ], 
+                           x = anc_err$DoC_endogenous[index], 
+                           title = "Depth of coverage", xlab = "Depth of coverage")
+cont_hist <- make_hist_plot(data = anc_err[index, ], 
+                            x = anc_err$contamMix_est_all[index], 
+                            title = "Contamination", xlab = "Contamination estimate")
+error_res <- make_residuals_plot(d = anc_err[index,], 
+                               model = error_model, 
+                               x = log(anc_err[index,]$error),
+                               title = "Error rate", 
+                               xlab = "Error rate")
+
+doc_res <- make_residuals_plot(d = anc_err[index,], 
+                               model = doc_model, 
+                               x = log(anc_err[index,]$DoC_endogenous),
+                               title = "Depth of coverage", 
+                               xlab = "Depth of coverage")
+
+cont_res <- make_residuals_plot(d = anc_err[index,], 
+                               model = cont_model, 
+                               x = log(anc_err[index,]$contamMix_est_all),
+                               title = "Contamination", 
+                               xlab = "Contamination estimate")
+
+plot_grid( err_hist, doc_hist, cont_hist, 
+ err_plot, doc_plot, cont_plot, 
+ error_res, doc_res, cont_res,
+ nrow = 3)
+```
+
+```{r log model, fig.width=12, fig.height=12}
+anc_err <- read.csv("~/Projects/Botocudos/Files/ADMIX/2020_06_04/non_NatAm_anc.txt")
+
+index <- anc_err$non_NatAm  >= 0
+error_model <- lm(non_NatAm  ~ error, anc_err[ index, ] )
+cont_model <-  lm(non_NatAm ~ log( contamMix_est_all ), anc_err[ index, ] ) 
+doc_model <- lm(non_NatAm ~ log( DoC_endogenous ), anc_err[ index, ] )  
+
+
+log_model <- data.frame(model = "Log model",
+                           explanatory_variable = c( "Error rate", "DoC (log)", "Contamination (log)"),
+                           r_sq = sapply(list(error_model, doc_model, cont_model), 
+                                         function(model) query_model_details(model, parameter = "R^2")),
+                           p_val = sapply(list(error_model, doc_model, cont_model), 
+                                          function(model) query_model_details(model, parameter = "p_value")),
+                           slope = sapply(list(error_model, doc_model, cont_model), 
+                                          function(model) query_model_details(model, parameter = "slope")))
+
+err_plot <- make_model_plot( x = error_model$model$error, 
+                 xlab = "Error rate (%)", 
+                 title = "Error rate",
+                 color = "gold2",
+                 model = error_model) + scale_x_continuous(labels = percent) 
+
+doc_plot <- make_model_plot( x = doc_model$model$`log(DoC_endogenous)`, 
+                 xlab = "Depth of coverage (log)", 
+                 title = "Depth of coverage",
+                 color = "deepskyblue1",
+                 model = doc_model) 
+
+cont_plot <- make_model_plot( x = cont_model$model$`log(contamMix_est_all)`, 
+                 xlab = "Contamination estimate (log)", 
+                 title = "Contamination",
+                 color = "salmon",
+                 model = cont_model) 
+
+err_hist <- make_hist_plot(data = anc_err[index, ], 
+                           x = anc_err$error[index], 
+                           title = "Error rate", xlab = "Error rate (%)")
+doc_hist <- make_hist_plot(data = anc_err[index, ],
+                           x = log(anc_err[index,]$DoC_endogenous),
+                           title = "Depth of coverage",
+                           xlab = "Depth of coverage")
+cont_hist <- make_hist_plot(data = anc_err[index, ], 
+                            x = log(anc_err$contamMix_est_all[index]),
+                            title = "Contamination",
+                            xlab = "Contamination estimate")
+
+error_res <- make_residuals_plot(d = anc_err[index,], 
+                               model = error_model, 
+                               x = log(anc_err[index,]$error),
+                               title = "Error rate", 
+                               xlab = "Error rate")
+
+doc_res <- make_residuals_plot(d = anc_err[index,], 
+                               model = doc_model, 
+                               x = log(anc_err[index,]$DoC_endogenous),
+                               title = "Depth of coverage", 
+                               xlab = "Depth of coverage")
+
+cont_res <- make_residuals_plot(d = anc_err[index,], 
+                               model = cont_model, 
+                               x = log(anc_err[index,]$contamMix_est_all),
+                               title = "Contamination", 
+                               xlab = "Contamination estimate")
+
+plot_grid( err_hist, doc_hist, cont_hist, 
+ err_plot, doc_plot, cont_plot, 
+ error_res, doc_res, cont_res,
+ nrow = 3)
+
+
+```
+
+```{r log, removing outliers with DoC less than 0.005, fig.width=12, fig.height=12 }
+anc_err <- read.csv("~/Projects/Botocudos/Files/ADMIX/2020_06_04/non_NatAm_anc.txt")
+
+index <- anc_err$DoC_endogenous  >= 0.005 
+error_model <- lm(non_NatAm  ~ error, anc_err[ index, ] )
+cont_model <-  lm(non_NatAm ~ log( contamMix_est_all ), anc_err[ index, ] ) 
+doc_model <- lm(non_NatAm ~ log( DoC_endogenous ), anc_err[ index, ] )  
+
+
+log_005_model <- data.frame(model = "Log model, DoC >= 0.005",
+                           explanatory_variable = c( "Error rate", "DoC (log)", "Contamination (log)"),
+                           r_sq = sapply(list(error_model, doc_model, cont_model), 
+                                         function(model) query_model_details(model, parameter = "R^2")),
+                           p_val = sapply(list(error_model, doc_model, cont_model), 
+                                          function(model) query_model_details(model, parameter = "p_value")),
+                           slope = sapply(list(error_model, doc_model, cont_model), 
+                                          function(model) query_model_details(model, parameter = "slope")))
+
+err_plot <- make_model_plot( x = error_model$model$error, 
+                 xlab = "Error rate (%)", 
+                 title = "Error rate",
+                 color = "gold2",
+                 model = error_model) + scale_x_continuous(labels = percent) 
+
+doc_plot <- make_model_plot( x = doc_model$model$`log(DoC_endogenous)`, 
+                 xlab = "Depth of coverage (log)", 
+                 title = "Depth of coverage",
+                 color = "deepskyblue1",
+                 model = doc_model) 
+
+cont_plot <- make_model_plot( x = cont_model$model$`log(contamMix_est_all)`, 
+                 xlab = "Contamination estimate (log)", 
+                 title = "Contamination",
+                 color = "salmon",
+                 model = cont_model) 
+
+err_hist <- make_hist_plot(data = anc_err[index, ], 
+                           x = anc_err$error[index], 
+                           title = "Error rate", xlab = "Error rate (%)")
+doc_hist <- make_hist_plot(data = anc_err[index, ],
+                           x = log(anc_err[index,]$DoC_endogenous),
+                           title = "Depth of coverage",
+                           xlab = "Depth of coverage")
+cont_hist <- make_hist_plot(data = anc_err[index, ], 
+                            x = log(anc_err$contamMix_est_all[index]),
+                            title = "Contamination",
+                            xlab = "Contamination estimate")
+
+error_res <- make_residuals_plot(d = anc_err[index,], 
+                               model = error_model, 
+                               x = log(anc_err[index,]$error),
+                               title = "Error rate", 
+                               xlab = "Error rate")
+
+doc_res <- make_residuals_plot(d = anc_err[index,], 
+                               model = doc_model, 
+                               x = log(anc_err[index,]$DoC_endogenous),
+                               title = "Depth of coverage", 
+                               xlab = "Depth of coverage")
+
+cont_res <- make_residuals_plot(d = anc_err[index,], 
+                               model = cont_model, 
+                               x = log(anc_err[index,]$contamMix_est_all),
+                               title = "Contamination", 
+                               xlab = "Contamination estimate")
+
+plot_grid( err_hist, doc_hist, cont_hist, 
+ err_plot, doc_plot, cont_plot, 
+ error_res, doc_res, cont_res,
+ nrow = 3)
+
+```
+
+```{r log, removing outliers with DoC less than 0.01, fig.width=12, fig.height=12}
+anc_err <- read.csv("~/Projects/Botocudos/Files/ADMIX/2020_06_04/non_NatAm_anc.txt")
+
+index <- anc_err$DoC_endogenous  >= 0.01 
+error_model <- lm(non_NatAm  ~ error, anc_err[ index, ] )
+cont_model <-  lm(non_NatAm ~ log( contamMix_est_all ), anc_err[ index, ] ) 
+doc_model <- lm(non_NatAm ~ log( DoC_endogenous ), anc_err[ index, ] )  
+
+
+log_01_model <- data.frame(model = "Log model, DoC >= 0.01",
+                           explanatory_variable = c( "Error rate", "DoC (log)", "Contamination (log)"),
+                           r_sq = sapply(list(error_model, doc_model, cont_model), 
+                                         function(model) query_model_details(model, parameter = "R^2")),
+                           p_val = sapply(list(error_model, doc_model, cont_model), 
+                                          function(model) query_model_details(model, parameter = "p_value")),
+                           slope = sapply(list(error_model, doc_model, cont_model), 
+                                          function(model) query_model_details(model, parameter = "slope")))
+
+err_plot <- make_model_plot( x = error_model$model$error, 
+                 xlab = "Error rate (%)", 
+                 title = "Error rate",
+                 color = "gold2",
+                 model = error_model) + scale_x_continuous(labels = percent) 
+
+doc_plot <- make_model_plot( x = doc_model$model$`log(DoC_endogenous)`, 
+                 xlab = "Depth of coverage (log)", 
+                 title = "Depth of coverage",
+                 color = "deepskyblue1",
+                 model = doc_model) 
+
+cont_plot <- make_model_plot( x = cont_model$model$`log(contamMix_est_all)`, 
+                 xlab = "Contamination estimate (log)", 
+                 title = "Contamination",
+                 color = "salmon",
+                 model = cont_model) 
+
+err_hist <- make_hist_plot(data = anc_err[index, ], 
+                           x = anc_err$error[index], 
+                           title = "Error rate", xlab = "Error rate (%)")
+doc_hist <- make_hist_plot(data = anc_err[index, ],
+                           x = log(anc_err[index,]$DoC_endogenous),
+                           title = "Depth of coverage",
+                           xlab = "Depth of coverage")
+cont_hist <- make_hist_plot(data = anc_err[index, ], 
+                            x = log(anc_err$contamMix_est_all[index]),
+                            title = "Contamination",
+                            xlab = "Contamination estimate")
+
+error_res <- make_residuals_plot(d = anc_err[index,], 
+                               model = error_model, 
+                               x = log(anc_err[index,]$error),
+                               title = "Error rate", 
+                               xlab = "Error rate")
+
+doc_res <- make_residuals_plot(d = anc_err[index,], 
+                               model = doc_model, 
+                               x = log(anc_err[index,]$DoC_endogenous),
+                               title = "Depth of coverage", 
+                               xlab = "Depth of coverage")
+
+cont_res <- make_residuals_plot(d = anc_err[index,], 
+                               model = cont_model, 
+                               x = log(anc_err[index,]$contamMix_est_all),
+                               title = "Contamination", 
+                               xlab = "Contamination estimate")
+
+plot_grid( err_hist, doc_hist, cont_hist, 
+ err_plot, doc_plot, cont_plot, 
+ error_res, doc_res, cont_res,
+ nrow = 3)
+
+```
+
+
+
+```{r table with details of the models}
+all_models <- do.call(rbind, list( simple_model, log_model, log_01_model, log_005_model))
+
+all_models$model <- factor(all_models$model, levels = c("Simplest model",
+                                                        "Log model",
+                                                        "Log model, DoC >= 0.005",
+                                                        "Log model, DoC >= 0.01"))
+
+all_models$explanatory_variable <- factor(all_models$explanatory_variable,
+                                          levels = c("Error rate", "DoC", "DoC (log)", "Contamination", "Contamination (log)"))
+
+knitr::kable(all_models)
+```
+
