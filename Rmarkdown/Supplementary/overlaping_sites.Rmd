@@ -1,0 +1,60 @@
+---
+title: "overlaping sites"
+author: "Cruz-Dávalos, Diana I."
+date: "6/19/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+file_sampled <- "~/Projects/Botocudos/Files/MDS/2020_05_26/Wollstein/Jan2020.counts.sampled.gz"
+
+individuals <- read.table("~/Projects/Botocudos/Files/MDS/2020_05_26/Wollstein/Jan2020.txt")
+individuals <- sapply(individuals, function(ind) sub(".*/", "", sub(".hg19.bam", "", ind)))
+to_keep <- which( ! individuals %in% c("MN0008_non_U",
+                                      "MN0008_L3U",
+                                      
+                                      "MN01701_L1L2",
+                                      "MN01701_mtCapture",
+                                      "MN01701_mtCapture_mapQ30",
+                                      "MN01701_mtCapture_mapQ25",
+                                      
+                                      "MN1943_L1",
+                                      "MN1943_mtCapture",
+                                      "MN1943_mtCapture_mapQ30",
+                                      "MN1943_mtCapture_mapQ25"))
+
+individuals <- individuals[ to_keep ]
+
+sampled_alleles <- read.table( file_sampled )
+
+sampled_alleles <- sampled_alleles[ , seq(1, ncol(sampled_alleles), 2)]
+sampled_alleles <- sampled_alleles[, to_keep]
+
+```
+
+```{r}
+num_ind <- ncol( sampled_alleles )
+
+overlaping_sites <- sapply( 1:num_ind, function( ind1 ) 
+                      sapply( ind1:num_ind, function( ind2 )
+                        sum( sampled_alleles[ , ind1 ] != 0 & sampled_alleles[ , ind2] != 0 ) 
+                      )
+)
+
+```
+
+```{r}
+sites_inds <- matrix(0, nrow = num_ind, ncol = num_ind)
+
+sites_inds[lower.tri(sites_inds, diag=TRUE)] <- unlist(overlaping_sites)
+sites_inds <- t( sites_inds )
+colnames(sites_inds) <- individuals
+
+rownames(sites_inds) <- individuals
+
+```
+
