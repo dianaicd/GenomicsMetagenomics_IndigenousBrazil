@@ -536,13 +536,41 @@ ngs_admix:
     #   path: "Nov2019_Wollstein_mind0.95_rmtrans.beagle"
     #   max_K: 10
     #   replicates: 100
-    Wollstein_200ind_Diana:
-      path: "../genotypes/Merged/Wollstein_200ind_Diana.beagle"
-      max_K: 10
-      min_K: 5
-      replicates: 20
+    Wollstein_min0.95:
+      path: "/Wollstein_200ind_Diana.beagle"
+      max_K: 7
+      min_K: 7
+      replicates: 10
       
-
+#==============================================================================#
+# smc++
+smcpp:
+  # 5_botocudos:
+  #   prefix: "5_botocudos"
+  #   populations:
+  #     Botocudos: ["MN0008", "MN00056","MN00013", "MN0009", "MN00118"]
+  # 5_botocudos_trim:
+  #   prefix: "5_botocudos_trim"
+  # 1x:
+  #   prefix: "1x"
+  high_coverage:
+    prefix: 'by_chr/higcov_geno0.1_maf0.05'
+    populations:
+      Botocudos: ["MN0008"]
+      Ayayema: ["Ayayema"]
+      Karitiana: ["SS6004476", "HGDP00998"]
+      Mixe: ["Mixe", "MixeE", "MixeF"]
+      Pima: ["PimaCEPH", "PimaE", "PimaF"]
+      Surui: ["SuruiA", "SuruiB"]
+      Maya: ["MayaG", "MayaH"]
+      USR: ["USR1", "USR2"]
+      LagoaSanta: ["LagoaSta", "LS4", "LS6", "LS7", "LS8"]
+      Lovelock: ["Lovelock2", "Lovelock3"]
+      Taino: ["Taino"]
+  # 5_botocudos_trim:
+  #   prefix: "5_botocudos_trim.chr"
+  #   populations:
+  #     Botocudos: ["MN0008", "MN00056","MN00013", "MN0009", "MN00118"]
 
 #==============================================================================#
 # Downsample data
