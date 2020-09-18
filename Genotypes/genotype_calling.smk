@@ -1,5 +1,6 @@
 
 configfile: "genotype_calling.yaml"
+include: "parse_resources.smk"
 # Call genotypes on a medium/high coverage sample
 # and merge to a panel
 def param_is_defined(name, default_par = False):
@@ -8,37 +9,41 @@ def param_is_defined(name, default_par = False):
 #-----------------------------------------------------------------------------#
 # Variables and functions to begin with
 chromosomes = [str(x) for x in range(1,23)] 
-chromosomes.append("X")
+# chromosomes.append("X")
 
 samples_names = [list(myPaths)[0] for mySamples in config["bamlists"].values() for myPaths in mySamples.values()]
-bamfile = list(config["bamlists"].keys())
+bamlists = list(config["bamlists"].keys())
+bamfiles = {bam:bamlist for bamlist in bamlists for bam in config["bamlists"][bamlist]["paths"].keys()}
+
+# bamfile = list(config["bamlists"].keys())
 panels = list(config["panels"].keys()) 
 
 # Awful regular expresions to deal with files bearing bamfile and panel name
 wildcard_constraints:
     extension = "(bed|vcf|ped)",
     # Chr =   "|".join(chromosomes)  ,
-    panel =  "(" + "|".join([p for p in panels])+ ")(?!_" + "|_".join([b for b in bamfile]) + ")" ,
-    bamfile = ")".join(["(?<!"+p for p in panels])  + "_)" + "|".join([b for b in bamfile])
+    panel =  "(" + "|".join([p for p in panels])+ ")(?!_" + "|_".join([b for b in bamfiles.keys()]) + ")" ,
+    bamfile = ")".join(["(?<!"+p for p in panels])  + "_)" + "|".join([b for b in bamfiles.keys()])
 
 
 def expand_path(myBamfile):
-    mySample = list(config["bamlists"][myBamfile]["paths"].keys())[0]
-    path = config["bamlists"][myBamfile]["paths"][mySample]
+    # mySample = list(config["bamlists"][myBamfile]["paths"].keys())[0]
+    path = config["bamlists"][bamfiles[myBamfile]]["paths"][myBamfile]
     full_path = os.path.expanduser(path)
     #bams = [f for p in full_paths for f in glob.glob(p)]
     return(full_path)
+
 #-----------------------------------------------------------------------------#
 rule all:
     input:
         vcf = expand("Filtered/{bamfile}_{panel}_depth_filter.vcf",
-                        bamfile = bamfile, panel = panels),
+                        bamfile = bamfiles.keys(), panel = panels),
         bed_ind = expand("Filtered/{bamfile}_{panel}_depth_filter.bed",
-                        bamfile = bamfile, panel = panels),
+                        bamfile = bamfiles.keys(), panel = panels),
         # bed_ind = expand("Filtered/{bamfile}_{panel}_depth_filter.bed",
         #                     bamfile = bamlists, panel = panels),
         bed_merged = expand("Merged/{panel}_merged.bed",#"Merged/{panel}_{bamfile}.bed",
-                            panel = panels, bamfile = bamfile)
+                            panel = panels, bamfile = bamfiles.keys())
 
 rule get_positions:
     input:
@@ -64,6 +69,9 @@ rule call_genos:
         ref = "/scratch/axiom/FAC/FBM/DBC/amalaspi/popgen/reference_human/hs.build37.1/hs.build37.1.fa",
         threads = 4,
         moreno2019 = param_is_defined("Genos_Moreno2019", "Yes")
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("call_genos_mem", attempt, 2),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("call_genos_time", attempt, 4)
     shell:
         """
             if [ {params.moreno2019} == "Yes" ]
@@ -92,7 +100,7 @@ rule filter_genos:
     output:
         filtered_genos = "Filtered/{bamfile}_{panel}_{chr}_allDepths.bcf"
     params:
-        threads = 20,
+        threads = 2,
         genoqual = 30,
         allelic_imbalance = 0.2,
         read_position_bias = 0,
@@ -141,7 +149,7 @@ rule concat_genos:
     output:
         genos_all_depths = "Filtered/{bamfile}_{panel}_allDepths.bcf"
     params:
-        threads = 20
+        threads = 2
     log:
     shell:
         """
@@ -160,10 +168,10 @@ rule filter_depth:
     # on filtered genotypes in this sample
         min_depth = "1/3",
         max_depth = "2",
-        sample = lambda wildcards: list(config["bamlists"][wildcards.bamfile]["paths"].keys())[0]
+        sample = '{bamfile}' #lambda wildcards: list(config["bamlists"][bamfiles[wildcards.bamfile]]["paths"][wildcards.bamfile].keys())[0]
     log:
         "logs/filter_depth_{bamfile}_{panel}.log"
-    threads: 20
+    threads: 2
     shell:
         """
         set +e
@@ -253,7 +261,7 @@ rule update_alleles:
 rule make_merge_list:
     input:
         bed_ind = expand("Filtered/{bamfile}_{panel}_depth_filter_refalt.bed",
-                         panel = "{panel}", bamfile = bamfile) 
+                         panel = "{panel}", bamfile = bamfiles.keys()) 
     output:
         list_to_merge = "Filtered/{panel}_to_merge.txt"
     run:
