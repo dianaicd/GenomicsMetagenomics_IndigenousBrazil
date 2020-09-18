@@ -1,0 +1,8 @@
+Trim:
+  trim_bp: 5
+  bams:
+    Botocudos: 
+      MN00010: "~/americas/Botocudos/BAM/Trimmed/test/MN00010.hg19.bam"
+    Karitiana:
+      
+    LagoaSanta:

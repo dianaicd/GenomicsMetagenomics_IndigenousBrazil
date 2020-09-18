@@ -1,13 +1,13 @@
 # Snakefile to downsample reads
 import numpy as np 
 from io import StringIO
-
+include: "parse_resources.smk"
 configfile: "multiple_purposes.yaml"
 
 samples = [sample for sample in list(config["downsample"]["groups"].keys())]
 #number_reads = [3*pow(10, n) for n in range(2, 9)]
 #depths = [0.01, 0.05, 0.1, 0.5, 1, 2, 9]
-depths = [10,15]
+depths = [1]
 wildcard_constraints:
     n = "\d+"
 
@@ -35,6 +35,9 @@ rule index:
         "{sample}.bam"
     output:
         "{sample}.bam.bai"
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("downsample_mem", attempt, 2),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("downsample_time", attempt, 8)
     shell:
         "samtools index {input}"
 
@@ -44,6 +47,9 @@ rule length:
         bai="{file}.bam.bai"
     output:
         length="{file}.length"
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("downsample_mem", attempt, 1),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("downsample_time", attempt, 4)
     shell:
         """
         cat {input.bam} | python ~/data/Git/Botocudos-scripts/DataQuality/read_length.py -o {output.length} 
@@ -78,10 +84,13 @@ rule samtools_sample:
         length = "{sample}.length"
     output:
         bam = "{depth}/{sample}_{depth}x.bam" 
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("downsample_mem", attempt, 8),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("downsample_time", attempt, 24)
     shell:
         """
         mkdir -p {wildcards.depth}
-        numReads=$(python ~/data/Git/Botocudos-scripts/Downsample/calc_nReads.py \
+        numReads=$(python3 ~/data/Git/Botocudos-scripts/Downsample/calc_nReads.py \
           -i {input.idxstats} -l {input.length} -d {wildcards.depth})
 
         n=$( awk '{{sum += $3}} END {{print sum}}' {input.idxstats} )
