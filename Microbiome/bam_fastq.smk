@@ -171,7 +171,9 @@ def write_stats(sample, lib, type, file_out):
     else:
         sample_lib = "-l " + lib + " " + "Microbiome/BAM_unmapped/" + sample + "/" + lib + "/" + sample + "_" + lib + ".bam" 
         unmapped = str(count_unmapped(sample_lib))
-    file_out.write("\t".join([sample, lib, unmapped, type]) + "\n")
+        
+    stats = "\t".join( [ sample, lib, unmapped, type ] ) + "\n"
+    file_out.write( stats )
 
 rule get_stats_bam_orig:
     input:
@@ -180,6 +182,9 @@ rule get_stats_bam_orig:
         stats = "Microbiome/stats/{sample}_orig_bam.txt"
     log:
         "Microbiome/logs/get_stats_bam_orig_{sample}.txt"
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("stats_unmapped_mem", attempt, 2),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("stats_unmapped_time", attempt, 12), 
     run:
         libs = lib_samples[wildcards.sample]
         with open(output.stats, 'w') as file_out:
