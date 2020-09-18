@@ -1,0 +1,684 @@
+---
+title: "ROHs in the Botocudo samples"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+require(scales)
+require(ggplot2)
+require(plyr)
+require(cowplot)
+source("~/Projects/Botocudos/Scripts/Heterozygosity/roh_plink_functions.R")
+```
+
+
+```{r set some variables that might be useful}
+m <- matrix( data = c('MN0008', 'MN0008', 'Botocudos',
+                      'MN0008_L3U', 'MN0008_L3U',  'Botocudos',
+                      'MN0008_trim_2bp_L3U_5bp_non_U', 'MN0008_trim_2bp_L3U_5bp_non_U',  'Botocudos',
+                      'MN0008_non_U', 'MN0008_non_U',  'Botocudos',
+                      'MN0008_trim_5bp_non_U', 'MN0008_trim_5bp_non_U',  'Botocudos',
+                      'MN00118', 'MN00118',  'Botocudos',
+                      'MN0009', 'MN0009',  'Botocudos',
+                      'MN00013', 'MN00013',  'Botocudos',
+                      'MN00056', 'MN00056',  'Botocudos',
+                      'Karitiana', 'Karitiana', 'Karitiana',
+                      'KaritianaB', 'Karitiana', 'Karitiana',
+                      'KaritianaBI16', 'KaritianaBI16', 'Karitiana',
+                      'KaritianaG', 'Karitiana', 'Karitiana',
+                      'KaritianaH', 'Karitiana', 'Karitiana',
+                      'LagoaSta', 'Lagoa_Santa', 'Lagoa_Santa',
+                      'MayaG', 'Maya', 'Maya',
+                      'MayaH', 'Maya', 'Maya',
+                      'Mixe', 'Mixe', 'Mixe',
+                      'MixeE', 'Mixe', 'Mixe',
+                      'MixeF', 'Mixe', 'Mixe',
+                      'PimaCEPH', 'Pima', 'Pima',
+                      'PimaE', 'Pima', 'Pima',
+                      'PimaF', 'Pima', 'Pima',
+                      'SuruiA', 'Surui', 'Surui',
+                      'SuruiB', 'Surui', 'Surui',
+                      'USR1', 'USR1', 'USR1'), 
+             ncol = 3, byrow = T)
+
+ind_pop <- as.data.frame(m)
+colnames(ind_pop) = c('sample', 'fam', 'pop')
+
+samples_fromVictor <- c("Karitiana", "KaritianaB",
+                        "KaritianaBI16", "KaritianaG", "KaritianaH",
+                        "LagoaSta",
+                        "MayaG", "MayaH",
+                        "Mixe", "MixeE", "MixeF",
+                        "PimaCEPH", "PimaE", "PimaF",
+                        "SuruiA", "SuruiB",
+                        "USR1")
+
+ids_fromVictor <- c("BI16", "SS6004476",
+                    "BI16", "LP6005441-DNA_G06", "LP6005441-DNA_H06",
+                    "Sumidouro5",
+                    "LP6005441-DNA_G07", "LP6005441-DNA_H07",
+                    "Mixe", "LP6005443-DNA_E11", "LP6005443-DNA_F11",
+                    "CEPH_11_D12", "LP6005441-DNA_E10", "LP6005441-DNA_F10",
+                    "LP6005441-DNA_A12", "LP6005441-DNA_B12",
+                    "USR1")
+
+mn8_to_change <- c('MN0008_L3U', 'MN0008_trim_2bp_L3U_5bp_non_U', 
+                   'MN0008_non_U', 'MN0008_trim_5bp_non_U')
+
+fromVictor <- data.frame( new_id = samples_fromVictor,
+                          old_id = ids_fromVictor)
+
+other_samples <- data.frame( new_id = mn8_to_change,
+                             old_id = "MN0008" )
+
+# ids_table <- rbind(fromVictor, other_samples)
+# ids_table <- vector( mode = 'list', length = 0 )
+
+# ids_table['MN0008']
+
+# Datasets for which I need to change some IDs: actually, just do it for all of them
+
+# We needed a header to know the length of the chromosomes
+header <- read.table("~/Projects/Botocudos/Files/Heterozygosity/2019_10_30/ROH/MN0008.header",
+                     skip = 1, nrows = 22, stringsAsFactors = F)
+
+```
+
+
+```{r}
+plot_roh_ind <- function(roh, ind, plot_dir, header){
+  
+  roh <- roh[roh$IID == ind, ]
+  header$chr <- sapply(header$V2, function(x) strsplit(x, ":")[[1]][2])
+  header$size <- sapply(header$V3, function(x) strsplit(x, ":")[[1]][2])
+  
+  fig_name <- paste(plot_dir, "ROH_",ind,".png", sep = "")
+  png(fig_name,
+      height = 6, width = 12, res = 250, units = "in")
+  layout(matrix(seq(1, 24), byrow = T, nrow = 4, ncol = 6),
+         widths = rep(2,6), heights = rep(1,4))
+  
+  for (chr in 1:22) {
+    
+    size <- as.integer(header$size[header$chr == chr])
+    
+    plot(bty = "n",
+         ylim = c(0,1), xlim = c(0,3e8),
+         type = "n", x = 0, y = 0, xlab = "Coordinates (bp)", ylab = NA,
+         main = chr, axes = F)
+    axis(1)
+    rect(xleft = 1, xright = size,
+         ybottom = 0, ytop = 1, lwd = .2,
+         col = "gray90")
+    if (chr %in% roh$CHR) {
+      rect(xleft = roh$POS1[roh$CHR == chr], xright = roh$POS2[roh$CHR == chr],
+           ybottom = 0, ytop = 1, lwd = .2,
+           col = "darkcyan") 
+      
+    }
+  }
+  dev.off()
+}
+
+```
+
+
+
+
+```{r}
+rohs_dir <- "~/Dropbox/Projects/Personal/Botocudos/Files/ROH/2020_07_14/"
+colors <- c('#ffb3f0',
+            '#6f0043',
+            '#9b5348',
+            '#b5d1cc',
+            '#b08699',
+            '#f5f5b8',
+            '#172713',
+            '#96bfe6')
+```
+
+```{r compare trimmed botocudos and original dataset from Victor}
+# Different datasets I've prepared:
+#   0.5x_low_coverage_trimmed5bp
+#   original_fromVictor = c('LagoaSta', 
+#                           'SuruiA', 'SuruiB', 'Karitiana', 
+#                           'KaritianaB', 'KaritianaBI16', 'KaritianaG', 'KaritianaH', 
+#                           'MayaG', 'MayaH', 'Mixe', 'MixeE', 'MixeF', 'PimaCEPH', 'PimaE', 'PimaF', 'USR1')
+#   1x_fromVictor
+#   0.5x_fromVictor
+#   MN0008
+#   MN0008_L3U
+#   MN0008_non_U
+#   MN0008_trim_2bp_L3U_5bp_non_U
+#   MN0008_trim_5bp_non_U
+#   
+```
+
+
+We used GLIMPSE to impute variants and phase haplotypes on Botocudo samples with a depth of coverage
+of at least 0.5$\times$ along with other previously published genomes of ancient and
+modern Amerindian groups. We conducted this analysis for a total of 5 Botocudo individuals,
+plus 2 ancient and 15 modern Amerindian genomes. 
+
+GLIMPSE was developed to impute variants on low-coverage genomes 
+(the authors recommend a DoC higher than 0.5$\times$). We expect that the molecular damage present in ancient 
+samples will degenerate the genotype likelihoods distribution and the quality of the imputed dataset with it.
+Therefore, to account for this extra source of error on the ROH calls, we explored the effect 
+of two additional (independent) steps:
+
+* trimming of 10 base per read (5 bp at each end) before genotype likelihoods calculations (and therefore, before imputating variants)
+* removing transitions from the imputed variants and calling ROH
+
+To compare the low-coverage Botocudo samples to the published genomes, 
+we also downsampled the latter set to an average depth of coverage of 0.5$\times$ and 1$\times$ prior to imputation.
+
+We start by describing the behavior in ROH calls for the 17 published Amerindian genomes
+before and after downsampling the data.
+
+# ROH calls for previously published genomes (original and downsampled data)
+
+We start by inspecting the distribution of ROH lengths per genome. 
+It is important to note that for this dataset, we have not trimmed the reads 
+before imputing variants for the two ancient individuals (USR1 and LagoaSta).
+
+```{r, eval = F}
+snp_type <- 'all'
+breaks <- seq(0, 20)
+
+# Start by loading the original dataset, 1x and 0.5x
+groups <- as.character(fromVictor$new_id)
+change_fid <- rep(T, length(groups))
+
+prefix <- '~/Projects/Botocudos/Files/ROH/2020_07_14/'
+
+roh_no_imputation <- prepare_rohs(groups = groups, 
+                                  prefix = prefix, sufix = '_roh.hom', 
+                                  change_fid = change_fid)
+
+sufix <- paste('.phased_', snp_type,'_roh.hom', sep = '')
+
+append(rohs_groups <- lapply(list("Original data (imputed)" = groups,
+                           "1x imputed" = c('1x_fromVictor'), 
+                           "0.5x imputed" = c('0.5x_fromVictor')),
+                      function(l) prepare_rohs(groups = l,
+                                               prefix = prefix, 
+                                               sufix = sufix,
+                                               change_fid = change_fid))
+
+rohs_groups[["No imputation"]] <- roh_no_imputation
+
+
+roh_original <- prepare_rohs(groups = groups, 
+                             prefix = prefix, sufix = sufix, 
+                        change_fid = change_fid)
+roh_1x <- prepare_rohs(groups = c('1x_fromVictor'), 
+                       prefix = prefix, sufix = sufix, 
+                        change_fid = c(T))
+roh_0.5x <- prepare_rohs(groups = c('0.5x_fromVictor'),
+                         prefix = prefix, sufix = sufix, 
+                        change_fid = c(T))
+
+samples <- as.character(unique(roh_original$IID))
+
+lengths_counts_no_imputation <- get_lengths_counts(roh = roh_no_imputation, 
+                                                   breaks = breaks, samples = samples)
+lengths_counts_original <- get_lengths_counts(roh = roh_original, 
+                                              breaks = breaks, samples = samples)
+lengths_counts_1x <- get_lengths_counts(roh = roh_1x, 
+                                        breaks = breaks, samples = samples)
+lengths_counts_0.5x <- get_lengths_counts(roh = roh_0.5x, 
+                                          breaks = breaks, samples = samples)
+
+rm(roh_no_imputation)
+rm(roh_original)
+rm(roh_1x)
+rm(roh_0.5x)
+```
+
+```{r}
+boto_inds <- c('MN0008',
+               'MN0008_L3U',
+               'MN0008_non_U',
+               'MN0008_trim_2bp_L3U_5bp_non_U',
+               'MN0008_trim_5bp_non_U')
+
+snp_type <- 'all'
+breaks <- seq(0, 20)
+
+# Start by loading the original dataset, 1x and 0.5x
+groups <- as.character(fromVictor$new_id)
+change_fid <- rep(T, length(groups))
+
+prefix <- '~/Projects/Botocudos/Files/ROH/2020_07_14/'
+#-------------------------------------------------------------------------------------------------#
+# Gather ROH per groups
+roh_groups <- list()
+roh_no_imputation <- prepare_rohs(groups = groups, 
+                                  prefix = prefix, sufix = '_roh.hom', 
+                                  change_fid = change_fid)
+roh_groups[["No imputation"]] <- roh_no_imputation
+
+# sufix <- paste('.phased_', snp_type,'_roh.hom', sep = '')
+sufix <- '_roh.hom'
+roh_botos <- prepare_rohs(groups = boto_inds, 
+                                  prefix = prefix, sufix = sufix, 
+                                  change_fid = change_fid)
+
+sufix <- paste('.phased_', snp_type,'_roh.hom', sep = '')
+
+roh_botos_imputed <- prepare_rohs(groups = boto_inds, 
+                                  prefix = prefix, sufix = sufix, 
+                                  change_fid = change_fid)
+
+roh_groups <- append(roh_groups, lapply(list("Original data (imputed)" = groups,
+                           "1x imputed" = c('1x_fromVictor'), 
+                           "0.5x imputed" = c('0.5x_fromVictor')),
+                      function(l) prepare_rohs(groups = l,
+                                               prefix = prefix, 
+                                               sufix = sufix,
+                                               change_fid = change_fid))
+)
+
+roh_groups[["Botocudo (imputed)"]] <- roh_botos_imputed
+roh_groups[["Botocudo (not imputed)"]] <- roh_botos
+
+#-------------------------------------------------------------------------------------------------#
+# Get ROH counts and lengths per group
+
+lengths_counts_all <- lapply(roh_groups, function(group) {get_lengths_counts(roh = group,
+                                                                              breaks = breaks,
+                                                                              samples = (unique(group$IID)))}
+                             )
+
+rm(roh_botos)
+rm(roh_no_imputation)
+rm(roh_groups)
+
+```
+
+```{r barplot with original and imputed data}
+
+colors_counts <- c('#681916', '#c0b490', '#417777', '#d1bd19')
+
+samples <- unique(unlist(lapply(lengths_counts_all, function(l) names(l$length))))
+
+summary_roh_length <- merge_roh_lengths(lengths_counts = lengths_counts_all, samples = samples, ind_pop = ind_pop)
+
+```
+
+```{r}
+
+no_imp <- summary_roh_length[summary_roh_length$type == 'No imputation', ]
+
+low_color <- "#ffab00"
+high_color <- "#008aa1"
+df <- no_imp
+ylim <- c(0, 300)
+ncol <- 2
+
+png('~/Projects/Botocudos/Plots/ROH/GLIMPSE/length_no_imputation.png',
+    width = 7, height = 10, res = 300, units = 'in')
+
+plot_lengths_pop_sample(df = no_imp)
+
+dev.off()
+
+
+png('~/Projects/Botocudos/Plots/ROH/GLIMPSE/length_no_imputation_boto.png',
+    width = 12, height = 10, res = 300, units = 'in')
+
+plot_lengths_pop_sample(df = summary_roh_length[ summary_roh_length$type %in% c("No imputation", "Botocudo (not imputed)"  ), ], ncol = 3)
+
+dev.off()
+
+
+```
+
+```{r}
+
+
+png("~/Projects/Botocudos/Plots/ROH/GLIMPSE/MN0008_lengths.png",
+    width = 10, height = 10, res = 300, units = "in")
+
+p1 <- plot_lengths_pop_sample(df = summary_roh_length[ summary_roh_length$type %in% c( "Botocudo (not imputed)"  ), ],
+                        ncol = 3) +
+  labs(title = "Not imputed")
+p2 <- plot_lengths_pop_sample(df = summary_roh_length[ summary_roh_length$type %in% c( "Botocudo (imputed)"  ), ], 
+                        ncol = 3) + 
+  labs(title = "Imputed")
+
+plot_grid(p1, p2, ncol = 1, rel_heights = c(1,1), rel_widths = c(2))
+dev.off()
+```
+
+
+```{r, fig.width=15, fig.height=12, points for original and imputed data}
+
+
+# png('~/Projects/Botocudos/Plots/ROH/GLIMPSE/dist_original_1x_0.5x.png',
+    # width = 12, height = 8, res = 300, units = 'in')
+layout(matrix(seq(1, 18), nrow = 3, byrow = T))
+samples <- colnames(lengths_counts_original$counts)
+
+for(sample in samples){
+  
+  # if (sample == 'KaritianaBI16'){next()}
+  
+  plot(1,1, xlim = c(0,20), ylim = c(0, 350), axes = F,
+       xlab = 'ROH bin (Mb)',
+       ylab = 'Sum of ROH lengths (Mb)', type = 'n', main = sample)
+  axis(1)
+  axis(2)
+  
+  points_length_sum(lengths_counts = lengths_counts_no_imputation,
+                    sample=sample, color = '#681916')
+  points_length_sum(lengths_counts = lengths_counts_original,
+                    sample=sample, color = '#ffb852')
+  points_length_sum(lengths_counts = lengths_counts_1x,
+                    sample=sample, color = '#7e8743')
+  points_length_sum(lengths_counts = lengths_counts_0.5x,
+                    sample=sample, color = '#00d973')
+    
+  
+}
+plot(1,1, xlim = c(0,20), ylim = c(0, 500), axes = F,
+       xlab = NA,
+       ylab = NA, type = 'n', main = NA)
+legend( x = 5, y = 400,
+        bty = 'n', pt.lwd = 2, pch = 1,
+        legend = c('No imputation',
+                   'Imputing original dataset',
+                   'Imputing dataset at 1x',
+                   'Imputing dataset at 0.5x'),
+        col = c('#681916', '#ffb852', '#7e8743', '#00d973'))
+
+
+# dev.off()
+```
+
+Interestingly, the distributions shown above for the imputated datasets at 0.5$\times$ ressemble more those of the original datasets (black) than the imputed data at 1$x$. I need some time to think about what is causing this behavior.
+
+It is expected that populations with an excess of matings between close relatives will have an increase of total homozygous sites per genome with respect to a random mating population.
+It is also expected that random mating populations with smaller effective population sizes will have an increased number of ROH per genome.
+
+
+We can we consider a random mating population with constant Ne.
+ROH burden and counts per genome are two measures that have been used to describe 
+
+```{r, fig.width=15, fig.height=10}
+samples <- colnames(lengths_counts_original$counts)
+
+lengths_rohs <- list( 'No imputation' = lengths_counts_no_imputation,
+                      'Original data imputed' = lengths_counts_original,
+                      '1x imputed' = lengths_counts_1x,
+                      '0.5x imputed' = lengths_counts_0.5x)
+
+
+all_sroh_nroh <- do.call(rbind, lapply( names(lengths_counts_all), 
+                                        function(l) {  
+                                          sroh_nroh <- get_sroh_nroh(lengths_counts_all[[l]],
+                                                                     colnames(lengths_counts_all[[l]]$lengths))
+                                          sroh_nroh <- join(sroh_nroh, ind_pop, by = 'sample')
+                                          sroh_nroh$type <- l
+                                          return(sroh_nroh)
+                                        }
+))
+
+
+# Remove one individual: KaritianaBI16
+all_sroh_nroh <- all_sroh_nroh[all_sroh_nroh$sample != 'KaritianaBI16', ]
+
+myColors <- c('#ff616b', '#328e13', '#172713', '#a6e6db')
+
+nrow <- 2
+ncol <- 4
+ylim <- c(0, 700)
+xlim <- c(0, 700)
+
+png('~/Projects/Botocudos/Plots/ROH/GLIMPSE/sroh_nroh_orig_1x_0.5x.png',
+    width = 12, height = 10, res = 300, units = 'in')
+
+plot_sroh_nroh_trajectory(all_sroh_nroh[ all_sroh_nroh$pop != "Botocudos", ], xlim, ylim, myColors)
+
+dev.off()
+
+
+```
+
+
+```{r}
+ggplot(sroh_nroh_original, aes(x = sroh, y = nroh)) +
+  geom_point(size = 4) +
+  coord_cartesian( xlim = c(0,750),
+                   ylim = c(0, 750)) +
+  labs(x = 'Sum of ROH lengths in the genome (Mb)',
+       y = 'Number of ROHs per genome') +
+  scale_color_manual(values = colors) +
+  facet_wrap(.~pop) 
+
+
+```
+
+# Trimmed 5bp on our low-coverage samples, plus other samples
+
+```{r compare your samples and original Victors bam files, fig.width=15, fig.height=15}
+groups <- c('0.5x_low_coverage_trimmed5bp',
+            # 'MN0008', 'MN0008_L3U', 
+            'MN0008_trim_2bp_L3U_5bp_non_U',
+            # 'MN0008_non_U', 'MN0008_trim_5bp_non_U', 
+            as.character(fromVictor$new_id))
+
+# Unfortunately, the name of the BAM files did not match the ID in them...
+change_fid <- c(F, F, T, T, T, T, rep(T, length(fromVictor$new_id)))
+
+gather_plot()
+```
+
+
+# Original bam files, all of them
+
+```{r, fig.width=15, fig.height=15}
+groups <- c('0.5x_low_coverage',
+            'MN0008', 'MN0008_L3U',
+            'MN0008_trim_2bp_L3U_5bp_non_U',
+            'MN0008_non_U', 'MN0008_trim_5bp_non_U',
+            as.character(fromVictor$new_id))
+
+# Unfortunately, the name of the BAM files did not match the ID in them...
+change_fid <- c(F, F, T, T, T, T, rep(T, length(fromVictor$new_id)))
+
+gather_plot()
+```
+
+# Downsampling other bamfiles to 1x
+
+```{r, fig.width=15, fig.height=15}
+groups <- c('0.5x_low_coverage',
+            'MN0008', 'MN0008_L3U',
+            'MN0008_trim_2bp_L3U_5bp_non_U',
+            'MN0008_non_U', 'MN0008_trim_5bp_non_U',
+            '1x_fromVictor')
+
+# Unfortunately, the name of the BAM files did not match the ID in them...
+change_fid <- c(F, F, T, T, T, T, rep(T, length(fromVictor$new_id)))
+
+gather_plot()
+```
+
+# Downsampling other bamfiles to 0.5x
+
+```{r, fig.width=15, fig.height=15}
+groups <- c('0.5x_low_coverage',
+            'MN0008', 'MN0008_L3U',
+            'MN0008_trim_2bp_L3U_5bp_non_U',
+            'MN0008_non_U', 'MN0008_trim_5bp_non_U',
+            '0.5x_fromVictor')
+
+# Unfortunately, the name of the BAM files did not match the ID in them...
+change_fid <- c(F, F, T, T, T, T, rep(T, length(fromVictor$new_id)))
+
+gather_plot()
+```
+
+```{r, eval = F}
+header <- read.table("~/Projects/Botocudos/Files/Heterozygosity/2019_10_30/ROH/MN0008.header", skip = 1, nrows = 22, stringsAsFactors = F)
+prefix <- "~/Dropbox/Projects/Personal/Botocudos/Files/ROH/2020_07_14/"
+
+groups <- c('0.5x_low_coverage', 'MN0008', 
+            'MN0008_L3U', 
+            'MN0008_trim_2bp_L3U_5bp_non_U',
+            'MN0008_non_U', 'MN0008_trim_5bp_non_U', '1x_fromVictor')
+change_FID <- c(F, F, T, T, T, T)
+
+snp_type <- 'all'
+sufix <- paste('.phased_', snp_type,'_roh.hom', sep = '')
+roh_all <- prepare_rohs(groups = groups,
+                        prefix = prefix,
+                        sufix = sufix, change_fid = change_fid)
+
+snp_type <- 'rmTrans'
+sufix <- paste('.phased_', snp_type,'_roh.hom', sep = '')
+roh_rmTrans <- prepare_rohs(groups = groups,
+                            prefix = prefix, sufix = sufix,
+                            change_fid = change_fid)
+
+snp_type <- '1240K'
+sufix <- paste('.phased_', snp_type,'_roh.hom', sep = '')
+roh_HO <- prepare_rohs(groups = groups, 
+                       prefix = prefix, sufix = sufix,
+                       change_fid = change_fid)
+
+samples <- unique(roh_all$IID)
+
+breaks <- seq(0,15000, 1000)/1e3
+
+# png('~/Projects/Botocudos/Plots/ROH/hist_rohs_all_variants.png',
+    # width = 10, height = 10, res = 300, units = 'in')
+layout(matrix(seq(1, 25), byrow = T, nrow = 5))
+for (ind in samples) {
+  hist(roh_all$KB[ roh_all$IID == ind ]/(1e3),
+       main = ind,  breaks = breaks, ylim = c(0, 500),
+       xlab = "ROH length (Mb)")
+  # hist( roh_HO$KB[ roh_HO$FID == ind], 
+       # main = ind,  breaks = breaks, col = alpha("red", 0.5), add =T)
+}
+
+breaks <- seq(0,18000, 1000)/1e3
+
+layout(matrix(seq(1, 25), byrow = T, nrow = 5))
+for (ind in samples) {
+  hist(roh_rmTrans$KB[ roh_rmTrans$IID == ind ]/(1e3),
+       main = ind,  breaks = breaks, ylim = c(0, 500),
+       xlab = "ROH length (Mb)")
+  # hist( roh_HO$KB[ roh_HO$FID == ind], 
+       # main = ind,  breaks = breaks, col = alpha("red", 0.5), add =T)
+}
+# dev.off()
+```
+
+```{r, eval = F}
+counts_all <- as.data.frame(t(sapply(seq(1, 50), 
+                                     function(x) 
+                                       table(roh_all$IID[ roh_all$KB >= x * 1000 & roh_all$KB < (x + 1)*1000 ]))))
+
+counts_HO <- as.data.frame(t(sapply(seq(1, 50), 
+                                    function(x) table(roh_HO$IID[ roh_HO$KB >= x*1000 & roh_HO$KB < (x + 1)*1000 ]))))
+colnames(counts_HO) <- paste( colnames(counts_HO), "_1240K", sep = "")
+
+
+counts_roh <- cbind(counts_all, counts_HO)
+counts_roh <- counts_roh[rowSums(counts_roh) != 0,]
+counts_roh <- counts_roh[,sort(colnames(counts_roh))]
+counts_roh[counts_roh == 0] <- NA
+write.csv(counts_roh, "~/Dropbox/Projects/Personal/Botocudos/Files/Tables/ROH/ROHs_plink.csv",
+           row.names = T)
+```
+
+
+```{r, eval = F}
+plot_dir_all <- "~/Dropbox/Projects/Personal/Botocudos/Plots/ROH/all_"
+plot_dir_1240K <- "~/Dropbox/Projects/Personal/Botocudos/Plots/ROH/1240K_"
+
+for (ind in samples) {
+  plot_roh_ind(roh = roh_all, ind = ind, plot_dir = plot_dir_all, header = header)
+}
+
+for (ind in samples) {
+  plot_roh_ind(roh = roh_HO, ind = ind, plot_dir = plot_dir_1240K, header = header)
+}
+```
+
+```{r, eval = F}
+
+
+plot_roh_ind_two_sets <- function(roh1, roh2, ind, plot_dir, header, 
+                                  background_color = "gray90",
+                                  color_1 = "#a90636",
+                                  color_2 = "#4f8fe6",
+                                  legend_text = c("set1", "set1")){
+  
+  roh1 <- roh1[roh1$IID == ind, ]
+  roh2 <- roh2[roh2$IID == ind, ]
+  
+  header$chr <- sapply(header$V2, function(x) strsplit(x, ":")[[1]][2])
+  header$size <- sapply(header$V3, function(x) strsplit(x, ":")[[1]][2])
+  
+  fig_name <- paste(plot_dir, "ROH_",ind,".png", sep = "")
+  png(fig_name,
+      height = 6, width = 12, res = 250, units = "in")
+  layout(matrix(seq(1, 24), byrow = T, nrow = 4, ncol = 6),
+         widths = rep(2,6), heights = rep(1,4))
+  
+  for (chr in 1:22) {
+    
+    size <- as.integer(header$size[header$chr == chr])
+    
+    plot(bty = "n",
+         ylim = c(0,2), xlim = c(0,3e8),
+         type = "n", x = 0, y = 0, xlab = "Coordinates (bp)", ylab = NA,
+         main = paste("chr",chr, sep = ""), axes = F)
+    axis(1)
+    rect(xleft = 1, xright = size,
+         ybottom = 0.2, ytop = 1, lwd = .2,
+         col = background_color)
+    rect(xleft = 1, xright = size,
+         ybottom = 1.2, ytop = 2, lwd = .2,
+         col = background_color)
+    
+    if (chr %in% roh1$CHR) {
+      rect(xleft = roh1$POS1[roh1$CHR == chr], xright = roh1$POS2[roh1$CHR == chr],
+           ybottom = 1.2, ytop = 2, lwd = .2,
+           col = color_1) 
+    }
+    if (chr %in% roh2$CHR) {
+      rect(xleft = roh2$POS1[roh2$CHR == chr], xright = roh2$POS2[roh2$CHR == chr],
+           ybottom = 0.2, ytop = 1, lwd = .2,
+           col = color_2) 
+    }
+  }
+  
+  plot(1:10, 1:10, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+  legend(x = 1, y = 12, fill = c(color_1, color_2), 
+         legend = legend_text, bty = "n", cex = 1.)
+  
+  dev.off()
+}
+
+```
+
+```{r, eval = F}
+plot_dir_comparison <- "~/Dropbox/Projects/Personal/Botocudos/Plots/ROH/comparison_"
+
+
+for (ind in samples) {
+  plot_roh_ind_two_sets(roh1 = roh_all, roh2 = roh_HO,
+               ind = ind, plot_dir = plot_dir_comparison, header = header,
+               legend_text = c("All variants", "1240K set"))
+}
+
+```
+

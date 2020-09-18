@@ -12,3 +12,5 @@
 *.log
 *_cache/
 *.pdf
+.vscode/
+.vscode/settings.json
