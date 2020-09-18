@@ -4,6 +4,7 @@
 # and merge likelihoods for (panel, bam) files.
 configfile: "multiple_purposes.yaml"
 import os, glob
+include: "parse_resources.smk"
 
 bamlists = list(config["geno_like"]["bamlists"].keys())
 panels = list(config["geno_like"]["panels"].keys()) 
@@ -13,25 +14,25 @@ chromosomes = [str(x) for x in range(1,23)]
 
 wildcard_constraints:
     extension = "(bed|vcf|ped)",
-    Chr =   "|".join(chromosomes)  ,
+    chr =   "|".join(chromosomes)  ,
     panel =  "(" + "|".join([p for p in panels])+ ")(?!_" + "|_".join([b for b in bamlists]) + ")" ,
     bamlist = ")".join(["(?<!"+p for p in panels])  + "_)" + "|".join([b for b in bamlists])
-
-rule all:
-    input:
-        merged = expand("{panel}/{bamlist}_{panel}.beagle", panel = panels, bamlist = bamlists)
 
 def expand_path(wildcards):
     paths = [list(config["geno_like"]["bamlists"][l]["paths"].values()) for l in bamlists][0]
     #full_paths = [os.path.expanduser(p) for p in paths]
     bams = []
     for p in paths:
-        myCommand = "ls " + p 
+        myCommand = "shopt -s extglob ; ls " + p 
         files = os.popen(myCommand).read().split('\n')
         files.remove('')
         [bams.append(individual_path) for individual_path in files]
     #bams = [f for p in full_paths for f in glob.glob(p)]
     return(bams)
+
+rule all:
+    input:
+        merged = expand("{panel}/{bamlist}_{panel}.beagle", panel = panels, bamlist = bamlists)
 
 rule make_bamlist:
     input:
@@ -45,9 +46,30 @@ rule make_bamlist:
             for line in input:
                 file.write(line+"\n")
 
-rule panel_to_beagle:
+
+rule plink_to_vcf:
     input:
         panel = lambda wildcards: config["geno_like"]["panels"][wildcards.panel]["path"]
+    output:
+        "{panel}/{panel}.vcf"
+    params:
+        out = "{panel}/{panel}",
+        type = lambda wildcards: config["geno_like"]["panels"][wildcards.panel]["type"]
+    shell:
+        """
+        if [ {params.type} = 'bed' ]
+            then infile=$(echo --bfile {input.panel} |sed 's/.bed//' )
+            else infile=$(echo --file {input.panel} |sed 's/.ped//' )
+        fi
+        
+        plink --recode vcf $infile --out {params.out} 
+        
+        """
+
+
+rule vcf_to_beagle:
+    input:
+        panel = "{panel}/{panel}.vcf"
     output:
         panel = "{panel}/{panel}.beagle",
         ids = "{panel}/{panel}_ids.txt",
@@ -56,63 +78,95 @@ rule panel_to_beagle:
         rmdamage = lambda wildcards: config["geno_like"]["panels"][wildcards.panel]["rmdamage"]
     log:
         "logs/{panel}.log"
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("panel_to_beagle_mem", attempt, 2),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("panel_to_beagle_time", attempt, 6)
     shell:
         """
-            extension=$(echo {input.panel}|rev |cut -f1 -d. |rev) ;
-            if [ $extension == "bed" ] 
-            then plink --recode vcf --bfile {wildcards.panel} --out {wildcards.panel} 
-            elif [ $extension == "ped" ]
-            then plink --recode vcf-fid --file {wildcards.panel} --out {wildcards.panel}
-            fi
-
-            if [ ! -e vcftogenolike.pl ] 
+        if [ ! -e vcftogenolike.pl ] 
             then ln -s ~/data/Git/Botocudos-scripts/GenoLike/vcftogenolike.pl ./
-            fi
-            perl vcftogenolike.pl -i {wildcards.panel}.vcf  -rmdamage {params.rmdamage} -o {output.panel} 2>{log}
-            cut -f 1 {output.panel} > {output.ids}
-            bcftools query -l {wildcards.panel}.vcf > {output.names}
+        fi
+
+        perl vcftogenolike.pl -i {input.panel}  \
+            -rmdamage {params.rmdamage} \
+            -o {output.panel} 2>{log}
+
+        cut -f 1 {output.panel} > {output.ids}
+        bcftools query -l {input.panel} > {output.names}
         """
 
-rule genos_chr:
+rule angsd_sites:
     input:
         panel = "{panel}/{panel}.beagle",
+    output:
+        sites = "{panel}/{bamlist}_chr{chr}_sites.txt",
+        rf = "{panel}/chr{chr}_{bamlist}.txt",
+        idx = "{panel}/{bamlist}_chr{chr}_sites.txt.idx",
+        binary = "{panel}/{bamlist}_chr{chr}_sites.txt.bin",
+    params:
+    shell:
+        """
+        set +e
+        cut -f 1-3 {input.panel}| sed 1d |\
+            grep "^{wildcards.chr}_" | sed 's/_/\t/' |sort -V > {output.sites} 
+        cut -f1 {output.sites} |sort -V |uniq > {output.rf}
+        angsd sites index {output.sites}
+        exitcode=$? 
+        if [ $exitcode -eq 1 ] ; then exit 1; else exit 0 ; fi
+        """
+
+rule genotype_likelihoods:
+    input:
+        panel = "{panel}/{panel}.beagle",
+        sites = "{panel}/{bamlist}_chr{chr}_sites.txt",
+        rf = "{panel}/chr{chr}_{bamlist}.txt",
+        idx = "{panel}/{bamlist}_chr{chr}_sites.txt.idx",
+        binary = "{panel}/{bamlist}_chr{chr}_sites.txt.bin",
         bamlist = "{bamlist}.txt"
     output:
-        sites = "{panel}/{bamlist}_{chr}_sites.txt",
-        idx = "{panel}/{bamlist}_{chr}_sites.txt.idx",
-        binary = "{panel}/{bamlist}_{chr}_sites.txt.bin",
-        rf = "{panel}/chr{chr}_{bamlist}.txt",
-        gl = "{panel}/{bamlist}_{chr}.beagle.gz"
+        gl = "{panel}/{bamlist}_chr{chr}.beagle.gz"
     params:
         trim = lambda wildcards: config["geno_like"]["bamlists"][wildcards.bamlist]["trim"],
         minQ = lambda wildcards: config["geno_like"]["bamlists"][wildcards.bamlist]["minQ"],
         minmapQ = lambda wildcards: config["geno_like"]["bamlists"][wildcards.bamlist]["minmapQ"]
     log:
-        "logs/{bamlist}_{panel}_{chr}_genolike.log"
+        "logs/{bamlist}_{panel}_chr{chr}_genolike.log"
     threads:
         config["geno_like"]["nThreads"]
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("genos_chr_mem", attempt, 4),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("genos_chr_time", attempt, 24)
     shell:
         """ 
-        cut -f 1-3 {input.panel}| sed 1d |\
-            grep "^{wildcards.chr}_" | sed 's/_/\t/' |sort -V > {output.sites} 
-        cut -f1 {output.sites} |sort -V |uniq > {output.rf}
-        angsd sites index {output.sites}
-        angsd -GL 1 -out {wildcards.panel}/{wildcards.bamlist}_{wildcards.chr} -doGlf 2 -doMajorMinor 3  \
-            -bam {input.bamlist} -minQ {params.minQ} -minmapQ {params.minmapQ} {params.trim}\
-            -sites {output.sites} -rf {output.rf}  -checkbamheaders 0 \
+        touch {input.idx}
+        touch {input.binary}
+        angsd -GL 1 \
+            -out {wildcards.panel}/{wildcards.bamlist}_chr{wildcards.chr} \
+            -doGlf 2 -doMajorMinor 3  \
+            -bam {input.bamlist} \
+            -minQ {params.minQ} \
+            -minmapQ {params.minmapQ} \
+            {params.trim} \
+            -sites {input.sites} \
+            -rf {input.rf}  \
+            -checkbamheaders 0 \
             -nThreads {threads} &>{log}
         """
 
 rule merge_chr:
     input:
-        beagle_gz = lambda wildcards: expand("{panel}/{bamlist}_{chr}.beagle.gz",
-                                             bamlist = bamlists, chr = chromosomes, panel = wildcards.panel)
+        beagle_gz = lambda wildcards: ["{panel}/{bamlist}_chr{chr}.beagle.gz".format(
+                                             bamlist = wildcards.bamlist, chr = chr, panel = wildcards.panel)
+                                             for chr in chromosomes]
     output:
         beagle = "{panel}/{bamlist}.beagle",
         header = temp("{panel}/{bamlist}_header.txt"),
         beagle_temp = temp("{panel}/{bamlist}_tmp.beagle")
     log:
         "logs/{bamlist}_{panel}_genolike.log"
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("merge_chr_mem", attempt, 2),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("merge_chr_time", attempt, 1)
     shell:
         """
         cat {input.beagle_gz} > {output.beagle_temp}.gz        2>{log}
@@ -133,6 +187,8 @@ rule merge_genos:
         homozygous = lambda wildcards: config["geno_like"]["panels"][wildcards.panel]["homozygous"]
     log:
         "logs/{bamlist}_{panel}_genolike.log"
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("merge_genos_mem", attempt, 32)
     shell:
         """
         if [ ! -e merge_genos.pl ]
