@@ -1,0 +1,525 @@
+---
+title: "Ne_ROH"
+author: "Cruz-Dávalos, Diana I."
+date: "8/26/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+require(scales)
+require(ggplot2)
+require(plyr)
+require(cowplot)
+source("~/Projects/Botocudos/Scripts/Heterozygosity/roh_plink_functions.R")
+source("~/Projects/Botocudos/Scripts/Ne/Ne_from_ROH.R")
+
+magic_panel <- read.table("~/Projects/Botocudos/Files/Panels/Magic.panel",
+                          header = T)
+
+```
+
+
+```{r set some variables that might be useful}
+m <- matrix( data = c('MN0008', 'MN0008', 'Botocudos',
+                      'MN0008_L3U', 'MN0008_L3U',  'Botocudos',
+                      'MN0008_trim_2bp_L3U_5bp_non_U', 'MN0008_trim_2bp_L3U_5bp_non_U',  'Botocudos',
+                      'MN0008_non_U', 'MN0008_non_U',  'Botocudos',
+                      'MN0008_trim_5bp_non_U', 'MN0008_trim_5bp_non_U',  'Botocudos',
+                      'MN00118', 'MN00118',  'Botocudos',
+                      'MN0009', 'MN0009',  'Botocudos',
+                      'MN00013', 'MN00013',  'Botocudos',
+                      'MN00056', 'MN00056',  'Botocudos',
+                      'Karitiana', 'Karitiana', 'Karitiana',
+                      'KaritianaB', 'Karitiana', 'Karitiana',
+                      'KaritianaBI16', 'KaritianaBI16', 'Karitiana',
+                      'KaritianaG', 'Karitiana', 'Karitiana',
+                      'KaritianaH', 'Karitiana', 'Karitiana',
+                      'LagoaSta', 'Lagoa_Santa', 'Lagoa_Santa',
+                      'MayaG', 'Maya', 'Maya',
+                      'MayaH', 'Maya', 'Maya',
+                      'Mixe', 'Mixe', 'Mixe',
+                      'MixeE', 'Mixe', 'Mixe',
+                      'MixeF', 'Mixe', 'Mixe',
+                      'PimaCEPH', 'Pima', 'Pima',
+                      'PimaE', 'Pima', 'Pima',
+                      'PimaF', 'Pima', 'Pima',
+                      'SuruiA', 'Surui', 'Surui',
+                      'SuruiB', 'Surui', 'Surui',
+                      'USR1', 'USR1', 'USR1'), 
+             ncol = 3, byrow = T)
+
+ind_pop <- as.data.frame(m)
+colnames(ind_pop) = c('sample', 'fam', 'pop')
+
+samples_fromVictor <- c("Karitiana", "KaritianaB",
+                        "KaritianaBI16", "KaritianaG", "KaritianaH",
+                        "LagoaSta",
+                        "MayaG", "MayaH",
+                        "Mixe", "MixeE", "MixeF",
+                        "PimaCEPH", "PimaE", "PimaF",
+                        "SuruiA", "SuruiB",
+                        "USR1")
+
+ids_fromVictor <- c("BI16", "SS6004476",
+                    "BI16", "LP6005441-DNA_G06", "LP6005441-DNA_H06",
+                    "Sumidouro5",
+                    "LP6005441-DNA_G07", "LP6005441-DNA_H07",
+                    "Mixe", "LP6005443-DNA_E11", "LP6005443-DNA_F11",
+                    "CEPH_11_D12", "LP6005441-DNA_E10", "LP6005441-DNA_F10",
+                    "LP6005441-DNA_A12", "LP6005441-DNA_B12",
+                    "USR1")
+
+mn8_to_change <- c('MN0008_L3U', 'MN0008_trim_2bp_L3U_5bp_non_U', 
+                   'MN0008_non_U', 'MN0008_trim_5bp_non_U')
+
+fromVictor <- data.frame( new_id = samples_fromVictor,
+                          old_id = ids_fromVictor)
+
+other_samples <- data.frame( new_id = mn8_to_change,
+                             old_id = "MN0008" )
+
+# ids_table <- rbind(fromVictor, other_samples)
+# ids_table <- vector( mode = 'list', length = 0 )
+
+# ids_table['MN0008']
+
+# Datasets for which I need to change some IDs: actually, just do it for all of them
+
+# We needed a header to know the length of the chromosomes
+header <- read.table("~/Projects/Botocudos/Files/Heterozygosity/2019_10_30/ROH/MN0008.header",
+                     skip = 1, nrows = 22, stringsAsFactors = F)
+
+```
+
+```{r}
+snp_type <- 'rmTrans'
+breaks <- seq(0, 20)
+
+# Start by loading the original dataset, 1x and 0.5x
+groups <- as.character(fromVictor$new_id)
+change_fid <- rep(T, length(groups))
+
+prefix <- '~/Projects/Botocudos/Files/ROH/2020_07_14/'
+
+roh_no_imputation <- prepare_rohs(groups = groups, 
+                                  prefix = prefix, sufix = '_roh.hom', 
+                                  change_fid = change_fid)
+
+sufix <- paste('.phased_', snp_type,'_roh.hom', sep = '')
+
+
+roh_original <- prepare_rohs(groups = groups, 
+                             prefix = prefix, sufix = sufix, 
+                        change_fid = change_fid)
+roh_1x <- prepare_rohs(groups = c('1x_fromVictor'), 
+                       prefix = prefix, sufix = sufix, 
+                        change_fid = c(T))
+roh_0.5x <- prepare_rohs(groups = c('0.5x_fromVictor'),
+                         prefix = prefix, sufix = sufix, 
+                        change_fid = c(T))
+
+samples <- as.character(unique(roh_original$IID))
+
+```
+
+```{r}
+sapply(samples, function(sample) get_Ne(sample = sample, roh = roh_no_imputation))
+sapply(samples, function(sample) get_Ne(sample = sample, roh = roh_original))
+
+```
+
+# Classify roh by length
+
+```{r classify roh by length}
+require(mclust)
+vignette("mclust")
+
+
+class <- roh_no_imputation$IID
+X <- roh_no_imputation[,c("KB")]
+head(X)
+mod4 <- densityMclust(X, G = 3)
+summary(mod4)
+
+plot(mod4, what = "BIC")
+
+plot(mod4, what = "density", data = X, breaks = 50)
+
+plot(mod4, what = "diagnostic", type = "cdf")
+plot(mod4, what = "diagnostic", type = "qq")
+
+
+hist(rnorm(1000, mean = mod4$parameters$mean[1], sd = sqrt(mod4$parameters$variance$sigmasq[1])))
+
+```
+
+```{r}
+get_norm_lines <- function(mod4, component, color){
+  mean <- mod4$parameters$mean[ component ]
+  sd <-  sqrt(mod4$parameters$variance$sigmasq[ component ])
+  range_norm <- range(rnorm(1000, mean = mean, sd = sd ))
+  x <- seq(range_norm[1], range_norm[2], length.out = 100)
+  
+  hx <- dnorm(x, mean = mean, sd = sd)
+  lines(x, hx, lwd=2, col=color)
+  # plot(x, hx, type="l", lty=2)
+}
+
+
+plot(1,2, type="n", 
+     main="", xlab = NA, ylab = NA, 
+     ylim = c(0, 0.005), xlim = c(0, 5000),
+     bty = "n")
+colors <- c("red", "green", "blue")
+
+hist(X, breaks = 1000,
+     xlim = c(500, 10000), ylim = c(0, 0.005),
+     probability = T)
+
+for (i in 1:3){
+  get_norm_lines(mod4, i, colors[i])
+}
+
+```
+
+
+```{r}
+
+hist(X, breaks = 1000)
+
+range(X[mod4$classification == 1])
+range(X[mod4$classification == 2])
+range(X[mod4$classification == 3])
+
+hist(X[mod4$classification == 1],
+     col = alpha(colors[1], 0.5), 
+     breaks = 100,
+     xlim = c(500, 15000), border = NA)
+
+hist(X[mod4$classification == 2],
+     col = alpha(colors[2], 0.5),
+     add = T, breaks = 200, border = NA)
+hist(X[mod4$classification == 3],
+     col = alpha(colors[3], 0.5),
+     add = T, breaks = 200, border = NA)
+
+```
+
+
+# High-coverage genomes
+
+```{r}
+
+get_Ne_from_roh <- function(roh, magic_panel, 
+                            region_levels = c("Africa", "Oceania", "Europe",
+                                              "EastAsia", "Americas", "Botocudos")){
+  
+  roh$indID <- roh$IID
+  roh <- join(roh, magic_panel, by = "indID")
+  roh <- droplevels(roh)
+  samples <- unique(roh$FID)
+  
+  Ne <- data.frame(indID = samples,
+                   Ne = sapply(samples, function(sample) get_Ne(sample = sample, roh = roh))
+  )
+  Ne <- join(Ne, unique(roh[,c("indID","population", "region")]))
+  Ne$region <- factor(Ne$region, levels = region_levels)
+  Ne <- Ne[order(Ne$region, Ne$population),]
+  Ne$population <- factor(Ne$population, levels = unique(Ne$population), ordered = T)
+  
+  return(Ne)
+}
+
+
+plot_Ne <- function(Ne){
+  p <- ggplot(Ne[Ne$region != "Africa",], 
+       aes(x = population, y = Ne, color = region)) +
+  geom_point()
+  return(p)
+}
+```
+
+```{r}
+
+roh <- read.table("~/Projects/Botocudos/Files/Heterozygosity/2020_09_01/out_diallelic_geno0.1_maf0.05.hom",
+                  header = T)
+
+# roh$indID <- roh$IID
+# roh <- join(roh, magic_panel, by = "indID")
+# roh <- droplevels(roh)
+# table(roh$population)
+# 
+# samples <- levels(roh$FID)
+# sapply(samples, function(sample) get_Ne(sample = sample, roh = roh))
+# Ne <- data.frame(indID = samples,
+#                  Ne = sapply(samples, function(sample) get_Ne(sample = sample, roh = roh))
+# )
+# Ne <- join(Ne, unique(roh[,c("indID","population", "region")]))
+# Ne$region <- factor(Ne$region, levels = c("Africa", "Oceania", "Europe",
+#                                           "EastAsia", "Americas", "Botocudos"))
+# Ne <- Ne[order(Ne$region, Ne$population),]
+# Ne$population <- factor(Ne$population, levels = unique(Ne$population), ordered = T)
+Ne_whole <- get_Ne_from_roh(roh = roh, magic_panel = magic_panel)
+
+plot_Ne(Ne_whole)
+
+```
+
+```{r}
+prefix_all = "~/Dropbox/Projects/Personal/Botocudos/Files/ROH/2020_09_09/1x/chr"
+
+sufix_all <- ".all.hom"
+roh <- read_roh(prefix = prefix_all, sufix = sufix_all)
+Ne_1x_all <- get_Ne_from_roh(roh = roh, magic_panel = magic_panel)
+sufix_all <- ".3M.hom"
+roh <- read_roh(prefix = prefix_all, sufix = sufix_all)
+Ne_1x_3M <- get_Ne_from_roh(roh = roh, magic_panel = magic_panel)
+sufix_all <- ".277k.hom"
+roh <- read_roh(prefix = prefix_all, sufix = sufix_all)
+Ne_1x_277k <- get_Ne_from_roh(roh = roh, magic_panel = magic_panel)
+
+prefix_all = "~/Dropbox/Projects/Personal/Botocudos/Files/ROH/2020_09_09/5_botocudos/5_botocudos.chr"
+sufix_all <- ".3M.hom"
+roh <- read_roh(prefix = prefix_all, sufix = sufix_all)
+Ne_boto_3M <- get_Ne_from_roh(roh = roh, magic_panel = magic_panel)
+
+prefix_all = "~/Dropbox/Projects/Personal/Botocudos/Files/ROH/2020_09_09/5_botocudos/5_botocudos.chr"
+sufix_all <- ".277k.hom"
+roh <- read_roh(prefix = prefix_all, sufix = sufix_all)
+Ne_boto_277k <- get_Ne_from_roh(roh = roh, magic_panel = magic_panel)
+
+prefix_all = "~/Dropbox/Projects/Personal/Botocudos/Files/ROH/2020_09_09/5_botocudos_trim/5_botocudos_trim.chr"
+sufix_all <- ".3M.hom"
+roh <- read_roh(prefix = prefix_all, sufix = sufix_all)
+Ne_boto_trim_3M <- get_Ne_from_roh(roh = roh, magic_panel = magic_panel)
+
+prefix_all = "~/Dropbox/Projects/Personal/Botocudos/Files/ROH/2020_09_09/5_botocudos_trim/5_botocudos_trim.chr"
+sufix_all <- ".277k.hom"
+roh <- read_roh(prefix = prefix_all, sufix = sufix_all)
+Ne_boto_trim_277k <- get_Ne_from_roh(roh = roh, magic_panel = magic_panel)
+```
+
+```{r}
+Ne_1x_all$type <- "1x and imputed, all sites"
+Ne_1x_3M$type <- "1x and imputed, 3M"
+Ne_1x_277k$type <- "1x and imputed, 277k"
+Ne_whole$type <- "original data"
+
+Ne_comp <- rbind(Ne_whole, Ne_1x_all, Ne_1x_3M,  Ne_1x_277k)
+Ne_comp$type <- factor(Ne_comp$type, levels = c("original data", 
+                                                "1x and imputed, all sites",
+                                                "1x and imputed, 3M",
+                                                "1x and imputed, 277k"),
+                       ordered = T                  )
+
+ggplot(Ne_comp[Ne_comp$region != "Africa",], 
+       aes(x = population, y = Ne, color = type)) +
+  geom_point(position = position_dodge(width = 0.5),
+             size = 2) +
+  theme(axis.text.x = element_text(angle = 90),
+          panel.grid.major = element_line(size = 0.5, linetype = 'dashed',
+                                colour = "gray"), 
+  panel.grid.minor = element_line(size = 0.25, linetype = 'dashed',
+                                colour = "gray")
+  )
+
+ggplot(Ne_comp[Ne_comp$region != "Africa" & !Ne_comp$type %in% c("1x and imputed, all sites"),], 
+       aes(x = population, y = Ne, color = type)) +
+  geom_point(position = position_dodge(width = 0.5),
+             size = 2) +
+  theme(axis.text.x = element_text(angle = 90),
+          panel.grid.major = element_line(size = 0.5, linetype = 'dashed',
+                                colour = "gray"), 
+  panel.grid.minor = element_line(size = 0.25, linetype = 'dashed',
+                                colour = "gray")
+  )
+```
+
+```{r}
+
+Ne_whole$type <- "original data"
+
+Ne_1x_3M$type <- "downsampled to 1x and imputed, 3M"
+Ne_1x_277k$type <- "downsampled to 1x and imputed, 277k"
+
+Ne_boto_3M$type <-  "1x - 24x, imputed, 3M"
+Ne_boto_277k$type <-  "1x - 24x, imputed, 277k"
+
+Ne_comp <- rbind(Ne_whole, Ne_1x_3M,  Ne_boto_3M, Ne_1x_277k, Ne_boto_277k)
+Ne_comp$type <- factor(Ne_comp$type, levels = c("original data", 
+                                                "downsampled to 1x and imputed, 277k",
+                                                 "downsampled to 1x and imputed, 3M",
+                                                 "1x - 24x, imputed, 277k",
+                                                "1x - 24x, imputed, 3M"
+                                                ),
+                       ordered = T                  )
+
+
+
+Ne_comp <- Ne_comp[Ne_comp$region != "Africa" & !is.infinite(Ne_comp$Ne),]
+Ne_comp[Ne_comp$population == "Papuans", "population"] <- "Papuan"
+Ne_comp[Ne_comp$population == "Sardinians", "population"] <- "Sardinian"
+Ne_comp[Ne_comp$population == "Botocudos" & Ne_comp$region == "Americas", "region"] <- "Botocudos"
+Ne_comp$population <- factor(Ne_comp$population, levels = c("Australian", "Papuan",
+                                                            "French", "Sardinian",
+                                                            "Dai", "Han",
+                                                            "USR1", "USR2",
+                                                            "LagoaSanta",
+                                                            "Lovelock",
+                                                            "Ayayema",
+                                                            "Pima",
+                                                            "Maya",
+                                                            "Mixe", 
+                                                            "Karitiana",
+                                                            "Surui", 
+                                                            "Taino",
+                                                            "Botocudos"))
+
+
+ne_plot <- ggplot(Ne_comp, 
+                  aes(x = population, y = Ne, color = type)) +
+  geom_point(position = position_dodge(width = 0.9),
+             size = 3, alpha = 0.8) +
+  theme(#axis.text.x = element_text(angle = 90),
+    panel.grid.major = element_line(size = 0.5, linetype = 'dashed',
+                                    colour = "gray"), 
+    panel.grid.minor = element_line(size = 0.25, linetype = 'dashed',
+                                    colour = "gray")
+  ) +
+  scale_color_discrete(name = "") +
+  facet_grid(.~population,  space = "free", scales = "free_x") +
+  scale_x_discrete(expand = c(0, 0.5)) +
+  coord_cartesian(ylim = c(0, 1e4)) +
+  # geom_violin(fill = NA, aes(color = type)) +
+  labs(title = "Effective population size", x = NULL)
+
+
+```
+
+```{r}
+Ne_whole$type <- "original data"
+
+Ne_1x_3M$type <- "downsampled to 1x and imputed, 3M"
+Ne_1x_277k$type <- "downsampled to 1x and imputed, 277k"
+
+Ne_boto_trim_3M$type <-  "1x - 24x, imputed, 3M"
+Ne_boto_trim_277k$type <-  "1x - 24x, imputed, 277k"
+
+Ne_comp <- rbind(Ne_whole, Ne_1x_3M,  Ne_boto_trim_3M, Ne_1x_277k, Ne_boto_trim_277k)
+Ne_comp$type <- factor(Ne_comp$type, levels = c("original data", 
+                                                "downsampled to 1x and imputed, 277k",
+                                                 "downsampled to 1x and imputed, 3M",
+                                                 "1x - 24x, imputed, 277k",
+                                                "1x - 24x, imputed, 3M"
+                                                ),
+                       ordered = T                  )
+
+
+
+Ne_comp <- Ne_comp[Ne_comp$region != "Africa" & !is.infinite(Ne_comp$Ne),]
+Ne_comp[Ne_comp$population == "Papuans", "population"] <- "Papuan"
+Ne_comp[Ne_comp$population == "Sardinians", "population"] <- "Sardinian"
+Ne_comp[Ne_comp$population == "Botocudos" & Ne_comp$region == "Americas", "region"] <- "Botocudos"
+Ne_comp$population <- factor(Ne_comp$population, levels = c("Australian", "Papuan",
+                                                            "French", "Sardinian",
+                                                            "Dai", "Han",
+                                                            "USR1", "USR2",
+                                                            "LagoaSanta",
+                                                            "Lovelock",
+                                                            "Ayayema",
+                                                            "Pima",
+                                                            "Maya",
+                                                            "Mixe", 
+                                                            "Karitiana",
+                                                            "Surui", 
+                                                            "Taino",
+                                                            "Botocudos"))
+
+
+ne_trimmed_plot <- ggplot(Ne_comp, 
+                          aes(x = population, y = Ne, color = type)) +
+  geom_point(position = position_dodge(width = 0.9),
+             size = 3, alpha = 0.8) +
+  theme(#axis.text.x = element_text(angle = 90),
+    panel.grid.major = element_line(size = 0.5, linetype = 'dashed',
+                                    colour = "gray"), 
+    panel.grid.minor = element_line(size = 0.25, linetype = 'dashed',
+                                    colour = "gray")
+  ) +
+  scale_color_discrete(name = "") +
+  facet_grid(.~population,  space = "free", scales = "free_x") +
+  scale_x_discrete(expand = c(0, 0.5)) +
+  coord_cartesian(ylim = c(0, 1e4)) +
+  # geom_violin(fill = NA, aes(color = type)) +
+  labs(title = "Effective population size, Botocudo data trimmed", x = NULL)
+
+
+```
+
+```{r}
+
+png("~/Projects/Botocudos/Plots/ROH/2020_09/Ne_comparison_imputed.png",
+    width = 14, height = 6, res = 300, units = "in")
+plot_grid(ne_plot, ne_trimmed_plot, ncol = 1)
+dev.off()
+
+```
+
+## Ne as given by SMC++
+
+```{r}
+require(ggplot2)
+require(ggrepel)
+
+path <- "~/Projects/Botocudos/Files/smcpp/2020_09_14/plot/"
+files <- list.files(path,
+                    pattern = "*.csv")
+
+smc <- do.call(rbind, lapply(files, function(f){
+  pop <- sub(".csv", "", sub(".*coverage.", "", f))
+  x <- read.csv(paste0(path, f))
+  x$pop <- pop
+  x
+}))
+
+# smc$x[smc$pop == "USR"] <- smc$x[smc$pop == "USR"] + 12000
+# smc$x[smc$pop == "LagoaSanta"] <- smc$x[smc$pop == "LagoaSanta"] + 10000
+# smc$x[smc$pop == "Ayayema"] <- smc$x[smc$pop == "Ayayema"] + 7000
+# smc$x[smc$pop == "Lovelock"] <- smc$x[smc$pop == "Lovelock"] + 2000
+# smc$x[smc$pop == "Botocudos"] <- smc$x[smc$pop == "Botocudos"] + 200
+# smc$x[smc$pop == "Taino"] <- smc$x[smc$pop == "Taino"] + 1000
+
+ggplot(smc, aes(x = x, y = y, color = pop)) +
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  # geom_text_repel(data = smc[smc$x == 0,], aes(label = pop)) +
+  coord_cartesian(xlim = c(1, 1e5))
+
+```
+
+
+## classify roh lenghts as Pedersen et al., 2012
+
+```{r}
+# classify ROH lengths in a given pop
+X <- roh$KB[roh$region == "Americas"]
+mod4 <- densityMclust(X, G = 3)
+summary(mod4)
+
+plot(mod4, what = "BIC")
+
+plot(mod4, what = "density", data = X, breaks = 50)
+
+plot(mod4, what = "diagnostic", type = "cdf")
+plot(mod4, what = "diagnostic", type = "qq")
+
+
+hist(rnorm(1000, mean = mod4$parameters$mean[1], sd = sqrt(mod4$parameters$variance$sigmasq[1])))
+
+```
+
