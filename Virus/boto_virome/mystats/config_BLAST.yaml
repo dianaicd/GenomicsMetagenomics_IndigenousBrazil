@@ -1,0 +1,4 @@
+# Config file for plot_DoCs.smk
+
+non_viral_reads: non_viral_reads_files.txt
+
