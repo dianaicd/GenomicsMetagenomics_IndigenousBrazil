@@ -63,7 +63,12 @@ rule run_count_reads:
         "BLAST/logs/hits/{sample}.{virus}.log"
     shell:
         '''
-        python3 select_reads.py {input.ids} {input.nt_algnmts} {output.nt_hits} 2> {log}
+        if [[ -s {input.nt_algnmts} ]]; then
+            python3 select_reads.py {input.ids} {input.nt_algnmts} {output.nt_hits} 2> {log}
+        else
+            echo 'No alignments made by BLAST'
+            touch {output}
+        fi
         '''
         # python3 select_reads.py {input.ids} {input.refseq_algnmts} {output.refseq_hits} 2>> {log}
 
