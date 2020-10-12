@@ -3,6 +3,9 @@
 # September 7 2020.
 # Script to save in excel workbooks tables with final viral candidates.
 
+# October 9 2020
+# Include effective depth of coverage.
+
 # Actions:
 # Create a workbook with a worksheet.
 
@@ -40,7 +43,8 @@ create_dt <- function(quality) {
   colnames(candidates) <- c("virus_name", "virus_taxID", "accession_number", "genome_strand_nucleic_acid", 
                             "genome_structure", "genome_length", "sample", "reads_before_rmdup", 
                             "reads_after_rmdup", "average_read_length", "damage_five_prime", "damage_three_prime", 
-                            "depth_coverage", "SD_depth_coverage", "breadth_coverage", "SD_effective_depth_coverage")
+                            "depth_coverage", "SD_depth_coverage", "breadth_coverage", "effective_depth_coverage", 
+                            "SD_effective_depth_coverage")
   
   return(candidates)
 }
@@ -76,7 +80,8 @@ create_wb <- function(workbook, dtable, ranges) {
   # trim decimal places
   decimal_cols <- which(colnames(dtable) %in% c("average_read_length", "damage_five_prime", 
                                                             "damage_three_prime", "depth_coverage", 
-                                                            "SD_depth_coverage", "SD_effective_depth_coverage")
+                                                            "SD_depth_coverage", "effective_depth_coverage",
+                                                            "SD_effective_depth_coverage")
                         )
   s <- createStyle(numFmt = "#0.00")
   addStyle(wb = workbook, sheet = "Viral candidates", style = s, rows = 1:nrow(dtable) + 1, cols = decimal_cols,
@@ -101,11 +106,12 @@ create_wb <- function(workbook, dtable, ranges) {
   "reads_before_rmdup: Number of mapped reads to the specified virus before removing those flagged as duplicates by picardtools MarkDuplicates.",
   "reads_after_rmdup: Number of mapped reads to the specified virus after removing those flagged as duplicates by picardtools MarkDuplicates.",
   "average_read_length: Average length of mapped reads to the specified virus with the specified mapping quality or higher after removing duplicates.",
-  "damage_five_prime: Proportion of G to A transitions in the first base of the reads.",
-  "damage_three_prime: Proportion of C to T transitions in the last base of the reads.",
+  "damage_five_prime: Proportion of C to T transitions in the first base of the reads.",
+  "damage_three_prime: Proportion of G to A transitions in the last base of the reads.",
   "depth_coverage: Depth of coverage on viral genome (number of unique bases divided by the length of the viral genome).",
   "SD_depth_coverage: Standard deviation of the depth of coverage on the viral genome.",
   "breadth_coverage: Percentage of the viral genome with a depth of coverage >= 1x.",
+  "effective_depth_coverage: depth of coverage on positions with coverage >= 1x.",
   "SD_effective_depth_coverage: Standard deviation of the depth of coverage on positions with depth of coverage >= 1x.")
 
   dt_captions <- data.table(captions)

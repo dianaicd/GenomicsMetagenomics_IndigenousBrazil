@@ -24,6 +24,7 @@ while True:
     else:
         break
 samples = [*sample_libs]
+samples.sort()
 samples_file.close()
 
 rule all:
@@ -288,14 +289,15 @@ rule get_coverage:
         bedtools genomecov -d -ibam {input} > {output} 2> {log}
         """
 
-# Get genome breadth of coverage, depth of coverage and their standard deviations
-rule get_BoC_DoC_SDBoC_SDDoC:
+# Get genome breadth of coverage, depth of coverage, effective depth of coverage 
+# and standard deviations of DoC & eff DoC
+rule get_BoC_DoC_effDoC_SDDoC_SDeffDoC:
     input:
         "{query}/coverage_tables/quality_{q}/{query}.{reference}.mapq{q}.coverage.tsv"
     output:
-        "{query}/BoC_DoC_SDs/quality_{q}/{reference}_BoC_DoC_SDs.tsv"
+        "{query}/BoC_DoC_SDs/quality_{q}/{reference}_BoC_DoC_effDoC_SDs.tsv"
     log:
-        "logs/{query}/BoC_DoC_SDs/quality_{q}/{reference}_BoC_DoC_SDs.log"
+        "logs/{query}/BoC_DoC_SDs/quality_{q}/{reference}_BoC_DoC_effDoC_SDs.log"
     shell:
         '''
         module load Bioinformatics/Software/vital-it;
@@ -303,15 +305,16 @@ rule get_BoC_DoC_SDBoC_SDDoC:
         Rscript --vanilla get_BoC.R --cov_table {input} --output {output} 2> {log}
         '''
 
-# Join breadth of coverage
-rule join_BoC_DoC_SDBoC_SDDoC:
+# Join breadth of coverage, depth of coverage, effective depth of coverage
+# and standard deviations of DoC & eff DoC
+rule join_BoC_DoC_effDoC_SDDoC_SDeffDoC:
     input:
-        expand("{query}/BoC_DoC_SDs/quality_{q}/{reference}_BoC_DoC_SDs.tsv", 
+        expand("{query}/BoC_DoC_SDs/quality_{q}/{reference}_BoC_DoC_effDoC_SDs.tsv", 
         query="{query}", q="{q}", reference=config['refs']),
     output:
-        "{query}/BoC_DoC_SDs/quality_{q}/BoC_DoC_SDsBoCDoC_all_refs.txt"
+        "{query}/BoC_DoC_SDs/quality_{q}/BoC_DoC_effDoC_SDs_all_refs.txt"
     log:
-        "logs/{query}/BoC_DoC_SDs/quality_{q}/BoC_DoC_SDsBoCDoC_all_refs.log"
+        "logs/{query}/BoC_DoC_SDs/quality_{q}/BoC_DoC_effDoC_SDs_all_refs.log"
     shell:
         '''
         cat {input} > {output} 2> {log}
@@ -324,7 +327,7 @@ rule create_table:
         after_rmdup="{query}/count_final_reads/quality_{q}/counts_final_rds_all_refs.txt",
         ref_lgth="reference_length/refs_length.txt",
         avg_rd_lgth="{query}/average_read_length/quality_{q}/avg_rd_lgth_all_refs.txt", 
-        BoC_DoC_SDs="{query}/BoC_DoC_SDs/quality_{q}/BoC_DoC_SDsBoCDoC_all_refs.txt",
+        BoC_DoC_SDs="{query}/BoC_DoC_SDs/quality_{q}/BoC_DoC_effDoC_SDs_all_refs.txt",
         damage="{query}/bamdamage/quality_{q}/damage_all_refs.txt"
     output:
         "{query}/stats/quality_{q}/{query}_stats.txt"

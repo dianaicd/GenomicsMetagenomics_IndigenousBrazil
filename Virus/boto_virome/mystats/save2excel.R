@@ -3,6 +3,9 @@
 # July 15 2020.
 # Script to gather in excel workbooks the output of the Snakefile mystats.
 
+# October 9 2020.
+# effective depth of coverage column.
+
 # Actions:
 # Create a workbook with a worksheet per sample.
 # Tables (MN*_stats.txt) with the output from mystats snakemake are read.
@@ -42,8 +45,8 @@ create_sample_dt <- function(sample_id, quality) {
   sample[, reference_ids := reference_ids]
   
   setnames(sample, 
-           names(sample[, 1:10]), 
-           c("rds_b4_rmdup", "rds_after_rmdup", "avg_rd_lgth", "BoC", "DoC", "SD_BoC", "SD_DoC", 
+           names(sample[, 1:11]), 
+           c("rds_b4_rmdup", "rds_after_rmdup", "avg_rd_lgth", "BoC", "DoC", "SD_DoC", "eff_DoC", "SD_eff_DoC", 
            "dam_3prime", "dam_5prime", "ref_lgth"),
            skip_absent = T)
   
@@ -83,7 +86,7 @@ create_wb <- function(workbook, sample, dtable) {
   addStyle(wb = workbook, sheet = sample, style = s, rows = 1:nrow(dtable) + 1, cols = comma_cols,
            gridExpand = TRUE, stack = T)
   # trim decimal places
-  decimal_cols <- which(colnames(dtable) %in% c("avg_rd_lgth", "DoC", "SD_BoC", "SD_DoC", 
+  decimal_cols <- which(colnames(dtable) %in% c("avg_rd_lgth", "DoC", "SD_DoC", "eff_DoC", "SD_eff_DoC", 
                         "dam_3prime", "dam_5prime"))
   s <- createStyle(numFmt = "#0.00")
   addStyle(wb = workbook, sheet = sample, style = s, rows = 1:nrow(dtable) + 1, cols = decimal_cols,
