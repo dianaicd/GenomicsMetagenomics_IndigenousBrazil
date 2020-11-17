@@ -1,0 +1,98 @@
+---
+title: "Poxvirus mappings bowie2 (end to end very sensitive)"
+output: html_document
+---
+
+```{r libraries}
+library(data.table)
+library("RColorBrewer")
+```
+
+
+```{r info}
+poxviruses <- c("Akhmeta", "Camelpox", "Cowpox", "Ectromelia", "Monkeypox", "Taterapox", "Vaccinia", "Variola")
+botocudos <- c("MN00010", "MN00013", "MN00016", "MN00019", "MN00021", "MN00022", "MN00023", "MN0003", "MN00039", "MN00045", "MN00056", "MN00064", "MN00066", "MN00067", "MN00068", "MN00069", "MN0008", "MN0009", "MN00118", "MN00119", "MN00316", "MN00346", "MN01701", "MN1943")
+colorcillos <- brewer.pal(8, "Dark2")
+input <- c(55475288, 586099025, 51356321, 232758325, 349386012, 36160802, 354185366, 127033674, 77223283, 86895628, 376352081, 99467321,67667939, 372359007, 34774516, 16296410, 151932035, 381236503, 369954990, 243013133, 471005190, 472422899, 293566149, 26332773)
+hits <- c(25, 51, 25, 250, 788, 61, 137, 55, 124, 130, 407, 78, 67, 390, 109, 16, 136, 312, 490, 357, 452, 440, 43, 9)
+```
+
+
+```{r MAPQ 0}
+q_0 <- fread(input = "~/walle_virome/VARV_mappings/bowtie2_mapping_end_to_end/mapping_counts/mapped_reads_q0.tsv")
+colnames(q_0) <- botocudos
+
+# All
+plot(x = c(1:24), y = q_0[1,], type = "p", ylab = "mapped reads", xaxt = "n", xlab = "", col = colorcillos[1], main = "MAPQ 0")
+for (i in c(2:8)) {
+  points(x = c(1:24), y = q_0[i,], pch = i, col = colorcillos[i])
+}
+axis(1, at = c(1:24), labels = botocudos, las = 2)
+legend(x = 21, y = 5000, legend = poxviruses, pch = c(1:8), cex = 0.6, col = colorcillos)
+
+# 500 reads limit
+plot(x = c(1:24), y = q_0[1,], type = "p", ylab = "mapped reads", xaxt = "n", ylim = c(1,500), xlab = "", col = colorcillos[1], main = "MAPQ 0")
+for (i in c(2:8)) {
+  points(x = c(1:24), y = q_0[i,], pch = i, col = colorcillos[i])
+}
+axis(1, at = c(1:24), labels = botocudos, las = 2)
+legend(x = 1, y = 500, legend = poxviruses, pch = c(1:8), cex = 0.6, col = colorcillos)
+```
+
+```{r MAPQs:0 , 1, 10, 30}
+for (i in c(0, 1, 10, 30)) {
+  dt <- fread(input = paste0("~/walle_virome/VARV_mappings/bowtie2_mapping_end_to_end/mapping_counts/mapped_reads_q", i, ".tsv"))
+  plot(x = c(1:24), y = dt[1,], type = "p", ylab = "mapped reads", xaxt = "n", xlab = "", col = colorcillos[1], main = paste0("MAPQ ", i))
+  
+  for (j in c(2:8)) {
+    points(x = c(1:24), y = dt[j,], pch = j, col = colorcillos[j])
+  }
+  axis(1, at = c(1:24), labels = botocudos, las = 2)
+  legend("topright", legend = poxviruses, pch = c(1:8), cex = 0.6, 
+         col = colorcillos)
+}
+```
+
+```{r reads mapped vs DIAMOND}
+for (q in c(0, 1, 10, 30)) {
+  dt <- fread(input = paste0("~/walle_virome/VARV_mappings/bowtie2_mapping_end_to_end/mapping_counts/mapped_reads_q", q, ".tsv"))
+  
+  plot(y = dt[1, ], x = hits, type = "n", ylab = "mapped reads", xlab = "DIAMOND hits",
+       ylim = c(0, max(dt)), main = paste0("MAPQ", q))
+  text(y = dt[1, ], x = hits, labels = botocudos, cex = 0.3, font = 2, 
+       col = colorcillos[1])
+  
+  for (i in c(2:8)) {
+    text(y = dt[i,], x = hits, labels = botocudos, cex = 0.3, font = 2, 
+         col = colorcillos[i])
+  }
+  legend("topright", legend = poxviruses, cex = 0.5, fill = colorcillos)
+}
+
+# dt <- fread(input = "~/walle_virome/VARV_mappings/bowtie2_mapping_end_to_end/mapping_counts/mapped_reads_q30.tsv")
+# plot(y = dt[1, ], x = hits, type = "n", ylab = "mapped reads", xlab = "DIAMOND hits", ylim = c(0, max(dt)))
+# text(y = dt[1, ], x = hits, labels = botocudos, cex = 0.3, font = 2, 
+#        col = colorcillos[1])
+#   
+# for (i in c(2:8)) {
+#   text(y = dt[i,], x = hits, labels = botocudos, cex = 0.3, font = 2, 
+#        col = colorcillos[i])
+# }
+# legend("topright", legend = poxviruses, cex = 0.5, fill = colorcillos)
+```
+
+```{r considering input reads}
+for (i in c(0, 1, 10, 30)) {
+  dt <- fread(input = paste0("~/walle_virome/VARV_mappings/bowtie2_mapping_end_to_end/mapping_counts/mapped_reads_q", i, ".tsv"))
+  dt <- t(t(dt)/input)
+  plot(x = c(1:24), y = dt[1, ], type = "p", ylab = "mapped reads/input reads", xaxt = "n", xlab = "", col = colorcillos[1], main = paste0("MAPQ ", i))
+  
+  for (j in c(2:8)) {
+    points(x = c(1:24), y = dt[j,], pch = j, col = colorcillos[j])
+  }
+  axis(1, at = c(1:24), labels = botocudos, las = 2)
+  legend("topright", legend = poxviruses, pch = c(1:8), cex = 0.6, 
+         col = colorcillos)
+}
+```
+
