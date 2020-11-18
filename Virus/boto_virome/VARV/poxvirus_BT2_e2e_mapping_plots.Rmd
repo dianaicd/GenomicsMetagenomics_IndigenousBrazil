@@ -39,9 +39,11 @@ axis(1, at = c(1:24), labels = botocudos, las = 2)
 legend(x = 1, y = 500, legend = poxviruses, pch = c(1:8), cex = 0.6, col = colorcillos)
 ```
 
-```{r MAPQs:0 , 1, 10, 30}
+```{r MAPQs: 0, 1, 10, 30}
 for (i in c(0, 1, 10, 30)) {
   dt <- fread(input = paste0("~/walle_virome/VARV_mappings/bowtie2_mapping_end_to_end/mapping_counts/mapped_reads_q", i, ".tsv"))
+  
+  
   plot(x = c(1:24), y = dt[1,], type = "p", ylab = "mapped reads", xaxt = "n", xlab = "", col = colorcillos[1], main = paste0("MAPQ ", i))
   
   for (j in c(2:8)) {
@@ -50,6 +52,26 @@ for (i in c(0, 1, 10, 30)) {
   axis(1, at = c(1:24), labels = botocudos, las = 2)
   legend("topright", legend = poxviruses, pch = c(1:8), cex = 0.6, 
          col = colorcillos)
+}
+
+```
+
+Save in same pdf, plots per each poxvirus.
+```{r Together MAPQs}
+nCol <- 2
+nRow <- 4
+
+for (i in c(0, 1, 10, 30)) {
+  dt <- fread(input = paste0("~/walle_virome/VARV_mappings/bowtie2_mapping_end_to_end/mapping_counts/mapped_reads_q", i, ".tsv"))
+  
+  pdf(paste0("~/walle_virome/VARV_mappings/bowtie2_mapping_end_to_end/counts_plots/counts_q", i, ".pdf"), width = 14, height = 12)
+  layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
+  
+  for (j in c(1:nrow(dt))) {
+    plot(x = c(1:24), y = dt[j, ], type = "p", ylab = "mapped reads", xaxt = "n", xlab = "", col = colorcillos[j], main = poxviruses[j], pch = j)
+    axis(1, at = c(1:24), labels = botocudos, las = 2)
+  }
+  dev.off()
 }
 ```
 
@@ -79,7 +101,58 @@ for (q in c(0, 1, 10, 30)) {
 #        col = colorcillos[i])
 # }
 # legend("topright", legend = poxviruses, cex = 0.5, fill = colorcillos)
+
+dt <- fread(input = paste0("~/walle_virome/VARV_mappings/bowtie2_mapping_end_to_end/mapping_counts/mapped_reads_q", q, ".tsv"))
+  
+plot(y = dt[1, ], x = hits, type = "n", ylab = "mapped reads", xlab = "DIAMOND hits", ylim = c(0, max(dt)), main = paste0("MAPQ", q))
+text(y = dt[1, ], x = hits, labels = botocudos, cex = 0.3, font = 2, col = colorcillos[1])
+lines(x = c(0, 800), y = c(0, 800))
+
+for (i in c(2:8)) {
+  text(y = dt[i,], x = hits, labels = botocudos, cex = 0.3, font = 2, 
+       col = colorcillos[i])
+}
+legend("topright", legend = poxviruses, cex = 0.5, fill = colorcillos)
 ```
+
+Save in same pdf, plots per each poxvirus.
+```{r Together reads mapped vs DIAMOND}
+nCol <- 2
+nRow <- 4
+
+for (q in c(0, 1, 10, 30)) {
+  dt <- fread(input = paste0("~/walle_virome/VARV_mappings/bowtie2_mapping_end_to_end/mapping_counts/mapped_reads_q", q, ".tsv"))
+  
+  pdf(paste0("~/walle_virome/VARV_mappings/bowtie2_mapping_end_to_end/counts_plots/hits_vs_mapped_q", q, ".pdf"), width = 14, height = 12)
+  layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
+  
+  for (i in c(1:nrow(dt))) {
+     plot(y = dt[i, ], x = hits, type = "n", ylab = "mapped reads", 
+          xlab = "DIAMOND hits", main = poxviruses[i])
+    text(y = dt[i, ], x = hits, labels = botocudos, cex = 0.45, font = 2, 
+       col = colorcillos[i])
+  }
+  dev.off()
+}
+
+# Drawing same hits same mapped reads line
+q <- 0
+
+dt <- fread(input = paste0("~/walle_virome/VARV_mappings/bowtie2_mapping_end_to_end/mapping_counts/mapped_reads_q", q, ".tsv"))
+
+pdf(paste0("~/walle_virome/VARV_mappings/bowtie2_mapping_end_to_end/counts_plots/hits_vs_mapped_lines_q", q, ".pdf"), width = 14, height = 12)
+layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
+  
+for (i in c(1:nrow(dt))) {
+  plot(y = dt[i, ], x = hits, type = "n", ylab = "mapped reads", 
+        xlab = "DIAMOND hits", main = poxviruses[i])
+  text(y = dt[i, ], x = hits, labels = botocudos, cex = 0.45, font = 2, 
+     col = colorcillos[i])
+  lines(x = c(0, 800), y = c(0, 800))
+}
+dev.off()
+```
+
 
 ```{r considering input reads}
 for (i in c(0, 1, 10, 30)) {
@@ -93,6 +166,27 @@ for (i in c(0, 1, 10, 30)) {
   axis(1, at = c(1:24), labels = botocudos, las = 2)
   legend("topright", legend = poxviruses, pch = c(1:8), cex = 0.6, 
          col = colorcillos)
+}
+```
+
+Save in same pdf, plots per each poxvirus.
+```{r Together: considering input reads}
+nCol <- 2
+nRow <- 4
+
+for (q in c(0, 1, 10, 30)) {
+  dt <- fread(input = paste0("~/walle_virome/VARV_mappings/bowtie2_mapping_end_to_end/mapping_counts/mapped_reads_q", q, ".tsv"))
+  dt <- t(t(dt)/input)
+  
+  pdf(paste0("~/walle_virome/VARV_mappings/bowtie2_mapping_end_to_end/counts_plots/mapped_cosnidering_input_q", q, ".pdf"), width = 14, height = 12)
+  layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
+
+  for (i in c(1:nrow(dt))) {
+    plot(x = c(1:24), y = dt[i, ], type = "p", ylab = "mapped reads/input reads", 
+         xaxt = "n", xlab = "", col = colorcillos[i], main = poxviruses[i], pch = i)
+    axis(1, at = c(1:24), labels = botocudos, las = 2)
+  }
+  dev.off()
 }
 ```
 
