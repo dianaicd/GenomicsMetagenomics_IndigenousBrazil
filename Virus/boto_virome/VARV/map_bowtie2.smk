@@ -60,7 +60,7 @@ rule run_bowtie2:
         module load Bioinformatics/Software/vital-it;
         module add UHTS/Aligner/bowtie2/2.3.4.1;
         bowtie2 -x reference/{wildcards.ref}/{wildcards.ref} -U {input.fastq} {params.mode} \
-        --no-unal -S {output}
+        --no-unal -S {output} 2> {log}
         '''
 
 rule select_quality:
@@ -80,7 +80,7 @@ rule select_quality:
         '''
         module load Bioinformatics/Software/vital-it;
         module add UHTS/Analysis/samtools/1.4;
-        samtools view -bq{params.q} {input} > {output}
+        samtools view -bq{params.q} {input} > {output} 2> {log}
         '''
 
 rule sort:
@@ -99,7 +99,7 @@ rule sort:
         '''
         module load Bioinformatics/Software/vital-it;
         module add UHTS/Analysis/samtools/1.4;
-        samtools sort -o {output} {input}
+        samtools sort -o {output} {input} 2> {log}
         '''
 
 rule merge_libraries:
@@ -120,7 +120,7 @@ rule merge_libraries:
         '''
         module load Bioinformatics/Software/vital-it;
         module add UHTS/Analysis/samtools/1.4;
-        samtools merge {output} {input}
+        samtools merge {output} {input} 2> {log}
         '''
 
 
