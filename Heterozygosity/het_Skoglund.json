@@ -1,0 +1,125 @@
+#=============================================================================#
+# Heterozygosity
+{
+
+    "african_het": "Nigeria_B_Yoruba-3",
+    # Path to SGDP (.vcf.gz)
+    "vcf_path": "SS6004475.annotated.nh.vcf.gz",
+    "Heterozygosity":{
+        "populations":{
+            "Mbuti":{
+                "HGDP00456": "~/americas/Panels/TeamAB_fclement/HGDP00456.flt.sort.rmdup.realign.md.bam",
+                "SS6004471": "~/americas/Panels/TeamAB_fclement/SS6004471-dedup.rg.bam"
+            },
+            "Dai":{
+                "SS6004467": "~/americas/Panels/TeamAB_fclement/SS6004467-dedup.rg.bam",
+                "HGDP01307": "~/americas/Panels/TeamAB_fclement/HGDP01307.flt.sort.rmdup.realign.md.bam"
+            },
+            "French":{
+                "SS6004468": "~/americas/Panels/TeamAB_fclement/SS6004468-dedup.rg.bam",
+                "HGDP00521": "~/americas/Panels/TeamAB_fclement/HGDP00521.flt.sort.rmdup.realign.md.bam"
+            },
+            "Han":{
+                "SS6004469": "~/americas/Panels/TeamAB_fclement/SS6004469-dedup.rg.bam",
+                "HGDP00778": "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00778.flt.sort.rmdup.realign.md.bam"
+            },
+            "Mandenka":{
+                "SS6004470": "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004470-dedup.rg.bam",
+                "HGDP01284": "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP01284.flt.sort.rmdup.realign.md.bam"
+            },
+            "Papuan":{
+                "SS6004472": "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004472-dedup.rg.bam",
+                "HGDP00542": "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00542.flt.sort.rmdup.realign.md.bam"
+            },
+            "San":{
+                "SS6004473": "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004473-dedup.rg.bam",
+                "HGDP01029": "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP01029.flt.sort.rmdup.realign.md.bam"
+            },
+            "Sardinian":{
+                "SS6004474": "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004474-dedup.rg.bam",
+                "HGDP00665": "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00665.flt.sort.rmdup.realign.md.bam"
+            },
+            "Yoruba":{
+                "SS6004475": "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004475-dedup.rg.bam",
+                "HGDP00927": "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00927.flt.sort.rmdup.realign.md.bam"
+            },
+            "Karitiana":{
+                "SS6004476": "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004476-dedup.rg.bam",
+                "HGDP00998": "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00998.flt.sort.rmdup.realign.md.bam"
+            },
+            "Australian":{
+                "SS6004477": "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004477-dedup.rg.bam",
+                "SS6004478": "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004478-dedup.rg.bam"
+            },
+            "Mixe":{
+                "Mixe": "~/americas/fromVictor/Modern/Mixe.bam",
+                "MixeE": "~/americas/fromVictor/Modern/MixeE.bam",
+                "MixeF": "~/americas/fromVictor/Modern/MixeF.bam"
+            },
+            "WCD":{
+                "WCD01": "~/americas/fromVictor/Modern/WCD01.bam",
+                "WCD02": "~/americas/fromVictor/Modern/WCD02.bam",
+                "WCD03": "~/americas/fromVictor/Modern/WCD03.bam",
+                "WCD05": "~/americas/fromVictor/Modern/WCD05.bam",
+                "WCD08": "~/americas/fromVictor/Modern/WCD08.bam",
+                "WCD13": "~/americas/fromVictor/Modern/WCD13.bam"
+            },
+            "Pima":{
+                    "PimaCEPH": "~/americas/fromVictor/Modern/PimaCEPH.bam",
+                    "PimaE": "~/americas/fromVictor/Modern/PimaE.bam",
+                    "PimaF": "~/americas/fromVictor/Modern/PimaF.bam"
+                },
+            "Surui":{
+                "SuruiA": "~/americas/fromVictor/Modern/SuruiA.bam",
+                "SuruiB": "~/americas/fromVictor/Modern/SuruiB.bam"
+            },
+            "Maya":{
+                "MayaG": "/users/dcruzdav/americas/fromVictor/Modern/MayaG.bam",
+                "MayaH": "/users/dcruzdav/americas/fromVictor/Modern/MayaH.bam"
+            },
+            "USR":{
+                "USR1": "~/americas/fromVictor/Ancient/USR1.bam",
+                "USR2": "~/americas/Panels/USR/USR2.bam"
+            },
+            "LagoaSta":{
+                "LagoaSta": "/users/dcruzdav/americas/fromVictor/Ancient/LagoaSta.bam",
+                "LS4": "/users/dcruzdav/americas/fromVictor/Ancient/LS4.bam",
+                "LS6": "/users/dcruzdav/americas/fromVictor/Ancient/LS6.bam",
+                "LS7": "/users/dcruzdav/americas/fromVictor/Ancient/LS7.bam",
+                "LS8": "/users/dcruzdav/americas/fromVictor/Ancient/LS8.bam"
+            },
+            "Lovelock":{
+                "Lovelock": "~/americas/Panels/Moreno2018b/Lovelock1_final.bam"
+                "Lovelock2": "~/americas/fromVictor/Ancient/Lovelock2.bam",
+                "Lovelock3": "~/americas/fromVictor/Ancient/Lovelock3.bam"
+            },
+            "Botocudos":{
+                "MN00010": "boto/MN00010.hg19.bam",
+                "MN00013": "boto/MN00013.hg19.bam",
+                "MN00016": "boto/MN00016.hg19.bam",
+                "MN00019": "boto/MN00019.hg19.bam",
+                "MN00021": "boto/MN00021.hg19.bam",
+                "MN00022": "boto/MN00022.hg19.bam",
+                "MN00023": "boto/MN00023.hg19.bam",
+                "MN00039": "boto/MN00039.hg19.bam",
+                "MN0003": "boto/MN0003.hg19.bam",
+                "MN00045": "boto/MN00045.hg19.bam",
+                "MN00056": "boto/MN00056.hg19.bam",
+                "MN00064": "boto/MN00064.hg19.bam",
+                "MN00066": "boto/MN00066.hg19.bam",
+                "MN00067": "boto/MN00067.hg19.bam",
+                "MN00068": "boto/MN00068.hg19.bam",
+                "MN00069": "boto/MN00069.hg19.bam",
+                "MN0008": "boto/MN0008.hg19.bam",
+                "MN0009": "boto/MN0009.hg19.bam",
+                "MN00118": "boto/MN00118.hg19.bam",
+                "MN00119": "boto/MN00119.hg19.bam",
+                "MN00316": "boto/MN00316.hg19.bam",
+                "MN00346": "boto/MN00346.hg19.bam",
+                "MN01701": "boto/MN01701.hg19.bam",
+                "MN1943": "boto/MN1943.hg19.bam",
+            }
+        }
+    }
+}
+    

@@ -16,6 +16,13 @@ source("~/Projects/Botocudos/Scripts/Plotting/seq_error_angsd.R")
 require(plyr)
 require(ggplot2)
 require(scales)
+require(tidyr)
+```
+
+```{r data that could be useful}
+st1 <- read.csv("~/Projects/Botocudos/Files/Summaries/2019_11_21/Whole/myStats.csv")
+st1 <- st1[order(st1$AvgReadDepth_tot, decreasing = T),]
+samples_ordered <- st1$Sample
 ```
 
 We will have a look at sequencing error rates estimated in ANGSD using the 
@@ -40,41 +47,307 @@ After looking at this plot, we had two questions:
 - Since in many cases the values seem to be capped at 2%, 
     are we having a bug in the estimation?
 
+```{r define paths to input files}
+error_whole <- "~/Projects/Botocudos/Files/Error/2020_03_04/Botocudos/Botocudos_error.txt"
+sm_whole <- "~/Projects/Botocudos/Files/Error/2020_03_04/Botocudos/Botocudos.txt"
+
+error_trim <- "~/Projects/Botocudos/Files/Error/2020_03_04/Botocudos_trim/Botocudos_trim_error.txt"
+sm_trim <- "~/Projects/Botocudos/Files/Error/2020_03_04/Botocudos_trim/Botocudos_trim.txt"
+
+
+```
+
+```{r function to read errors}
+read_errors <- function(myFile = F, workdir, group, average = F, type = NA){
+  if(!is.character(myFile)){
+    myFile <- paste(workdir, group, "/", group, "_error.txt", sep = "")  
+  }
+  
+  nInd <- (length(readLines(myFile)) - 1)/2
+  if(average){
+    error <- read.table(myFile, skip = nInd+1, header = F, sep = "\t")
+    error <- data.frame(t(unlist(apply(error, 1, 
+                                       function(x) unlist(strsplit(x, " "))))))
+    error[,2] <- as.numeric(as.character(error[,2]))
+    colnames(error) <- c("Sample", "error", "percent")
+    error$error <- error$error/100
+  }else{
+    error <- read.table(myFile, skip = 0, header = T, nrows = nInd)
+    error$Sample <- rownames(error)
+  }  
+  if(is.character(type)){
+    error$Type <- type
+  }
+  return(error)
+}
+```
 
 ```{r}
-
+workdir <- "~/Projects/Botocudos/Files/Error/2020_03_04/"
 #------------------------------------------------------------------------------#
 # Read in error rates from untrimmed data
-error <- "~/Projects/Botocudos/Files/Error/2020_02_14/new_Boto.txt"
-sm <- "~/Projects/Botocudos/Files/Error/2020_02_14/Botocudos/Botocudos.txt"
-
-mySamples <- read.table(sm)
-nInd <- nrow(mySamples)
-whole <- read.table(error, skip = 0, header = TRUE, nrows = nInd)
-
+boto <- read_errors(workdir = workdir, group = "Botocudos", type = "untrimmed")
+minas <- read_errors(workdir = workdir, group = "MinasGerais", type = "untrimmed")
+sambaqui <- read_errors(workdir = workdir, group = "Sambaqui", type = "untrimmed")
 #------------------------------------------------------------------------------#
 # Read in error rates from trimmed data
-error <- "~/Projects/Botocudos/Files/Error/2020_02_14/new_Boto_trim.txt"
-sm <- "~/Projects/Botocudos/Files/Error/2020_02_14/Botocudos_trim/Botocudos_trim.txt"
-
-mySamples <- read.table(sm)
-nInd <- nrow(mySamples)
-trimmed <- read.table(error, skip = 0, header = TRUE, nrows = nInd)
-
+boto_trim <- read_errors(workdir = workdir, group = "Botocudos_trim", type = "trimmed")
+minas_trim <- read_errors(workdir = workdir, group = "MinasGerais_trim", type = "trimmed")
+sambaqui_trim <- read_errors(workdir = workdir, group = "Sambaqui_trim", type = "trimmed")
 #------------------------------------------------------------------------------#
 # Merge dataframes
-whole$Type <- "untrimmed"
-trimmed$Type <- "trimmed"
-whole$Sample <- rownames(whole)
-trimmed$Sample <- rownames(trimmed)
+dat <- do.call("rbind", list(boto, minas, sambaqui, 
+                             boto_trim, minas_trim, sambaqui_trim))
+dat$Sample <- sub("_L1.*", "", dat$Sample)
+dat$Sample <- factor(dat$Sample, levels = samples_ordered, ordered = T)
+dat$Type <- factor(dat$Type, levels = c("untrimmed", "trimmed"), ordered = T)
 
-dat <- rbind(whole, trimmed)
-dat <- dat[order(dat$Sample),]
-dat <- dat[!dat$Sample %in% c("MN0008_L3U", "MN0008_non_U"),]
+```
+
+```{r plot untrimmed,trimmed in ggplot}
+pdf("~/Projects/Botocudos/Plots/Sequencing/2020_02_25/error_type_comparison.pdf",
+    width = 12, height = 10)
+dat %>% 
+  gather(name, value, -Sample, -Type) %>%
+  mutate(name = sub("\\....", " to ", name)) %>%
+  ggplot(aes(x = Sample, y = value, fill = Type )) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  facet_wrap(.~name, ncol = 3) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, size = 9, hjust = 1, vjust = 0.5)) +
+  scale_fill_discrete() +
+  labs(y = "Error rate", x = NULL, title = "Type-specific error rates") +
+  scale_y_continuous(labels = percent)
+dev.off()
+
+pdf("~/Projects/Botocudos/Plots/Sequencing/2020_02_25/error_type_whole.pdf",
+    width = 12, height = 10)
+dat %>% subset(Type == "untrimmed") %>%
+  gather(name, value, -Sample, -Type) %>%
+  mutate(name = sub("\\....", " to ", name)) %>%
+  ggplot(aes(x = Sample, y = value)) +
+  geom_bar(stat = "identity", position = position_dodge(), fill = "salmon") +
+  facet_wrap(.~name, ncol = 3) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, size = 9, hjust = 1)) +
+  scale_fill_discrete() +
+  labs(y = "Error rate", x = NULL, title = "Type-specific error rates") +
+  scale_y_continuous(labels = percent)
+dev.off()
+
+pdf("~/Projects/Botocudos/Plots/Sequencing/2020_02_25/error_type_trim.pdf",
+    width = 12, height = 10)
+dat %>% subset(Type == "trimmed") %>%
+  gather(name, value, -Sample, -Type) %>%
+  mutate(name = sub("\\....", " to ", name)) %>%
+  ggplot(aes(x = Sample, y = value )) +
+  geom_bar(stat = "identity", position = position_dodge(), fill = "turquoise3") +
+  facet_wrap(.~name, ncol = 3) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, size = 10, hjust = 1)) +
+  scale_fill_discrete() +
+  labs(y = "Error rate", x = NULL, title = "Type-specific error rates") +
+  scale_y_continuous(labels = percent)
+dev.off()
+```
+
+```{r}
+workdir <- "~/Projects/Botocudos/Files/Error/2020_03_04/"
+#------------------------------------------------------------------------------#
+# Read in error rates from untrimmed data
+boto <- read_errors(workdir = workdir, group = "Botocudos", 
+                    type = "untrimmed", average = T)
+minas <- read_errors(workdir = workdir, group = "MinasGerais", 
+                     type = "untrimmed", average = T)
+sambaqui <- read_errors(workdir = workdir, group = "Sambaqui",
+                        type = "untrimmed", average = T)
+#------------------------------------------------------------------------------#
+# Read in error rates from trimmed data
+boto_trim <- read_errors(workdir = workdir, group = "Botocudos_trim", 
+                         type = "trimmed", average = T)
+minas_trim <- read_errors(workdir = workdir, group = "MinasGerais_trim", 
+                          type = "trimmed", average = T)
+sambaqui_trim <- read_errors(workdir = workdir, group = "Sambaqui_trim", 
+                             type = "trimmed", average = T)
+#------------------------------------------------------------------------------#
+# Merge dataframes
+avg_errors <- do.call("rbind", list(boto, minas, sambaqui, 
+                             boto_trim, minas_trim, sambaqui_trim))
+avg_errors$Sample <- sub("_L1.*", "", avg_errors$Sample)
+avg_errors$Sample <- factor(avg_errors$Sample, levels = samples_ordered, ordered = T)
+avg_errors$Type <- factor(avg_errors$Type, levels = c("untrimmed", "trimmed"), ordered = T)
+```
+
+```{r average error rates}
+pdf("~/Projects/Botocudos/Plots/Sequencing/2020_02_25/avg_error_comparison.pdf",
+    width = 6, height = 5)
+avg_errors %>% 
+  ggplot(aes(x = Sample, y = error, fill = Type )) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, size = 10, hjust = 1, vjust = 0.5)) +
+  scale_fill_discrete() +
+  labs(y = "Error rate", x = NULL, title = "Average error rates") +
+  scale_y_continuous(labels = percent)
+dev.off()
+
+pdf("~/Projects/Botocudos/Plots/Sequencing/2020_02_25/avg_error_whole.pdf",
+    width = 6, height = 5)
+avg_errors %>% subset(Type == "untrimmed") %>%
+  ggplot(aes(x = Sample, y = error )) +
+  geom_bar(stat = "identity", position = position_dodge(), fill = "salmon") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, size = 10, hjust = 1, vjust = 0.5)) +
+  scale_fill_discrete() +
+  labs(y = "Error rate", x = NULL, title = "Average error rates") +
+  scale_y_continuous(labels = percent)
+dev.off()
+
+pdf("~/Projects/Botocudos/Plots/Sequencing/2020_02_25/avg_error_trim.pdf",
+    width = 6, height = 5)
+avg_errors %>% subset(Type == "trimmed") %>%
+  ggplot(aes(x = Sample, y = error )) +
+  geom_bar(stat = "identity", position = position_dodge(), fill = "turquoise3") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, size = 10, hjust = 1, vjust = 0.5)) +
+  scale_fill_discrete() +
+  labs(y = "Error rate", x = NULL, title = "Average error rates") +
+  scale_y_continuous(labels = percent)
+dev.off()
+
+```
+
+```{r type-specific MN8 trimmed 1-5}
+# combine names for different trimmed bp
+dir_err <- "~/Projects/Botocudos/Files/Error/2020_03_11/"
+combined_names <- expand.grid(c("MN8_", "MN8_L3U_", "MN8_non_U_"),
+                              seq(1, 5))
+colnames(combined_names) <- c("sample", "trim")
+paths <- paste(dir_err, combined_names$sample, combined_names$trim,
+                      "/", combined_names$sample, combined_names$trim, 
+               "_perfect.SS6004480-dedup.rg_outgroup.chimpHg19_error.txt",
+                      sep = "")
+
+# put type-specific error rates together
+trimmed_all <- lapply(paths, function(x) read_errors(myFile = x,
+                                                        type = "trimmed"))
+names(trimmed_all) <- paste(combined_names$sample, combined_names$trim, 
+                               sep = "")
+mn8 <- read_errors(myFile = "~/Projects/Botocudos/Files/Error/2020_03_04/Botocudos/Botocudos_error.txt", 
+            type = "untrimmed") %>% 
+  subset(Sample %in% c("MN0008", "MN0008_L3U", "MN0008_non_U"))
+
+trimmed_all <- do.call("rbind", trimmed_all)
+trimmed_all <- rbind(trimmed_all, mn8)
+
+# try to make a nice plot for type-specific errors
+pdf("~/Projects/Botocudos/Plots/Sequencing/2020_02_25/error_type_MN8_trim.pdf",
+    width = 12, height = 10)
+trimmed_all %>% 
+  gather(name, value, -Sample, -Type) %>%
+  mutate(name = sub("\\....", " to ", name),
+         bp_trimmed = ifelse(Type == "trimmed", sub("\\.bam", "", sub(".*trim", "", Sample)), 0),
+         Sample = sub("\\..*", "", Sample)
+         ) %>%
+  ggplot(aes(x = Sample, y = value, fill =  bp_trimmed )) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  facet_wrap(.~name, ncol = 3) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, size = 9, hjust = 1)) +
+  scale_fill_discrete() +
+  labs(y = "Error rate", x = NULL, title = "Type-specific error rates") +
+  scale_y_continuous(labels = percent)
+dev.off()
 ```
 
 
-```{r plot untrimmed vs trimmed data, fig.width=20, fig.height=10}
+```{r average error MN8 trimmed 1-5}
+
+# combine names for different trimmed bp
+dir_err <- "~/Projects/Botocudos/Files/Error/2020_03_11/"
+combined_names <- expand.grid(c("MN8_", "MN8_L3U_", "MN8_non_U_"),
+                              seq(1, 5))
+colnames(combined_names) <- c("sample", "trim")
+paths <- paste(dir_err, combined_names$sample, combined_names$trim,
+                      "/", combined_names$sample, combined_names$trim, 
+               "_perfect.SS6004480-dedup.rg_outgroup.chimpHg19_error.txt",
+                      sep = "")
+
+# put type-specific error rates together
+trimmed_avg <- lapply(paths, function(x) read_errors(myFile = x,
+                                                     type = "trimmed",
+                                                     average = T))
+names(trimmed_avg) <- paste(combined_names$sample, combined_names$trim, 
+                               sep = "")
+mn8 <- read_errors(myFile = "~/Projects/Botocudos/Files/Error/2020_03_04/Botocudos/Botocudos_error.txt", 
+            type = "untrimmed", average = T) %>% 
+  subset(Sample %in% c("MN0008", "MN0008_L3U", "MN0008_non_U"))
+
+trimmed_avg <- do.call("rbind", trimmed_avg)
+trimmed_avg <- rbind(trimmed_avg, mn8)
+# try to make a nice plot for average errors
+pdf("~/Projects/Botocudos/Plots/Sequencing/2020_02_25/avg_error_MN8_trim.pdf",
+    width = 6, height = 5)
+trimmed_avg %>% 
+  gather(name, value, -Sample, -Type, -percent, -error) %>%
+  mutate(
+         bp_trimmed = ifelse(Type == "trimmed", sub("\\.bam", "", sub(".*trim", "", Sample)), 0),
+         Sample = sub("\\..*", "", Sample)
+         ) %>%
+  ggplot(aes(x = Sample, y = error, fill = bp_trimmed )) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, size = 10, hjust = 1)) +
+  scale_fill_discrete() +
+  labs(y = "Error rate", x = NULL, title = "Average error rates") +
+  scale_y_continuous(labels = percent)
+dev.off()
+```
+
+```{r, eval = F}
+error_whole <- "~/Projects/Botocudos/Files/Error/2020_02_14/new_Boto.txt"
+error_trim <- "~/Projects/Botocudos/Files/Error/2020_02_14/new_Boto_trim.txt"
+minas_whole <- "~/Projects/Botocudos/Files/Error/2020_02_07/MinasGerais/MinasGerais_error.txt"
+minas_trim <- "~/Projects/Botocudos/Files/Error/2020_02_07/MinasGerais_trim/MinasGerais_trim_error.txt"
+sambaqui_whole <- "~/Projects/Botocudos/Files/Error/2020_02_07/Sambaqui/Sambaqui_error.txt"
+sambaqui_trim <- "~/Projects/Botocudos/Files/Error/2020_02_07/Sambaqui_trim/Sambaqui_trim_error.txt"
+
+#------------------------------------------------------------------------------#
+# Read in errors for 22 botocudos, untrimmed
+error_merge <- data.frame()
+error_merge <- read.table(error_whole, skip = 25, header = F, sep = "\t")
+error_merge$type <- "whole"
+#------------------------------------------------------------------------------#
+# Read in errors for MinasGerais, untrimmed
+tmp_err <- read.table(minas_whole,  skip = 1+1, header = F, sep = "\t")
+tmp_err$type <- "whole"
+error_merge <- rbind(error_merge, tmp_err)
+#------------------------------------------------------------------------------#
+# Read in errors for Sambaqui, untrimmed
+tmp_err <- read.table(sambaqui_whole, skip = 1+1, header = F, sep = "\t")
+tmp_err$type <- "whole"
+error_merge <- rbind(error_merge, tmp_err)
+#------------------------------------------------------------------------------#
+# Read in errors for 22 Botocudos, trimmed
+tmp_err <- read.table(error_trim, skip = nInd+1, header = F, sep = "\t")
+tmp_err$type <- "trim"
+error_merge <- rbind(error_merge, tmp_err)
+#------------------------------------------------------------------------------#
+# Read in errors for MinasGerais, trimmed
+tmp_err <- read.table(minas_trim, skip = 1+1, header = F, sep = "\t")
+tmp_err$type <- "trim"
+error_merge <- rbind(error_merge, tmp_err)
+#------------------------------------------------------------------------------#
+# Read in errors for Sambaqui, trimmed
+tmp_err <- read.table(sambaqui_trim, skip = 1+1, header = F, sep = "\t")
+tmp_err$type <- "trim"
+error_merge <- rbind(error_merge, tmp_err)
+
+nInd <- nrow(error_merge)/2
+
+```
+
+```{r plot untrimmed vs trimmed data, fig.width=20, fig.height=10, eval = F}
 
 # layout(matrix(seq(1,2), byrow = T, ncol = 2), widths = c(3,1))
 par(oma=c(0,0,1,0))
@@ -170,7 +443,7 @@ The type-specfic error rates (i.e., C to T or G to A) were reduced by at most 74
 after trimming 5 bp on each end of the reads. However, in 9 of the samples
 the error rates remained unchanged after trimming the reads. MN0008 had already low error rates (<0.7%).
 
-```{r compare trimmed untrimmed type specific}
+```{r compare trimmed untrimmed type specific, eval = F}
 comparison <- data.frame(reduction = dat$G....A[seq(2,nrow(dat), 2)]/dat$G....A[seq(1, nrow(dat), 2)],
                          sample = dat$Sample[seq(1, nrow(dat), 2)])
 
@@ -242,7 +515,7 @@ We also show the average error rates per sample for the untrimmed and trimmed da
 The average error rates experienced a reduction of 58% to 98% after trimming
 (except MN0008, which became twice as negative).
 
-```{r average errors}
+```{r average errors, eval = F}
 myMain <- "Average error rates (untrimmed vs trimmed)"
 nInd <- length(myLegend$sample)
 

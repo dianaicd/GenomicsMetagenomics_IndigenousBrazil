@@ -1,0 +1,113 @@
+---
+title: "rohs_inbreeding"
+author: "Cruz-Dávalos, Diana I."
+date: "9/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+require(cowplot)
+require(RColorBrewer)
+require(ggplot2)
+require(plyr)
+source("~/Projects/Botocudos/Scripts/Heterozygosity/roh_plink_functions.R")
+magic <- read.table("~/Projects/Botocudos/Files/Panels/Magic.panel", header = T)
+```
+
+
+```{r}
+header <- read.table("~/Projects/Botocudos/Files/Heterozygosity/2019_10_30/ROH/MN0008.header", skip = 1, nrows = 22, stringsAsFactors = F)
+
+downsampled_prefix <- "~/Dropbox/Projects/Personal/Botocudos/Files/ROH/2020_09_09/1x/chr"
+boto_prefix <- "~/Dropbox/Projects/Personal/Botocudos/Files/ROH/2020_09_09/5_botocudos/5_botocudos.chr"
+
+sufix <- ".277k.hom"
+
+roh_downsampled <- read_roh(prefix = downsampled_prefix, sufix = sufix)
+
+# roh_downsampled <- read.table("~/Projects/Botocudos/Files/Heterozygosity/2020_09_01/out_diallelic_geno0.1_maf0.05.hom", header = T)
+roh_boto <- read_roh(prefix = boto_prefix, sufix = sufix)
+
+roh_all <- rbind(
+  roh_boto,
+  roh_downsampled
+  )
+
+roh_all$indID <- roh_all$IID
+roh_all <- join(roh_all, magic)
+my_legend <- unique(roh_all[,c("indID", "population", "region")])
+my_legend$sample <- my_legend$indID
+my_legend$legend <- my_legend$sample
+
+samples <- unique(roh_all$IID)
+
+
+breaks_mb <- c(0, 0.5, 1, 2, 4, 8, 10, 12, 16, 20, 25, 30, 40, 45, 50, 55)
+lengths_counts_all <- get_lengths_counts(roh_all, breaks_mb = breaks_mb, samples)
+
+lengths_counts_all <- get_lengths_counts(roh_all, breaks_mb = breaks_mb, samples)
+
+
+# colors <- brewer.pal(10, "Paired")
+colors <- c(brewer.pal(5, "RdPu")[2:5],
+            brewer.pal(3, "Blues")[2:3],
+            brewer.pal(5, "Greys")[2:5])
+
+generic_roh_plot <- function(my_df, x, y, xlim, ylim, main, xlab, ylab, colors){
+  my_plot <- ggplot(my_df, aes( x = as.factor(my_df[, x]), y = my_df[, y], 
+                                fill = factor(sample,
+                                              levels = my_legend$sample, 
+                                              ordered = T) )) +
+    geom_bar(stat = "identity", position = position_dodge()) +
+    labs(x = xlab, y = ylab, title = main) +
+    scale_fill_manual(values = colors,
+                      breaks = my_legend$sample,
+                      labels = my_legend$legend,
+                      name = ""
+    ) + coord_cartesian(xlim = c(0, sum(breaks_mb <= xlim[2])), 
+                  ylim = ylim) +
+    scale_x_discrete(breaks=breaks_mb[ breaks_mb <= xlim[2]], 
+                     labels = breaks_mb[ breaks_mb <= xlim[2]],) 
+  
+  return(my_plot)
+}
+
+xlim <-  c(0, 65)
+ylim <- c(0, 275)
+main <-  "ROH distribution"
+xlab <-  "ROH length category (Mb)"
+ylab <- "Sum (Mb)"
+
+lengths <- lengths_counts_all$lengths
+lengths <- join(lengths, my_legend)
+
+
+```
+
+```{r}
+my_df <- lengths[lengths$region %in% c("Americas", "Botocudos"),]
+x <- "category" ; y <- "length"
+ylim <- c(0, 350)
+
+
+png("~/Projects/Botocudos/Plots/ROH/2020_09/ROH_distribution_NativeAmericans.png",
+    width = 14, height = 9, units = "in", res = 300)
+
+ggplot(my_df, aes( x = as.factor(my_df[, x]), y = my_df[, y], 
+                                fill = population)) +
+    geom_bar(stat = "identity", position = position_dodge()) +
+    labs(x = xlab, y = ylab, title = main) +
+  coord_cartesian(xlim = c(0, sum(breaks_mb <= xlim[2])), 
+                  ylim = ylim) + 
+    scale_x_discrete(breaks=breaks_mb[ breaks_mb <= xlim[2]], 
+                     labels = breaks_mb[ breaks_mb <= xlim[2]],)  +
+  facet_wrap(population~sample) +
+  theme(legend.position = "none", axis.text.x = element_text(size = 6))
+
+dev.off()
+```
+

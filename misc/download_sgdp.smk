@@ -1,5 +1,5 @@
 import os
-with open("download-links-2.txt", "r") as file:
+with open("download-links.txt", "r") as file:
     def parse_line(line):
         if ".gz.tbi" in line:
             sufix = ".gz.tbi"
@@ -24,6 +24,8 @@ def gimme_input(file):
 rule download_things:
     output:
         file = "{file}"
+    log:
+        "logs/{file}.log"
     run:
-        myCommand = "wget -c --no-use-server-timestamps -O "+ output.file + " " + gimme_input(output.file)
+        myCommand = "wget -c --no-use-server-timestamps -O "+ output.file + " " + gimme_input(output.file) + " 2>logs/{file}.log".format(file = output.file)
         os.system(myCommand)

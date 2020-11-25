@@ -1,0 +1,26 @@
+---
+title: "Plot output from hapROH"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+example_path <- "~/Downloads/test_roh/I0644/chr4/"
+```
+
+```{r}
+haplotype_path <- paste(example_path, "hap.csv", sep = "")
+map_path <- paste(example_path, "map.csv", sep = "")
+posterior_path <- paste(example_path, "posterior0.csv", sep = "")
+
+haplotype <- read.csv( haplotype_path )
+genetic_map <- read.csv( map_path )
+posterior <- read.csv( posterior_path )
+
+plot( genetic_map[,1]*100, exp(posterior[,1]), type = "l", lwd = 1.2 )
+
+```
+

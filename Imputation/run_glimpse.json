@@ -1,0 +1,171 @@
+//==============================================================================//
+// Impute with GLIMPSE
+{
+
+    "GLIMPSE":{
+
+        "nThreads": 8,
+        "bamlists":{
+            "1x":{
+                "paths":{
+                    "Ayayema": "1/Ayayema_1x.bam",
+                    "HGDP00456.flt.sort.rmdup.realign.md": "1/HGDP00456.flt.sort.rmdup.realign.md_1x.bam",
+                    "HGDP00521.flt.sort.rmdup.realign.md": "1/HGDP00521.flt.sort.rmdup.realign.md_1x.bam",
+                    "HGDP00542.flt.sort.rmdup.realign.md": "1/HGDP00542.flt.sort.rmdup.realign.md_1x.bam",
+                    "HGDP00665.flt.sort.rmdup.realign.md": "1/HGDP00665.flt.sort.rmdup.realign.md_1x.bam",
+                    "HGDP00778.flt.sort.rmdup.realign.md": "1/HGDP00778.flt.sort.rmdup.realign.md_1x.bam",
+                    "HGDP00927.flt.sort.rmdup.realign.md": "1/HGDP00927.flt.sort.rmdup.realign.md_1x.bam",
+                    "HGDP00998.flt.sort.rmdup.realign.md": "1/HGDP00998.flt.sort.rmdup.realign.md_1x.bam",
+                    "HGDP01029.flt.sort.rmdup.realign.md": "1/HGDP01029.flt.sort.rmdup.realign.md_1x.bam",
+                    "HGDP01284.flt.sort.rmdup.realign.md": "1/HGDP01284.flt.sort.rmdup.realign.md_1x.bam",
+                    "HGDP01307.flt.sort.rmdup.realign.md": "1/HGDP01307.flt.sort.rmdup.realign.md_1x.bam",
+                    "Lovelock2": "1/Lovelock2_1x.bam",
+                    "Lovelock3": "1/Lovelock3_1x.bam",
+                    "LS4": "1/LS4_1x.bam",
+                    "LS6": "1/LS6_1x.bam",
+                    "LS7": "1/LS7_1x.bam",
+                    "LS8": "1/LS8_1x.bam",
+                    "SS6004467-dedup.rg": "1/SS6004467-dedup.rg_1x.bam",
+                    "SS6004468-dedup.rg": "1/SS6004468-dedup.rg_1x.bam",
+                    "SS6004469-dedup.rg": "1/SS6004469-dedup.rg_1x.bam",
+                    "SS6004470-dedup.rg": "1/SS6004470-dedup.rg_1x.bam",
+                    "SS6004471-dedup.rg": "1/SS6004471-dedup.rg_1x.bam",
+                    "SS6004472-dedup.rg": "1/SS6004472-dedup.rg_1x.bam",
+                    "SS6004473-dedup.rg": "1/SS6004473-dedup.rg_1x.bam",
+                    "SS6004474-dedup.rg": "1/SS6004474-dedup.rg_1x.bam",
+                    "SS6004475-dedup.rg": "1/SS6004475-dedup.rg_1x.bam",
+                    "SS6004476-dedup.rg": "1/SS6004476-dedup.rg_1x.bam",
+                    "SS6004477-dedup.rg": "1/SS6004477-dedup.rg_1x.bam",
+                    "SS6004478-dedup.rg": "1/SS6004478-dedup.rg_1x.bam",
+                    "Taino": "1/Taino_1x.bam",
+                    "USR2": "1/USR2_1x.bam",
+                    "WCD01": "1/WCD01_1x.bam",
+                    "WCD02": "1/WCD02_1x.bam",
+                    "WCD03": "1/WCD03_1x.bam",
+                    "WCD05": "1/WCD05_1x.bam",
+                    "WCD08": "1/WCD08_1x.bam",
+                    "WCD13": "1/WCD13_1x.bam",
+                    "Karitiana": "1/Karitiana_1x.bam",
+                    "KaritianaB": "1/KaritianaB_1x.bam",
+                    "KaritianaBI16": "1/KaritianaBI16_1x.bam",
+                    "KaritianaG": "1/KaritianaG_1x.bam",
+                    "KaritianaH": "1/KaritianaH_1x.bam",
+                    "LagoaSta": "1/LagoaSta_1x.bam",
+                    "MayaG": "1/MayaG_1x.bam",
+                    "MayaH": "1/MayaH_1x.bam",
+                    "Mixe": "1/Mixe_1x.bam",
+                    "MixeE": "1/MixeE_1x.bam",
+                    "MixeF": "1/MixeF_1x.bam",
+                    "PimaCEPH": "1/PimaCEPH_1x.bam",
+                    "PimaE": "1/PimaE_1x.bam",
+                    "PimaF": "1/PimaF_1x.bam",
+                    "SuruiA": "1/SuruiA_1x.bam",
+                    "SuruiB": "1/SuruiB_1x.bam",
+                    "USR1": "1/USR1_1x.bam"
+                }
+            },
+            "LagoaSta_1x":{
+                "paths": "LagoaSanta_trim5_1x": "~/americas/Botocudos/Downsampled/2020_09_10/1/LagoaSta_trim5_1x.bam"
+            }
+        }
+    }
+}
+    // "0.5x_low_coverage":{
+// 
+        // "paths":{
+
+            //     "MN00118": "bams/MN00118.hg19.bam",
+            //     "MN0009": "bams/MN0009.hg19.bam",
+            //     "MN00013": "bams/MN00013.hg19.bam",
+            //     "MN00056": "bams/MN00056.hg19.bam"
+        // },
+    // },
+    // "0.5x_low_coverage_trimmed5bp":{
+
+        //   "paths":{
+            //     "MN00118": "bams/Trimmed/MN00118.hg19_trim5.bam",
+            //     "MN0009": "bams/Trimmed/MN0009.hg19_trim5.bam",
+            //     "MN00013": "bams/Trimmed/MN00013.hg19_trim5.bam",
+            //     "MN00056": "bams/Trimmed/MN00056.hg19_trim5.bam"
+        // }
+    // },
+    // "Taino":{
+        // "paths":{
+            // "Taino": "~/shared_ressources/reference_panels/dcruzdav/fromVictor/Ancient/Taino.bam"
+        // }
+    // },
+    // "MN0008":{
+        //   "paths":{
+            // "MN0008": "bams/MN0008.hg19.bam"
+        // }
+    // },
+    // "MN0008_L3U":
+    //   "paths":
+    //     {"MN0008_L3U": "bams/MN0008_L3U.hg19.bam"}
+    // "MN0008_non_U":
+    //   "paths":
+    //{     "MN0008_non_U": "bams/MN0008_non_U.hg19.bam"}
+    // "MN0008_trim_2bp_L3U_5bp_non_U":
+    //   "paths":
+    //{     "MN0008_trim_2bp_L3U_5bp_non_U": "bams/MN0008_trim_2bp_L3U_5bp_non_U.hg19.bam"}
+    // "LagoaSta":
+    //   "paths":
+    //     "LagoaSta": "bams/original_fromVictor/LagoaSta.bam"}
+    // "Karitiana": 
+    //   "paths":
+    //     "Karitiana": "bams/original_fromVictor/Karitiana.bam"}
+    // "KaritianaB": 
+    //   "paths":
+    //{     "KaritianaB": "bams/original_fromVictor/KaritianaB.bam"}
+    // "KaritianaBI16": 
+    //   "paths":
+    //{     "KaritianaBI16": "bams/original_fromVictor/KaritianaBI16.bam"}
+    // "KaritianaG":
+    //   "paths":
+    //{     "KaritianaG": "bams/original_fromVictor/KaritianaG.bam"}
+    // "KaritianaH":
+    //   "paths":
+    //{     "KaritianaH": "bams/original_fromVictor/KaritianaH.bam"}
+    // "MayaG":
+    //   "paths":
+    //{     "MayaG": "bams/original_fromVictor/MayaG.bam"}
+    // "MayaH": 
+    //   "paths":
+    //{     "MayaH": "bams/original_fromVictor/MayaH.bam"}
+    // "Mixe":
+    //   "paths":
+    //{     "Mixe": "bams/original_fromVictor/Mixe.bam"}
+    // "MixeE":
+    //   "paths":
+    //{     "MixeE": "bams/original_fromVictor/MixeE.bam"}
+    // "MixeF": 
+    //   "paths":
+    //{     "MixeF": "bams/original_fromVictor/MixeF.bam"}
+    // "PimaCEPH": 
+    //   "paths":
+    //{     "PimaCEPH": "bams/original_fromVictor/PimaCEPH.bam"}
+    // "PimaE": 
+    //   "paths":
+    //{     "PimaE": "bams/original_fromVictor/PimaE.bam"}
+    // "PimaF": 
+    //   "paths":
+    //{     "PimaF": "bams/original_fromVictor/PimaF.bam"}
+    // "SuruiA": 
+    //   "paths":
+    //{     "SuruiA": "bams/original_fromVictor/SuruiA.bam"}
+    // "SuruiB": 
+    //   "paths":
+    //{     "SuruiB": "bams/original_fromVictor/SuruiB.bam"}
+    // "USR1": 
+    //   "paths":
+    //{     "USR1": "bams/original_fromVictor/USR1.bam"}
+    // "1x_fromVictor":
+    //   "paths":
+    //{     "1x": "bams/*1x.bam"}
+    // "0.5x_fromVictor":
+    //   "paths":
+    //{     "0.5x": "bams/*0.5x.bam"}
+    // "MN0008_trim_5bp_non_U":
+    //   "paths":
+    //{     "MN0008_trim_5bp_non_U": "~/americas/Botocudos/BAM/Trimmed/2020_03_10/MN0008_non_U.hg19_trim5.bam"}
+    

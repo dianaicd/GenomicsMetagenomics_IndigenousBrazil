@@ -1,12 +1,18 @@
 # Snakefile version to merge datasets
 configfile: "multiple_purposes.yaml"
-import os,glob
+import os, glob, math
+include: "parse_resources.smk"
+include: "split_positions_panel.py"
+
 bamlists = list(config['merge_sample']["bamlists"].keys())
 panels = list(config['merge_sample']["panels"].keys()) 
 git_path = "/users/dcruzdav/data/Git/Botocudos-scripts/"
 
+max_n_sites_mpileup = config['merge_sample']['max_n_sites_mpileup'] if 'max_n_sites_mpileup' in config['merge_sample'].keys() else 10000
+panel_dicts = { panel:config[ 'merge_sample' ][ 'panels' ][ panel ] for panel in panels  }
+
 chromosomes = [str(x) for x in range(1,23)] 
-mind = [str(round(x*0.01, 2)) for x in range(5, 100, 5)]
+mind = [str(round(x*0.01, 2)) for x in range(95, 100, 5)]
 
 wildcard_constraints:
     extension = "(bed|vcf|ped)",
@@ -17,23 +23,13 @@ wildcard_constraints:
 
 rule all:
     input:
-        # bamlist = expand("{bamlist}.txt", bamlist = bamlists),
-        # mpileup = expand("{panel}/{bamlist}_{Chr}.mpileup",
-        #                    bamlist = bamlists, Chr = chromosomes, panel = panels),
-        # counts = expand("{panel}/{bamlist}_{Chr}.counts.gz", bamlist = bamlists,
-                        #    Chr = chromosomes, panel = panels),
-        # merged_counts = expand("{panel}/{bamlist}.counts.sampled", bamlist = bamlists,
-                        #    panel = panels),
-        # merged_tped = expand("{panel}/{bamlist}_{panel}.tped", bamlist = bamlists,
-                        #    panel = panels),
         haploid_ped = expand("{panel}/{bamlist}_{panel}.haploid.ped", bamlist = bamlists,
                             panel = panels),
         dist = expand("{panel}/{bamlist}_{panel}.haploid.dist.gz", bamlist = bamlists,
                              panel = panels),
         dist_mind = expand("{panel}/{bamlist}_{panel}.mind{mind}.haploid.dist.gz", bamlist = bamlists,
                              panel = panels, mind = mind)#,
-        # panel_bamlist_beagle = expand("{panel}/{bamlist}_{panel}.beagle", bamlist = bamlists,
-        #                     panel = panels)
+
 
 rule link_programs:
     input:
@@ -55,17 +51,23 @@ def expand_path(bamlist):
     bams = [f for p in full_paths for f in glob.glob(p)]
     return(bams)
 
-rule make_bamlist:
-    input:
-        lambda wildcards: expand_path(wildcards.bamlist)
-    output:
-        "{bamlist}.txt"
-    log:
-        "logs/{bamlist}_make_bamlist.log"
-    run:
-        with open(output[0], 'w') as file:
+bamlist_nFiles = {}
+bamlist_nInd = {}
+
+for bamlist in bamlists:
+    input = expand_path(bamlist)
+    output = bamlist + ".txt"
+    bamlist_nFiles[ bamlist ] = math.ceil( len(input) / 10 )
+    bamlist_nInd[ bamlist ] = len( input )
+    n_file = 1
+
+    if not os.path.exists( output ):
+        with open(output, 'w') as file:
             for line in input:
-                file.write(line+"\n")
+                file.write( line + "\n" )
+        split_command = "split -l 10 --numeric-suffixes=1 --additional-suffix='.txt' " + output + " " + output.replace(".txt", "_") 
+        # print(split_command)
+        os.system(split_command)
 
 def return_bai(bamlist):
     bai = [line + ".bai" for line in expand_path(bamlist)]
@@ -78,64 +80,176 @@ rule samtools_index:
         bai = "{file}.bam.bai"
     log:
         "logs/index_samtools_{file}.log"
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("samtools_index_mem", attempt, 4),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("samtools_index_time", attempt, 4), 
     shell:
         """
         samtools index {input.bam} &>{log}
         """
 
-rule mpileup:
+# panelExtension={"vcf":"vcf", "bed":"bim", "bim":"bim", "ped":"map"}
+# columns = {"vcf":"1,2,4,5", "bim":"1,4,5,6", "map":"1,4,5,6"}
+
+#
+for panel in panels:
+    if not os.path.exists( "positions/{panel}.refalt".format( panel = panel ) ):
+       extract_positions_panel(panel = panel, out_dir = 'positions/' )
+    for chr in chromosomes:
+        if not os.path.exists("positions/{panel}_{chr}_sites_list.txt".format( panel = panel, chr = chr) ):
+            split_ref_alt_by_chromosome( panel = panel, chr =  chr  ) 
+            split_chromosome_lines( panel = panel, chr =  chr , max_n_lines = max_n_sites_mpileup )
+
+# rule refalt:
+#     input:
+#         panel = lambda wildcards: config['merge_sample']["panels"][wildcards.panel]["path"]
+#     params:
+#         extension = lambda wildcards: panelExtension[config['merge_sample']["panels"][wildcards.panel]["type"]],
+#         col = lambda wildcards: columns[panelExtension[config['merge_sample']["panels"][wildcards.panel]["type"]]]
+#     output:
+#         refalt = "{panel}/sites.refalt"
+#     log:
+#         "{panel}/logs/refalt.log"
+#     shell:
+#         """
+#         sed "s/ \+/\t/g" {wildcards.panel}.{params.extension} | cut -f {params.col} | \
+#             sed "s/\\t/_/ ;s/A/0/g ; s/C/1/g; s/G/2/g ; s/T/3/g" > {output.refalt} 2>{log}
+#         """
+
+# rule refalt_chr:
+#     input:
+#         refalt = "{panel}/sites.refalt"
+#     output:
+#         refalt = "{panel}/{Chr}.refalt",
+#         sites = "{panel}/{Chr}_sites.bed"
+#     log:
+#         "{panel}/logs/refalt_{Chr}.log"
+#     shell:
+#         """
+#         cut -f 1,2 {input.refalt} |grep -P "^{wildcards.Chr}\_"| sed "s/_/\\t/"| \
+#            awk '{{print($1"\\t"$2-1"\\t"$2)}}' > {output.sites} 
+#         grep -P "^{wildcards.Chr}\_" {input.refalt} > {output.refalt} \
+#            2>{log}
+#         """
+
+rule mpileup_regions:
     input:
+        # bai = lambda wildcards: return_bai(wildcards.bamlist),
+        # bamlist = "{bamlist}_{nGroup}.txt",
+        # panel = lambda wildcards: config['merge_sample']["panels"][wildcards.panel]["path"] ,
+        # sites = "{panel}/{Chr}_sites.bed"
         bai = lambda wildcards: return_bai(wildcards.bamlist),
-        bamlist = "{bamlist}.txt",
-        panel = lambda wildcards: config['merge_sample']["panels"][wildcards.panel]["path"] ,
-        sites = "{panel}/{Chr}_sites.bed"
+        bamlist = "{bamlist}_{nGroup}.txt",
+        panel = lambda wildcards: panel_dicts[wildcards.panel]["path"] ,
+        sites = "positions/{panel}_{chr}.sites_{chunk}"
     output:
-        "{panel}/{bamlist}_{Chr}.mpileup"
+        temp("{panel}/{bamlist}_{nGroup}_{chr}_{chunk}.mpileup")
+    wildcard_constraints:
+        bamlist = ")".join(["(?<!"+p for p in panels])  + "_)" + "|".join([b for b in bamlists])
     params:
         baseQ = config["BaseQuality"]
     log:
-        "{panel}/logs/{bamlist}_{Chr}.log"
+        "{panel}/logs/{bamlist}_{nGroup}_{chr}_{chunk}.log"
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("mpileup_mem", attempt, 4),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("mpileup_time", attempt, 24), 
     shell:
-        "samtools mpileup -r {wildcards.Chr} -Bl {input.sites} "
-        "   -b {input.bamlist} -a -o {output} -Q {params.baseQ} "
-        "   &> {log}  "
+        """
+        samtools mpileup -r {wildcards.chr} -Bl {input.sites} \
+           -b {input.bamlist} -a -o {output} -Q {params.baseQ} \
+           &> {log}  
+        """
 
 
-panelExtension={"vcf":"vcf", "bed":"bim", "bim":"bim", "ped":"map"}
-columns = {"vcf":"1,2,4,5", "bim":"1,4,5,6", "map":"1,4,5,6"}
+def expand_chunks_mpileup( panel, bamlist, nGroup, chr ):
+    list_sites = "positions/{panel}_{chr}_sites_list.txt".format( panel = panel,
+                                                                  chr = chr)
 
-rule refalt:
+    with open( list_sites, 'r' ) as file:
+        chunks = [ line.split('_')[-1].replace('\n', '') for line in file.readlines() ]
+    
+    mpileups = ['{panel}/{bamlist}_{nGroup}_{chr}_{chunk}.mpileup'.format(panel = panel, 
+                                                                bamlist = bamlist,
+                                                                nGroup = nGroup,
+                                                                chr = chr,
+                                                                chunk = chunk)
+                for chunk in chunks]
+    return( mpileups )
+
+rule merge_mpileup_regions:
     input:
-        panel = lambda wildcards: config['merge_sample']["panels"][wildcards.panel]["path"]
-    params:
-        extension = lambda wildcards: panelExtension[config['merge_sample']["panels"][wildcards.panel]["type"]],
-        col = lambda wildcards: columns[panelExtension[config['merge_sample']["panels"][wildcards.panel]["type"]]]
+        mpileups = lambda wildcards: expand_chunks_mpileup( wildcards.panel, 
+                                                            wildcards.bamlist, 
+                                                            wildcards.nGroup,
+                                                            wildcards.chr )
     output:
-        refalt = "{panel}/sites.refalt"
-    log:
-        "{panel}/logs/refalt.log"
+        temp("{panel}/{bamlist}_{nGroup}_{chr}.mpileup")
+    wildcard_constraints:
+        bamlist = ")".join(["(?<!"+p for p in panels])  + "_)" + "|".join([b for b in bamlists]),
+        chr =   "|".join(chromosomes)
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("mpileup_mem", attempt, 4),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("mpileup_time", attempt, 24), 
     shell:
-        'cut -f {params.col} {wildcards.panel}.{params.extension} '
-        '   | sed "s/\\t/_/ ;s/A/0/g ; s/C/1/g; s/G/2/g ; s/T/3/g" > {output.refalt} 2>{log}'
+        """
+        cat {input.mpileups} > {output}
+        """
 
-rule refalt_chr:
+
+# Bamlists are split into groups of 10 individuals or less
+rule merge_mpileup_samples:
     input:
-        refalt = "{panel}/sites.refalt"
+        mpileup = lambda wildcards: 
+                            ["{panel}/{bamlist}_{nGroup}_{Chr}.mpileup".format(
+                                panel = wildcards.panel,
+                                Chr = wildcards.Chr,
+                                bamlist = wildcards.bamlist,
+                                nGroup = str(i) if i >= 10 else "0" + str(i)
+                                ) 
+                                for i in range(1,
+                                                bamlist_nFiles[ wildcards.bamlist ] + 1
+                                                )
+                                             
+                            ]
+                            
     output:
-        refalt = "{panel}/{Chr}.refalt",
-        sites = "{panel}/{Chr}_sites.bed"
-    log:
-        "{panel}/logs/refalt_{Chr}.log"
-    shell:
-        'cut -f 1,2 {input.refalt} |grep -P "^{wildcards.Chr}\_"| sed "s/_/\\t/"| '
-        '   awk \'{{print($1"\\t"$2-1"\\t"$2)}}\' > {output.sites} ; '
-        '   grep -P "^{wildcards.Chr}\_" {input.refalt} > {output.refalt} '
-        '   2>{log}'
+        tmp_mpileup = temp("{panel}/{bamlist}_{Chr}_tmp.mpileup"),
+        mpileup = "{panel}/{bamlist}_{Chr}.mpileup",
+        samples_order = "{panel}/{bamlist}_{Chr}_samples_order.txt"
+    run:
+        def write_clean_pileup( line, mpileup ):
+
+            pileup_data = "\t".join( [ item 
+                                        for i in range(0, n_files ) 
+                                        for item in line.split()[ start_points[i] : end_points[i] ]
+                                        ] )
+
+            pileup_data = "\t".join( line.split(  )[0:3] ) + "\t" + pileup_data + '\n'
+            
+            mpileup.write( pileup_data )
+
+        n_ind = bamlist_nInd[ wildcards.bamlist ]
+        n_files = bamlist_nFiles[ wildcards.bamlist ]
+        start_points = [ ( i*33 ) + 3 for i in range(0, n_files) ]
+        end_points = [i - 3 for i in start_points[1:] ] + [ 3*(n_ind + n_files) ]
+
+        command_paste = "paste " + " ".join([mpileup for mpileup in input.mpileup]) + " > " +output.tmp_mpileup
+        os.system(command_paste)
+
+        with open( output.tmp_mpileup, "r") as tmp_mpileup, open( output.mpileup, "w" ) as mpileup:
+            [ write_clean_pileup( line, mpileup ) for line in tmp_mpileup ]
+
+        with open( output.samples_order, "w") as samples:
+            [ samples.write(line+"\n") for line in input.mpileup ]
+
+
+
 
 rule count_and_sample:
     input:
         mpileup = "{panel}/{bamlist}_{Chr}.mpileup",
-        refalt = "{panel}/{Chr}.refalt",
+        # refalt = "{panel}/{Chr}.refalt",
+        refalt = "positions/{panel}_{Chr}.refalt",
         program = "count_and_sample.py"
     output:
         counts = "{panel}/{bamlist}_{Chr}.counts.gz",
@@ -153,7 +267,7 @@ rule count_and_sample:
 
 def expand_chrs(wildcards):
     myInput = expand("{panel}/{bamlist}_{Chr}.sampled.gz", 
-                         bamlist = wildcards.bamlist, Chr = chromosomes, panel = wildcards.panel)
+                    bamlist = wildcards.bamlist, Chr = chromosomes, panel = wildcards.panel)
     return(myInput)
 
 rule merge_sampled:
@@ -198,20 +312,24 @@ rule merge_bam_to_tped:
     log:
         "{panel}/logs/{bamlist}.log"
     shell:
-        "paste {input.panel_tped} {input.counts} -d ' ' > {output.merged_tped}  2>>{log} ;"
-        "cp {input.panel_tfam} {output.merged_tfam}     2>> {log} ;"    
+        """
+        paste {input.panel_tped} {input.counts} -d ' ' > {output.merged_tped}  2>>{log} 
+        cp {input.panel_tfam} {output.merged_tfam}     2>> {log} 
 
-        "while read line ;"
-        "do "
-        "    name=$(basename $line .bam) ;"
-        "    echo \"$name $name 0 0 0 -9\" >> {output.merged_tfam} ;"
-        "done < {input.bamlist}             2>>{log} ;"
+        while read line 
+        do 
+            name=$(basename $line .bam) 
+            echo \"$name $name 0 0 0 -9\" >> {output.merged_tfam} 
+        done < {input.bamlist}             2>> {log} 
 
-        "plink --recode --make-bed --tfile {wildcards.panel}/{wildcards.bamlist}_{wildcards.panel} "
-        "   --out {wildcards.panel}/{wildcards.bamlist}_{wildcards.panel}         2>>{log};"
-        "awk '{{print $1,$2,$3,$4,$5,1}}' "
-        "   {output.merged_fam} > {output.temp_fam}         2>>{log};"
-        " cp {output.temp_fam} {output.merged_fam}          &>>{log}"
+        plink --recode --make-bed --tfile {wildcards.panel}/{wildcards.bamlist}_{wildcards.panel} \
+           --out {wildcards.panel}/{wildcards.bamlist}_{wildcards.panel}         2>>{log};
+
+        awk '{{print $1,$2,$3,$4,$5,1}}' \
+           {output.merged_fam} > {output.temp_fam}         2>>{log}
+
+        cp {output.temp_fam} {output.merged_fam}          &>>{log}
+        """
 
 rule tped_to_ped:
     input:
@@ -222,8 +340,10 @@ rule tped_to_ped:
     log:
         "{panel}/logs/{bamlist}.log"
     shell:
-        "plink --recode --tfile {wildcards.panel}/{wildcards.bamlist}_{wildcards.panel}"
-        " --out {wildcards.panel}/{wildcards.bamlist}_{wildcards.panel}       &>>{log}"
+        """
+        plink --recode --tfile {wildcards.panel}/{wildcards.bamlist}_{wildcards.panel} \
+            --out {wildcards.panel}/{wildcards.bamlist}_{wildcards.panel}       &>>{log}
+        """
 
 
 rule ped_to_haploid:
@@ -238,12 +358,14 @@ rule ped_to_haploid:
     log:
         "{panel}/logs/{bamlist}.log"
     shell:
-        "perl sample_ped.pl -ped {input.ped} -out {output.haploid} &>>{log} ;"
-        "cp {input.map} {output.map} &>> {log} ;"
-        "plink --distance square gz 'flat-missing' "
-        "    --file {wildcards.panel}/{wildcards.bamlist}_{wildcards.panel}.haploid "
-        "    --out {wildcards.panel}/{wildcards.bamlist}_{wildcards.panel}.haploid"
-        "           &>>{log}"
+        """
+        perl sample_ped.pl -ped {input.ped} -out {output.haploid} &>>{log} ;
+        cp {input.map} {output.map} &>> {log} ;
+        plink --distance square gz 'flat-missing' \
+            --file {wildcards.panel}/{wildcards.bamlist}_{wildcards.panel}.haploid \
+            --out {wildcards.panel}/{wildcards.bamlist}_{wildcards.panel}.haploid \
+                   &>>{log}
+        """
 
 rule calc_dist:
     input:
@@ -254,8 +376,10 @@ rule calc_dist:
     log:
         "{panel}/logs/{bamlist}_mind{mind}.log"
     shell:
-        "plink --distance square gz 'flat-missing' "
-        "    --file {wildcards.panel}/{wildcards.bamlist}_{wildcards.panel}.haploid "
-        "    --mind {wildcards.mind} "
-        "    --out {wildcards.panel}/{wildcards.bamlist}_{wildcards.panel}.mind{wildcards.mind}.haploid"
-        "           &>>{log}"
+        """
+        plink --distance square gz 'flat-missing' \
+            --file {wildcards.panel}/{wildcards.bamlist}_{wildcards.panel}.haploid \
+            --mind {wildcards.mind} \
+            --out {wildcards.panel}/{wildcards.bamlist}_{wildcards.panel}.mind{wildcards.mind}.haploid \
+                   &>>{log}
+        """
