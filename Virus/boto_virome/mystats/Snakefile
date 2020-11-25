@@ -1,0 +1,341 @@
+# Get stats from the mapping output of "snakemake_aDNA_mapping"
+
+configfile: 'config.yaml'
+# From /Botocudos-scripts/misc
+include: "parse_resources.smk"
+
+# Get libraries per sample using the sample.txt file from Sam's mapping pipeline.
+# Get the paths to the original fastq files.
+samples_file = open(config['samples'], 'r')
+# Read the header
+line = samples_file.readline()
+sample_libs = {}
+fastqs = {}
+while True:
+    line = samples_file.readline()
+    if line:
+        line = line.rstrip('\n').rsplit(sep="\t")
+        if sample_libs.get(line[5]):
+            sample_libs[line[5]] = [sample_libs[line[5]]] + [line[3]]
+            fastqs[line[5]] = [fastqs[line[5]]] + [line[1]]
+        else:
+            sample_libs[line[5]] = line[3]
+            fastqs[line[5]] = line[1]
+    else:
+        break
+samples = [*sample_libs]
+samples.sort()
+samples_file.close()
+
+rule all:
+    input:
+        expand("{query}/stats/quality_{q}/{query}_stats.txt", query=samples, 
+            q=config['mapping_quality']),
+        "all_samples/input_reads_samples.txt"
+
+# Count the number of input reads
+rule count_reads_input:
+    input:
+        lambda wildcards: expand("{fastq}", fastq=fastqs[wildcards.query])
+    output:
+        counts="{query}/input_reads/counts_input_reads.txt",
+        zgrep=temp("{query}/input_reads/zgrep")
+    resources:
+        runtime=lambda wildcards, attempt: get_runtime_alloc("count_reads_time", attempt, 4)
+    log:
+        "logs/{query}/input_reads/counts_input_reads.log"
+    shell:
+        '''
+        zgrep -c ^ {input} > {output.zgrep};
+        nb_libs=$(wc -l {output.zgrep} | cut -f1 -d' ');
+
+        if [[ "$nb_libs" -gt 1 ]]; then
+            cut -f2 -d':' {output.zgrep} | awk '{{sum+=$1}} END {{print sum/4}}' > {output.counts} \
+            2> {log}
+        else
+            awk '{{sum+=$1}} END {{print sum/4}}' {output.zgrep} > {output.counts} 2> {log}
+        fi
+        '''
+
+# Join the counts of input reads of all samples
+rule join_reads_input:
+    input:
+        expand("{query}/input_reads/counts_input_reads.txt", query=samples)
+    output:
+        "all_samples/input_reads_samples.txt"
+    log:
+        "logs/all_samples/input_reads_samples.log"
+    shell:
+        "cat {input} > {output} 2> {log}"
+
+# Number of reads mapped before rmdup (per library)
+rule count_rds_b4_rmdup:
+    input:
+        "../{query}/{lib}/library_bam_merge/{lib}.{reference}.bam"
+    output:
+        "{query}/mapped_before_rmdup/quality_{q}/per_lib/{lib}.{reference}_counts.txt"
+    params:
+        q= lambda wildcards: wildcards.q
+    log:
+        "logs/{query}/mapped_before_rmdup/quality_{q}/per_lib/{lib}.{reference}_counts.log"
+    shell:
+        '''
+        module load Bioinformatics/Software/vital-it;
+        module add UHTS/Analysis/samtools/1.4;
+        samtools view -c -q {params.q} {input} > {output} 2> {log}
+        '''
+
+# Sum the counts before rmdup according to sample and reference
+rule merge_lib_counts_rds_b4_rmdup:
+    input:
+        lambda wildcards:
+        expand("{query}/mapped_before_rmdup/quality_{q}/per_lib/{lib}.{reference}_counts.txt",
+            query="{query}", q="{q}", lib=sample_libs[wildcards.query], 
+            reference=wildcards.reference)
+    output:
+        "{query}/mapped_before_rmdup/quality_{q}/merge_counts_lib/{query}.{reference}"
+        "_counts_b4_rmdup.txt"
+    log:
+        "logs/{query}/mapped_before_rmdup/quality_{q}/merge_counts_lib/{query}.{reference}"
+        "_counts_b4_rmdup.log"
+    shell:
+        "cat {input} | awk '{{sum+=$1}} END {{print sum}}' > {output} 2> {log}"
+
+# Join counts of reads before rmdup
+rule join_counts_rds_b4_rmdup:
+    input:
+        expand("{query}/mapped_before_rmdup/quality_{q}/merge_counts_lib/{query}.{reference}"
+            "_counts_b4_rmdup.txt", query="{query}", q="{q}", reference=config['refs'])
+    output:
+        "{query}/mapped_before_rmdup/quality_{q}/counts_b4_rmdup_all_refs.txt"
+    log:
+        "logs/{query}/mapped_before_rmdup/quality_{q}/counts_b4_rmdup_all_refs.log"
+    shell:
+        "cat {input} > {output} 2> {log}"
+
+# Count number of reads after rmdup
+rule count_final_reads:
+    input:
+        "../{query}/{query}.{reference}.bam"
+    output:
+        "{query}/count_final_reads/quality_{q}/{query}.{reference}_final_reads.txt"
+    params:
+        q= lambda wildcards: wildcards.q
+    log:
+        "logs/{query}/count_final_reads/quality_{q}/{query}.{reference}_final_reads.log"
+    shell:
+        '''
+        module load Bioinformatics/Software/vital-it;
+        module add UHTS/Analysis/samtools/1.4;
+        samtools view -c -q {params.q} {input} > {output} 2> {log}
+        '''
+# Join the final reads counts in a single file
+rule join_counts_final_reads:
+    input:
+        expand('{query}/count_final_reads/quality_{q}/{query}.{reference}_final_reads.txt',
+            query="{query}", q="{q}", reference= config['refs'])
+    output:
+        "{query}/count_final_reads/quality_{q}/counts_final_rds_all_refs.txt"
+    log:
+        "logs/{query}/count_final_reads/quality_{q}/counts_final_rds_all_refs.log"
+    shell:
+        "cat {input} > {output} 2> {log}"
+
+# Get the length of the reference genome
+rule get_ref_length:
+    input:
+        "../reference/{reference}/{reference}.fasta.fai"
+    output:
+        "reference_length/{reference}_lgth.txt"
+    log:
+        "logs/reference_length/{reference}_lgth.log"
+    shell:
+        "cut -f2 {input} > {output} 2> {log}"
+
+# Join the lengths of the reference genomes in a single file
+rule join_ref_lengths:
+    input:
+        expand("reference_length/{reference}_lgth.txt", reference=config['refs'])
+    output:
+        "reference_length/refs_length.txt"
+    log:
+        "logs/reference_length/refs_length.log"
+    shell:
+        "cat {input} > {output} 2> {log}"
+
+# Average read length of mapped reads according to a certain mapping quality
+rule get_avg_rd_lgth:
+    input:
+        "../{query}/{query}.{reference}.bam"
+    output:
+        avg="{query}/average_read_length/quality_{q}/{reference}_avg_rd_lgth.txt",
+        read_lgth=temp("{query}/average_read_length/quality_{q}/{reference}_read_length.txt")
+    params:
+        q=lambda wildcards: wildcards.q,
+        d_script=config['path2_read_length']
+    log:
+        "logs/{query}/average_read_length/quality_{q}/{reference}_avg_rd_lgth.log"
+    shell:
+        '''
+        module load Bioinformatics/Software/vital-it;
+        module add UHTS/Analysis/samtools/1.4;
+        samtools view -bq{params.q} {input} | python {params.d_script} --out {output.read_lgth}
+        
+        if [[ ! -s {output.read_lgth} ]]; then
+            echo "0" > {output.avg} 2> {log}
+        else
+            awk '{{n_reads+=$2; lgth_read+=($1*$2)}} END {{print lgth_read/n_reads}}' \
+            {output.read_lgth} > {output.avg} 2> {log}
+        fi
+        '''
+
+# Join the average read lengths in a single file
+rule join_avg_rd_lgth:
+    input:
+        expand("{query}/average_read_length/quality_{q}/{reference}_avg_rd_lgth.txt", 
+            query="{query}", q="{q}", reference=config['refs'])
+    output:
+        "{query}/average_read_length/quality_{q}/avg_rd_lgth_all_refs.txt"
+    log:
+        "logs/{query}/average_read_length/quality_{q}/avg_rd_lgth_all_refs.log"
+    shell:
+        '''
+        cat {input} > {output} 2> {log}
+        '''
+
+# Get temporal bam & bai of certain quality
+rule get_bam_bai:
+    input:
+        "../{query}/bam_merge/{query}.{reference}.bam"
+    output:
+        bam=temp("{query}/bamdamage/bams/{query}.{reference}.mapq{q}.bam"),
+        bai=temp("{query}/bamdamage/bams/{query}.{reference}.mapq{q}.bai")
+    params:
+        q= lambda wildcards: wildcards.q
+    log:
+        "logs/{query}/bamdamage/bams/{query}.{reference}.mapq{q}.bam_bai.log"
+    shell:
+        '''
+        module add UHTS/Analysis/samtools/1.4;
+        samtools view -b -q {params.q} {input} -o {output.bam} 2> {log};
+        samtools index {output.bam} {output.bai} 2> {log}
+        '''
+
+rule bamdamage:
+    """
+    Run bamdamage to quantify the deamination pattern
+    """
+    input:
+        bam="{query}/bamdamage/bams/{query}.{reference}.mapq{q}.bam",
+        bai="{query}/bamdamage/bams/{query}.{reference}.mapq{q}.bai"
+
+    output:
+        dam="{query}/bamdamage/quality_{q}/{reference}.dam.pdf",
+        length="{query}/bamdamage/quality_{q}/{reference}.length.pdf",
+        length_table="{query}/bamdamage/quality_{q}/{reference}.length.csv",
+        dam_5prime_table="{query}/bamdamage/quality_{q}/{reference}.dam_5prime.csv",
+        dam_3prime_table="{query}/bamdamage/quality_{q}/{reference}.dam_3prime.csv"      
+    log:
+        "logs/{query}/bamdamage/quality_{q}/{reference}_bamdamage.log"
+    shell:
+        """
+        module add UHTS/Analysis/samtools/1.4;
+        module add R/3.5.1;
+        ../scripts/bamdamage --output {output.dam} --output_length {output.length} {input.bam} 2> {log};
+        """
+
+# Get the deamination damage
+rule get_deam_damage:
+    input:
+        three_prime="{query}/bamdamage/quality_{q}/{reference}.dam_3prime.csv",
+        five_prime="{query}/bamdamage/quality_{q}/{reference}.dam_5prime.csv"
+    output:
+        damage="{query}/bamdamage/quality_{q}/{reference}_damage.txt",
+        value_3prime=temp("{query}/bamdamage/quality_{q}/{reference}_3prime_value"),
+        value_5prime=temp("{query}/bamdamage/quality_{q}/{reference}_5prime_value")
+    log:
+        "logs/{query}/bamdamage/quality_{q}/{reference}_get_damage.log"
+    shell:
+        '''
+        cut -f3 -d',' {input.three_prime} | sed -n 2p > {output.value_3prime}
+        cut -f12 -d',' {input.five_prime} | sed -n 2p > {output.value_5prime}
+        paste {output.value_3prime} {output.value_5prime} > {output.damage}
+        '''
+
+rule join_damage:
+    input:
+        expand("{query}/bamdamage/quality_{q}/{reference}_damage.txt", query="{query}", 
+            q="{q}", reference=config['refs'])
+    output:
+        "{query}/bamdamage/quality_{q}/damage_all_refs.txt"
+    log:
+        "logs/{query}/bamdamage/quality_{q}/damage_all_refs.log"
+    shell:
+        '''
+        cat {input} > {output}
+        '''
+
+# Get coverage tables
+rule get_coverage:
+    input:
+        "{query}/bamdamage/bams/{query}.{reference}.mapq{q}.bam"
+    output:
+        "{query}/coverage_tables/quality_{q}/{query}.{reference}.mapq{q}.coverage.tsv"
+    log:
+        "logs/{query}/coverage_tables/quality_{q}/{query}.{reference}.mapq{q}.coverage.log"
+    shell:
+        """
+        module add UHTS/Analysis/BEDTools/2.29.2;
+        bedtools genomecov -d -ibam {input} > {output} 2> {log}
+        """
+
+# Get genome breadth of coverage, depth of coverage, effective depth of coverage 
+# and standard deviations of DoC & eff DoC
+rule get_BoC_DoC_effDoC_SDDoC_SDeffDoC:
+    input:
+        "{query}/coverage_tables/quality_{q}/{query}.{reference}.mapq{q}.coverage.tsv"
+    output:
+        "{query}/BoC_DoC_SDs/quality_{q}/{reference}_BoC_DoC_effDoC_SDs.tsv"
+    log:
+        "logs/{query}/BoC_DoC_SDs/quality_{q}/{reference}_BoC_DoC_effDoC_SDs.log"
+    shell:
+        '''
+        module load Bioinformatics/Software/vital-it;
+        module add R/3.6.1;
+        Rscript --vanilla get_BoC.R --cov_table {input} --output {output} 2> {log}
+        '''
+
+# Join breadth of coverage, depth of coverage, effective depth of coverage
+# and standard deviations of DoC & eff DoC
+rule join_BoC_DoC_effDoC_SDDoC_SDeffDoC:
+    input:
+        expand("{query}/BoC_DoC_SDs/quality_{q}/{reference}_BoC_DoC_effDoC_SDs.tsv", 
+        query="{query}", q="{q}", reference=config['refs']),
+    output:
+        "{query}/BoC_DoC_SDs/quality_{q}/BoC_DoC_effDoC_SDs_all_refs.txt"
+    log:
+        "logs/{query}/BoC_DoC_SDs/quality_{q}/BoC_DoC_effDoC_SDs_all_refs.log"
+    shell:
+        '''
+        cat {input} > {output} 2> {log}
+        '''
+
+# Create table with statistics (per sample)
+rule create_table:
+    input:
+        b4_rmdup="{query}/mapped_before_rmdup/quality_{q}/counts_b4_rmdup_all_refs.txt",
+        after_rmdup="{query}/count_final_reads/quality_{q}/counts_final_rds_all_refs.txt",
+        ref_lgth="reference_length/refs_length.txt",
+        avg_rd_lgth="{query}/average_read_length/quality_{q}/avg_rd_lgth_all_refs.txt", 
+        BoC_DoC_SDs="{query}/BoC_DoC_SDs/quality_{q}/BoC_DoC_effDoC_SDs_all_refs.txt",
+        damage="{query}/bamdamage/quality_{q}/damage_all_refs.txt"
+    output:
+        "{query}/stats/quality_{q}/{query}_stats.txt"
+    log:
+        "logs/{query}/stats/quality_{q}/{query}_stats.log"
+    shell:
+        '''
+        paste {input.b4_rmdup} {input.after_rmdup} {input.avg_rd_lgth} {input.BoC_DoC_SDs} \
+        {input.damage} {input.ref_lgth} > {output} 2> {log}
+        '''
+

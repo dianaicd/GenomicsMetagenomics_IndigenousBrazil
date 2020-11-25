@@ -1,0 +1,266 @@
+---
+title: "mexpop5 parvo B19 plots"
+output: html_document
+---
+
+```{r Libraries}
+library(data.table)
+library(scales)
+library(tidyr)
+```
+
+```{r bamdamage function}
+plot_bamdamage <- function(five_prime, three_prime, titlecolor = "black", cex = 1, 
+                           cexmain = 2, txt_reads = F,
+                           y2 = 0.55, plot.title, plot.title2 = "", myColor = c(),
+                           legend_only = F, ncol_legend = 3, legend_cex = 1){
+  
+  if (length(myColor) == 0) {
+    myColor <- c("royalblue", "firebrick3", "lightblue3", "indianred1",
+                 "orange","orange3", "plum", "plum4", "paleturquoise3", 
+                 "paleturquoise4", "rosybrown2", "rosybrown3")
+    
+    names(myColor) <- c("C..T", "G..A", "T..C", "A..G", "C..A", "C..G",
+                        "T..A", "T..G", "A..C", "A..T", "G..C", "G..T")
+  }
+  
+  if (legend_only) {
+    myIndex <- round(seq(1, 13, length.out = ncol_legend + 1))
+    for (i in 1:(length(myIndex) - 1)) {
+      plot(1:10, 1:10, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+      
+      if (i == 1) {
+        legend(1, 10, legend = sub("\\.\\.", " to ",
+                                  names(myColor)[myIndex[i]:(myIndex[i + 1] - 1)]),
+               col = myColor[myIndex[i]:(myIndex[i + 1] - 1)],
+               lty = 1, bty = "n", cex = legend_cex, lwd = 1.6,
+               title = "Substitution type")
+      }else{
+        legend(1, 10, legend = sub("\\.\\.", " to ", names(myColor)[myIndex[i]:(myIndex[i + 1] - 1)]),
+               col = myColor[myIndex[i]:(myIndex[i + 1] - 1)],
+               lty = 1, bty = "n", cex = legend_cex, lwd = 1.6
+        )
+      }
+    }
+    return()
+  }
+  
+  plot_lines <- function(damage, left = T){
+    plot(damage$C..T[1:25], type = "n",
+         bty = "n", 
+        ylab = "Frequency", xlab = NA,
+         cex = cex, axes = F, ylim = c(0, y2))
+    
+    if (left) {
+      title(main = plot.title, xlab = "5'-position", cex.main = cexmain)
+      axis(side = 1, at = seq(0, 25, 5))
+      axis(side = 2)
+    }else{
+      axis(side = 1, at = seq(1, 25, 5), labels = seq(25, 1, -5))
+      axis(side = 4)
+      title(main = plot.title2, xlab = "3'-position", cex.main = cexmain, 
+            col.main = titlecolor)
+      nb_reads_legend <- paste0("Number of reads: ", txt_reads)
+      text(x = 12, y = 0.51, labels = nb_reads_legend, cex = 1.15)
+    }
+    
+    for (type in names(myColor)) {
+      lines(damage[1:25, type, with = F],
+            col = alpha(myColor[type], 0.8), 
+            lwd = 1.5, 
+            cex = cex)
+    }
+  }
+  
+  par(mar = c(4, 4, 3, 1))
+  plot_lines(damage = five_prime)
+  
+  par(mar = c(4, 1, 3, 3))
+  plot_lines(damage = three_prime[25:1, ], left = F)
+
+}
+```
+
+```{r coverage function}
+plot_cov <- function(coverage, plot.title, myColor, boxColors, prots_coords, limy = limy){
+  par(xpd = T)
+  
+  barplot(height = coverage, 
+          main = plot.title, 
+          ylab = "Number of reads",
+          col = myColor,
+          border = NA,
+          axes = T,
+          ylim = c(0, limy), 
+          space = 0)
+  
+  # Rectangles part
+  
+  space_btwn_box <- -limy/20
+  box_width <- -limy/20
+  box_top <- box_width
+  
+  for (i in c(1:length(prots_coords$start))) {
+    if (prots_coords[i, Name] %in% c("ns", "NS", "ns1", "NS1", "vp1", "VP1", "VP1/2")) {
+      box_top <- box_width
+    } else if (prots_coords[i, Name] %in% c("VP2", "vp2")) {
+      box_top <- box_top + space_btwn_box 
+    } else {
+      box_top <- 2 * box_top + space_btwn_box
+    }
+    
+    rect(xleft = prots_coords[i, start],
+         xright = prots_coords[i, end],
+         ytop = box_top,
+         ybottom = box_top + box_width,
+         col = alpha(boxColors[prots_coords[i, Name]], 0.8),
+         border = NA)
+    
+    box_top <- box_width
+  }
+  
+}
+```
+
+
+```{r paths}
+virome_path <- "~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/"
+bamdamage_path <- "/bamdamage/quality_"
+
+# botocudos <- c("MN00013", "MN00021", "MN00039", "MN00067", "MN00119", "MN00346")
+botocudos <-  c("MN00346", "MN00067", "MN00021", "MN00013", "MN00119", "MN00039")
+q <- 0 
+
+parvo_gtyp3 <- "AY083234_1"
+
+myDam <- vector("list", length = length(botocudos))
+names(myDam) <- botocudos
+
+storing_path <- "~/Dropbox/Virome_Yami_Diana/plots_mexpop5/"
+```
+
+```{r damage plots}
+nCol <- 12
+nRow <- 1
+cex <- 1.2
+
+for (i in botocudos) {
+    tmp_dam5 <- fread(file = paste0(virome_path, i, bamdamage_path, q, '/',
+                                    parvo_gtyp3, ".dam_5prime.csv"), 
+                      drop = 1)
+    tmp_dam3 <- fread(file = paste0(virome_path, i, bamdamage_path, q, '/',
+                                    parvo_gtyp3, ".dam_3prime.csv"), 
+                      drop = 1)
+    setnames(tmp_dam5, names(tmp_dam5), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    setnames(tmp_dam3, names(tmp_dam3), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    some_dam <- list(five_prime = tmp_dam5, three_prime = tmp_dam3)
+    myDam[[i]] <- some_dam
+}
+
+pdf(paste0(storing_path, "damageplots_selected_mapQ", q, ".pdf"), width = 22, 
+    height = 3)
+layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
+
+for (boto in botocudos) {
+  y2 <- 0.45
+  nreads <- scan(file = paste0(virome_path, boto, "/count_final_reads/quality_", q,
+                               "/", boto, ".", parvo_gtyp3, "_final_reads.txt"))
+  plot.title <- boto
+  plot.title2 <- ""
+  five_prime <- myDam[[boto]][["five_prime"]]
+  three_prime <- myDam[[boto]][["three_prime"]]
+  plot_bamdamage(five_prime = five_prime, three_prime = three_prime,
+                    cex = 1, cexmain = 1.65, titlecolor = "black",
+                    txt_reads = nreads, y2 = y2, plot.title = plot.title, 
+                    plot.title2 = plot.title2, myColor = c())
+}
+  
+plot_bamdamage(legend_only = T, myColor = c(), legend_cex = 1, ncol_legend = 2)
+
+dev.off()
+```
+
+### Depth of Coverage plots
+
+```{r paths & vectors}
+# Chunk 4 for the rest of the paths
+genes_path <- "~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/refs_seqs_parvovirus_BMuhlemann/parsed_genes/"
+
+myCov <- vector("list", length = length(botocudos))
+names(myCov) <- botocudos
+
+boxColors <- c("royalblue", "firebrick3", "lightblue3", "indianred1",
+                 "orange","orange3", "plum", "plum4", "paleturquoise3",
+                 "paleturquoise4", "rosybrown2", "rosybrown3")
+
+prot_names <- c("11-kDa", "11 kDa protein", "7.5-kDa", "7.5 kDa protein",
+                "hypothetical 11kDa protein", "hypothetical protein", "ns", "NS",
+                "ns1", "NS1", "vp1", "VP1", "VP1/2", "vp2", "VP2", "VP3", "protein X",
+                "X", "X-9 kDa protein")
+
+prot_colors <- c(rep("royalblue", 2), rep("firebrick3", 2), rep("lightblue3", 2),
+                 rep("indianred1", 4), rep("orange", 2), "orange3", rep("plum", 2),
+                 "plum4", rep("seagreen", 3))
+
+names(prot_colors) <- prot_names
+
+standr_prots <- c("11kDa", "7.5kDa", "hypothetical", "NS1", "VP1", "VP1/2", "VP2", "VP3",
+                  "X")
+standr_pts_cols <- c("royalblue", "firebrick3", "lightblue3", "indianred1", "orange",
+                     "orange3", "plum", "plum4", "seagreen")
+
+names(standr_pts_cols) <- standr_prots
+```
+
+
+```{r}
+nCol <- 7
+nRow <- 1
+cex <- 1.2
+ncol_legend <- 3
+legend_cex <- 1
+
+for (boto in botocudos) {
+  tmp_cov <- fread(paste0(virome_path, boto, "/coverage_tables/quality_", q, "/", boto,
+                          ".", parvo_gtyp3, ".mapq", q, ".coverage.tsv"), drop = 1)
+  setnames(tmp_cov, names(tmp_cov), c("position", "reads"))
+  proteins <- fread(paste0(genes_path, sub(pattern = "_\\d$", "", parvo_gtyp3),
+                           ".tsv"))
+  proteins <- proteins[complete.cases(proteins)]
+  some_cov <- list(coverage = tmp_cov, prots = proteins)
+  myCov[[boto]] <- some_cov
+}
+  
+pdf(paste0(storing_path, "coverage_plots_selected_mapQ", q, ".pdf"), width = 22, 
+    height = 3.7)
+layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
+  
+limy <- lapply(myCov, function(x){x$coverage$reads}) %>% unlist %>% max
+  
+for (boto in botocudos) {
+  plot_cov(coverage = myCov[[boto]]$coverage$reads, boxColors = prot_colors, 
+           prots_coords = myCov[[boto]]$prots, plot.title = boto, 
+           myColor = rgb(18, 140, 252, maxColorValue = 255),
+           limy = limy)
+  
+  xtick <- seq(min(myCov[[boto]]$coverage$position),
+               max(myCov[[boto]]$coverage$position), length.out = 5)
+  axis(side = 1, at = xtick, labels = FALSE, tck = -0.01)
+  text(x = xtick,  par("usr")[3], labels = paste0(xtick, "bp"), pos = 1, xpd = TRUE, 
+       cex = 0.65)
+}
+  
+plot(NULL , xaxt = 'n', yaxt = 'n', bty = 'n', ylab = '', xlab = '', xlim = 0:1, 
+     ylim = 0:1, main = "Genes")
+
+ycoord <- 1
+for (i in c(1:length(standr_pts_cols))) {
+  legend(0, ycoord, legend = names(standr_pts_cols)[i], 
+         col = alpha(standr_pts_cols[i], 0.8), lty = 1, bty = "n", cex = 1, lwd = 5)
+  ycoord <- ycoord - 0.1
+}
+  
+dev.off()
+```
+
+

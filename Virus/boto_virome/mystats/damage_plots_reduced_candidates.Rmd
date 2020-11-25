@@ -1,0 +1,237 @@
+---
+title: "Damage plots reduced candidates"
+output: html_document
+---
+
+Markdown for damage plots of the final reduced viral candidates: HERV K113, HHV7, HBV, B19V & MAstV 1.
+
+```{r libraries}
+library(openxlsx)
+library(data.table)
+library(scales)
+library(tidyr)
+```
+
+```{r Plotting function}
+plot_bamdamage <- function(five_prime, three_prime, titlecolor = "black", cex = 1, 
+                           cexmain = 2, txt_reads = F,
+                           y2 = 0.55, plot.title, plot.title2 = "", myColor = c(),
+                           legend_only = F, ncol_legend = 3, legend_cex = 1){
+  
+  if (length(myColor) == 0) {
+    myColor <- c("royalblue", "firebrick3", "lightblue3", "indianred1",
+                 "orange","orange3", "plum", "plum4", "paleturquoise3", 
+                 "paleturquoise4", "rosybrown2", "rosybrown3")
+    
+    names(myColor) <- c("C..T", "G..A", "T..C", "A..G", "C..A", "C..G",
+                        "T..A", "T..G", "A..C", "A..T", "G..C", "G..T")
+  }
+  
+  if (legend_only) {
+    myIndex <- round(seq(1, 13, length.out = ncol_legend + 1))
+    for (i in 1:(length(myIndex) - 1)) {
+      plot(1:10, 1:10, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+      
+      if (i == 1) {
+        legend(1, 10, legend = sub("\\.\\.", " to ",
+                                  names(myColor)[myIndex[i]:(myIndex[i + 1] - 1)]),
+               col = myColor[myIndex[i]:(myIndex[i + 1] - 1)],
+               lty = 1, bty = "n", cex = legend_cex, lwd = 1.6,
+               title = "Substitution type")
+      }else{
+        legend(1, 10, legend = sub("\\.\\.", " to ", names(myColor)[myIndex[i]:(myIndex[i + 1] - 1)]),
+               col = myColor[myIndex[i]:(myIndex[i + 1] - 1)],
+               lty = 1, bty = "n", cex = legend_cex, lwd = 1.6
+        )
+      }
+    }
+    return()
+  }
+  
+  plot_lines <- function(damage, left = T){
+    plot(damage$C..T[1:25], type = "n",
+         bty = "n", 
+        ylab = "Frequency", xlab = NA,
+         cex = cex, axes = F, ylim = c(0, y2))
+    
+    if (left) {
+      title(main = plot.title, xlab = "5'-position", cex.main = cexmain)
+      axis(side = 1, at = seq(0, 25, 5))
+      axis(side = 2)
+    }else{
+      axis(side = 1, at = seq(1, 25, 5), labels = seq(25, 1, -5))
+      axis(side = 4)
+      title(main = plot.title2, xlab = "3'-position", cex.main = cexmain, 
+            col.main = titlecolor)
+      nb_reads_legend <- paste0("Number of reads: ", txt_reads)
+      text(x = 12, y = 0.51, labels = nb_reads_legend, cex = 1.15)
+    }
+    
+    for (type in names(myColor)) {
+      lines(damage[1:25, type, with = F],
+            col = alpha(myColor[type], 0.8), 
+            lwd = 1.5, 
+            cex = cex)
+    }
+  }
+  
+  par(mar = c(4, 4, 3, 1))
+  plot_lines(damage = five_prime)
+  
+  par(mar = c(4, 1, 3, 3))
+  plot_lines(damage = three_prime[25:1, ], left = F)
+
+}
+```
+
+In popgen: hepatitis_b_str_ayw (5), h_herpes_7 (2), h_parvovirus_B19 (8), mamastrovirus_1 (7)
+In virome: h_endogenus_retro_K113 (4)
+
+### HBV, HERV K113, & HHV7
+```{r paths & data}
+# mapping quality
+q <- 0 
+
+boto_virome_path <- 
+  c("~/axiom_virome/Boto_virome/true_complete/virus_mappings/human_virus/mapping_temp/output_mystats/")
+popgen_path <- c("~/axiom_popgen/boto_virome/human_virus/mapping/output_mystats/")
+all_paths <- c(rep(popgen_path, 5), rep(boto_virome_path, 4), rep(popgen_path, 2))
+samples <- c("MN00346", "MN00021", "MN00023", "MN00019", "MN00067", "MN00013", "MN0008", "MN00119", "MN00056", 
+             "MN00013", "MN0008")
+viruses <- c(rep("hepatitis_b_str_ayw", 5), rep("h_endogenus_retro_K113", 4), rep("h_herpes_7", 2))
+virus_colors <- c(rep("#b85e00", 5), rep("#00d973", 4), rep("#0024cc", 2))
+v_names <- c(rep("HBV", 5), rep("HERV K133", 4), rep("HHV7", 2))
+
+myDam <- vector("list", length = length(viruses))
+```
+
+```{r plotting}
+nCol <- 6
+nRow <- 4
+cex <- 1.2
+
+for (i in c(1:length(viruses))) {
+  tmp_dam5 <- fread(paste0(all_paths[i], samples[i], "/bamdamage/quality_", q, "/", viruses[i], ".dam_5prime.csv"), 
+                    drop = 1)
+  tmp_dam3 <- fread(paste0(all_paths[i], samples[i], "/bamdamage/quality_", q, "/", viruses[i], ".dam_3prime.csv"), 
+                    drop = 1)
+  setnames(tmp_dam5, names(tmp_dam5), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    setnames(tmp_dam3, names(tmp_dam3), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+  some_dam <- list(five_prime = tmp_dam5, three_prime = tmp_dam3)
+  myDam[[i]] <- some_dam
+}
+
+pdf(paste0(popgen_path, "damage_plots/HBV_HERVK113_HHV7.pdf"), width = 14, height = 12)
+layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
+for (i in c(1:length(viruses))) {
+  y2 <- 0.55
+  nreads <- scan(file = paste0(all_paths[i], samples[i], "/count_final_reads/quality_", q, "/", samples[i], ".", 
+                               viruses[i], "_final_reads.txt"))
+  plot.title <- samples[i]
+  plot.title2 <- v_names[i]
+  five_prime <- myDam[[i]][["five_prime"]]
+  three_prime <- myDam[[i]][["three_prime"]]
+  plot_bamdamage(five_prime = five_prime, three_prime = three_prime,
+                    cex = 1, cexmain = 1.65, titlecolor = virus_colors[i],
+                    txt_reads = nreads, y2 = y2, plot.title = plot.title, 
+                    plot.title2 = plot.title2, myColor = c())
+}
+plot_bamdamage(legend_only = T, myColor = c(), legend_cex = 1, ncol_legend = 2)
+dev.off()
+```
+
+### B19V
+```{r paths & data}
+# mapping quality
+q <- 0 
+all_paths <- rep(popgen_path, 8)
+samples <- c("MN00346", "MN00013", "MN00067", "MN00021", "MN00119", "MN00039", "MN0003", "MN00066")
+viruses <- rep("h_parvovirus_B19", 8)
+virus_colors <- rep("#417777", 8)
+v_names <- rep("B19V", 8)
+myDam <- vector("list", length = length(viruses))
+```
+
+```{r plotting}
+nCol <- 6
+nRow <- 3
+cex <- 1.2
+
+for (i in c(1:length(viruses))) {
+  tmp_dam5 <- fread(paste0(all_paths[i], samples[i], "/bamdamage/quality_", q, "/", viruses[i], ".dam_5prime.csv"), 
+                    drop = 1)
+  tmp_dam3 <- fread(paste0(all_paths[i], samples[i], "/bamdamage/quality_", q, "/", viruses[i], ".dam_3prime.csv"), 
+                    drop = 1)
+  setnames(tmp_dam5, names(tmp_dam5), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    setnames(tmp_dam3, names(tmp_dam3), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+  some_dam <- list(five_prime = tmp_dam5, three_prime = tmp_dam3)
+  myDam[[i]] <- some_dam
+}
+
+pdf(paste0(popgen_path, "damage_plots/B19V.pdf"), width = 14, height = 12)
+layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
+for (i in c(1:length(viruses))) {
+  y2 <- 0.55
+  nreads <- scan(file = paste0(all_paths[i], samples[i], "/count_final_reads/quality_", q, "/", samples[i], ".", 
+                               viruses[i], "_final_reads.txt"))
+  plot.title <- samples[i]
+  plot.title2 <- v_names[i]
+  five_prime <- myDam[[i]][["five_prime"]]
+  three_prime <- myDam[[i]][["three_prime"]]
+  plot_bamdamage(five_prime = five_prime, three_prime = three_prime,
+                    cex = 1, cexmain = 1.65, titlecolor = virus_colors[i],
+                    txt_reads = nreads, y2 = y2, plot.title = plot.title, 
+                    plot.title2 = plot.title2, myColor = c())
+}
+plot_bamdamage(legend_only = T, myColor = c(), legend_cex = 1, ncol_legend = 2)
+dev.off()
+```
+
+### MAstV 1
+```{r paths & data}
+# mapping quality
+q <- 0 
+all_paths <- rep(popgen_path, 7)
+samples <- c("MN00021", "MN00068", "MN00067", "MN1943", "MN00118", "MN00013", "MN00069")
+viruses <- rep("mamastrovirus_1", 7)
+virus_colors <- rep("#4f8fe6", 7)
+v_names <- rep("MAstV 1", 7)
+myDam <- vector("list", length = length(viruses))
+```
+
+```{r plotting}
+nCol <- 6
+nRow <- 3
+cex <- 1.2
+
+for (i in c(1:length(viruses))) {
+  tmp_dam5 <- fread(paste0(all_paths[i], samples[i], "/bamdamage/quality_", q, "/", viruses[i], ".dam_5prime.csv"), 
+                    drop = 1)
+  tmp_dam3 <- fread(paste0(all_paths[i], samples[i], "/bamdamage/quality_", q, "/", viruses[i], ".dam_3prime.csv"), 
+                    drop = 1)
+  setnames(tmp_dam5, names(tmp_dam5), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    setnames(tmp_dam3, names(tmp_dam3), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+  some_dam <- list(five_prime = tmp_dam5, three_prime = tmp_dam3)
+  myDam[[i]] <- some_dam
+}
+
+pdf(paste0(popgen_path, "damage_plots/MAstV1.pdf"), width = 14, height = 12)
+layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
+for (i in c(1:length(viruses))) {
+  y2 <- 0.55
+  nreads <- scan(file = paste0(all_paths[i], samples[i], "/count_final_reads/quality_", q, "/", samples[i], ".", 
+                               viruses[i], "_final_reads.txt"))
+  plot.title <- samples[i]
+  plot.title2 <- v_names[i]
+  five_prime <- myDam[[i]][["five_prime"]]
+  three_prime <- myDam[[i]][["three_prime"]]
+  plot_bamdamage(five_prime = five_prime, three_prime = three_prime,
+                    cex = 1, cexmain = 1.65, titlecolor = virus_colors[i],
+                    txt_reads = nreads, y2 = y2, plot.title = plot.title, 
+                    plot.title2 = plot.title2, myColor = c())
+}
+plot_bamdamage(legend_only = T, myColor = c(), legend_cex = 1, ncol_legend = 2)
+dev.off()
+```
+
+
