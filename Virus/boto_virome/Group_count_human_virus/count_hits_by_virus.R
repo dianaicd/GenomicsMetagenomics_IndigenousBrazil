@@ -9,7 +9,9 @@
 # 3) Group & count hits according to virus.
 
 # Running example:
-# Rscript --vanilla count_hits_by_virus.R
+# Rscript --vanilla count_hits_by_virus.R -f my_human_virus_hits.csv 
+# -t /scratch/axiom/FAC/FBM/DBC/amalaspi/virome/yarizmen/virome/accessionTaxa.sql  
+# -o my_hits_by_virus.csv 
 
 # Print help:
 # Rscript --vanilla count_hits_by_virus.R -h
@@ -29,6 +31,8 @@ library(dplyr)
 option_list = list(
   make_option(c("-f", "--csv_file"), type = "character", default = NULL, 
               help = "Input csv file name", metavar = "character"),
+  make_option(c("-t", "--taxonomy_db"), type = "character", default = NULL,
+              help = "Taxonomy sql database", metavar = "character")
   make_option(c("-o", "--output"), type = "character", default = NULL,
               help = "Name of the output file", metavar = "character")
 )
@@ -37,6 +41,7 @@ opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
 csv_file <- opt$csv_file
+taxonomy_db <- opt$taxonomy_db
 output <- opt$output
 
 #### Get virus names ####
@@ -49,7 +54,7 @@ hvs_hits <- hvs_hits[, .(V1, V2, V3)]
 colnames(hvs_hits) <- c("read_id", "protein_id", "tax_id")
 
 # Get the virus names
-virus_names <- getTaxonomy(ids = hvs_hits[,tax_id], sqlFile = "/scratch/axiom/FAC/FBM/DBC/amalaspi/virome/yarizmen/virome/accessionTaxa.sql", desiredTaxa = c("species"))
+virus_names <- getTaxonomy(ids = hvs_hits[,tax_id], sqlFile = taxonomy_db, desiredTaxa = c("species"))
 # sapply: several requests, then it won't complain about the number of requests
 # virus_names <- sapply(hvs_hits[, tax_id], function(x) ncbi_get_taxon_summary(id = x, key = "8f5a7ee70253e037c5641bab48b0d6d74908")$name, USE.NAMES = F, simplify = "vector")
 # virus_names <- lapply(hvs_hits[, tax_id], function(x) ncbi_get_taxon_summary(id = x, key = "8f5a7ee70253e037c5641bab48b0d6d74908")$name)
