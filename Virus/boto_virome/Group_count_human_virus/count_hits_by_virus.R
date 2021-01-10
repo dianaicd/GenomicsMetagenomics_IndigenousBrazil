@@ -4,7 +4,8 @@
 # Script to get the names of the virus using the taxid & count the hits by virus.
 
 # Actions:
-# 1) Read output of python script "select_hvirus_hits.py" (after perl substitution).
+# 1) Read output of python script "select_hvirus_hits.py" (after perl substitution 
+# perl -i.bak -pe 's/["\[\]]//g').
 # 2) Get virus names with taxize.
 # 3) Group & count hits according to virus.
 
@@ -47,14 +48,15 @@ output <- opt$output
 #### Get virus names ####
 
 # Open the output of python script "select_hvirus_hits.py"
-hvs_hits <- fread(file = csv_file, sep = ",", header = F)
+hvs_hits <- fread(file = csv_file, sep = ",", quote = "'", header = F)
 
 # Select "useful" columns
 hvs_hits <- hvs_hits[, .(V1, V2, V3)]
 colnames(hvs_hits) <- c("read_id", "protein_id", "tax_id")
 
 # Get the virus names
-virus_names <- getTaxonomy(ids = hvs_hits[,tax_id], sqlFile = taxonomy_db, desiredTaxa = c("species"))
+virus_names <- getTaxonomy(ids = hvs_hits[, tax_id], sqlFile = taxonomy_db, 
+                           desiredTaxa = c("species"))
 # sapply: several requests, then it won't complain about the number of requests
 # virus_names <- sapply(hvs_hits[, tax_id], function(x) ncbi_get_taxon_summary(id = x, key = "8f5a7ee70253e037c5641bab48b0d6d74908")$name, USE.NAMES = F, simplify = "vector")
 # virus_names <- lapply(hvs_hits[, tax_id], function(x) ncbi_get_taxon_summary(id = x, key = "8f5a7ee70253e037c5641bab48b0d6d74908")$name)
