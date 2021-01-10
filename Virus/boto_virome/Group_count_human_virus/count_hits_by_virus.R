@@ -32,7 +32,7 @@ option_list = list(
   make_option(c("-f", "--csv_file"), type = "character", default = NULL, 
               help = "Input csv file name", metavar = "character"),
   make_option(c("-t", "--taxonomy_db"), type = "character", default = NULL,
-              help = "Taxonomy sql database", metavar = "character")
+              help = "Taxonomy sql database", metavar = "character"),
   make_option(c("-o", "--output"), type = "character", default = NULL,
               help = "Name of the output file", metavar = "character")
 )
