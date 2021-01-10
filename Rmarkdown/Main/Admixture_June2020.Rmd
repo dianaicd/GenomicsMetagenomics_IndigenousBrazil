@@ -1,0 +1,663 @@
+---
+title: "Admixture, June 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+require(plyr)
+require(scales)
+```
+
+```{r}
+boto2014 <- data.frame(famID = c("Botocudos2014", "Botocudos2014"),
+                       indID = c("Bot15", "Bot17"))
+magic_panel <- read.table("~/Projects/Botocudos/Files/Panels/Magic.panel", header = T)
+
+boto <- read.csv("~/Projects/Botocudos/Files/Tables/Sup_T1.csv")[1:26,]
+boto_DoC <- boto[,c("Sample", "DoC_endogenous")]
+
+num_SNPs <- read.table("~/Projects/Botocudos/Files/ADMIX/2020_06_04/Wollstein_mind0.95_rmtrans/num_snps_rmtrans.txt")
+colnames(num_SNPs) <- c("Sample", "SNPs")
+```
+
+```{r functions to prepare admixture data}
+assign_width <- function(new_panel, column, total_width = 10, min_width = 2){
+  myLevels <- levels( new_panel[, column] )
+  widths <- sapply(myLevels,  function(x) {nInd <- sum(new_panel[, column] == x) 
+                                           min( total_width / nInd, min_width )
+                                           } ) 
+  
+  unlist( sapply(new_panel[, column ], function( l ) {widths[ l ]} ) )
+  
+}
+
+order_components <- function(qopt, new_panel, column, group_component, k){
+  myLevels <- group_component[ 1:k ]
+  new_order <- c()
+    for( l in myLevels ){
+      index_group <- which(new_panel[, column ] == l )
+      average_component <- colMeans( qopt[ index_group, 1:k] )
+      names(average_component) <- 1:k
+      
+      #remove already identified components
+      if( length(new_order) > 0){
+        
+        average_component <- average_component[ - (new_order) ]
+      }
+      
+      max_component <- as.integer(names(which( average_component == max(average_component ))))
+      
+      new_order <- c(new_order, max_component)
+    }
+  
+  if( ncol( qopt ) > length( new_order ) ){
+    new_order <- c(new_order, (k+1):ncol(qopt))
+  }
+  qopt <- qopt[, new_order]
+  colnames( qopt ) <- c( paste("k", seq(1, k), sep = ""), colnames(qopt)[-(1:k)] )
+  
+  return( qopt )
+}
+
+get_group_division <- function(qopt, new_panel, column){
+  sapply( levels( new_panel[ , column] ),
+                                   function( l ) {row_l <- max( which( new_panel[, column] == l ) )
+                                   cumsum( qopt$width[ 1:row_l ] )[ row_l ] }
+  )
+}
+
+get_group_mean <- function(qopt, new_panel, column){
+  sapply( levels( new_panel[ , "population"] ),
+                                   function( l ) { last_row <- rev(which( new_panel[, column] == l ) )[1]
+                                   first_row <- which( new_panel[, column] == l ) [1]
+                                   mean( cumsum( qopt$width[ 1:last_row ] )[ c(first_row, last_row ) ] ) }
+  )
+}
+
+get_new_panel <- function( ind ){
+  new_panel            <- rbind(boto2014, data.frame(indID = ind, famID = ind), fam)
+  new_panel            <- join(data.frame(indID = new_panel$indID), magic_panel)
+  new_panel$region     <- factor(new_panel$region, levels = unique(myAes$region), ordered = T)
+  new_panel$population <- factor(new_panel$population, levels = myAes$population, ordered = T)
+  new_panel <- droplevels(new_panel)
+  return(new_panel)
+}
+
+get_new_row_order <- function(new_panel){
+    new_order <- order(new_panel$region, new_panel$population)
+    return(new_order)
+}
+
+get_title <- function(ind, k){
+  snps <- prettyNum(num_SNPs$SNPs[ num_SNPs$Sample == ind ], big.mark = ",")
+  DoC <- boto_DoC$DoC_endogenous[boto_DoC$Sample == ind]
+  myTitle <- paste("K = ", k, "        ", ind, " (#SNPs: ", snps, "; DoC: ", DoC, ")", sep = "")
+  return(myTitle)
+}
+
+# extract target sample
+get_components_one_ind <- function(ind, prefix_path, k, replicate = NULL){
+    new_panel            <- get_new_panel(ind)  
+    new_order            <- get_new_row_order(new_panel)
+    
+    new_panel            <- new_panel[ new_order, ]
+    if( is.numeric( replicate ) ){
+      qopt                 <- read.table( paste(prefix_path, ind,
+                                                "_k", k, 
+                                                "_", replicate, 
+                                                ".qopt", sep = "") )
+    }else{
+      qopt                 <- read.table( paste(prefix_path, ind, "_k", k, ".qopt", sep = "") )
+    }
+    qopt                 <- qopt[ new_order, ]
+    rownames(qopt)       <- 1:nrow(qopt)
+    qopt <- order_components(qopt, new_panel, "population", group_component, k)
+    components <- qopt[ which( new_panel$indID == ind), ] 
+
+    return(components)
+}
+ 
+```
+
+## Wollstein panel, transitions removed
+```{r}
+mat <- matrix(c("Bambaran", "Africa",
+                "Dogon",  "Africa",
+                "YRI",  "Africa",
+                
+         "CEU",  "Europe", 
+         
+         "Iraqi",  "WestEurasia",
+         "Slovenian", "WestEurasia", 
+         
+         "Pakistanis",  "SouthAsia", 
+         "Nepalese", "SouthAsia",
+         
+         "Kyrgyzstan", "CentralAsiaSiberia",
+         
+         "Mongolian", "EastAsia", 
+         "Thai", "EastAsia",
+         "JPT", "EastAsia",
+         "CHB", "EastAsia", 
+          
+         "BOR", "SouthEastAsia", 
+         
+         "NGH", "Oceania", 
+         
+         "Tongan_Samoan", "Oceania",
+         "POL", "Oceania",
+         "FIJ", "Oceania",
+         
+         "Botocudos2014", "Oceania",
+         
+         "Totonac",  "Americas",
+         "Bolivian",  "Americas",
+         "Botocudos",  "Botocudos"
+         ), ncol = 2, byrow = T)
+
+myAes <- data.frame(region = mat[,2],
+                    population = mat[,1] 
+                    )
+
+```
+
+```{r}
+fam <- read.table("~/Projects/Botocudos/Files/ADMIX/2020_06_04/Wollstein_mind0.95_rmtrans.fam")
+fam[ ,3:6] <- NULL
+colnames(fam) <- c("famID", "indID")
+
+prefix_path <- "~/Projects/Botocudos/Files/ADMIX/2020_06_04/Wollstein_mind0.95_rmtrans/"
+```
+
+```{r}
+
+myColors <- c("#99b333", "#33ff7d", "#0057ba", "#06004f", "#b875eb", "#d94d99", "#ffe600")
+group_component <- c("Bambaran", "CEU","JPT", "NGH", "POL", "Totonac", "Pakistanis")
+
+
+barplot(rep(1, length(myColors)), col = myColors )
+# ind <- "MN0008"
+
+mySamples <- boto$Sample
+mySamples <- mySamples[ ! mySamples %in% c("MN0008_non_U", "MN0008_L3U")]
+
+pdf("~/Projects/Botocudos/Plots/ngsadmix/June2020/Wollstein_rmtrans.pdf",
+    width = 10, height = 14)
+layout(mat = matrix(seq(1,8), nrow = 8, byrow = T))
+
+for(ind in mySamples){
+  # par(mfrow = c(2,1))
+  par(mar = c(6, .5, 2, 2))
+  
+  for(k in c(6)){
+    new_panel            <- get_new_panel(ind)  
+    new_order            <- get_new_row_order(new_panel)
+    
+    new_panel            <- new_panel[ new_order, ]
+    qopt                 <- read.table( paste(prefix_path, ind, "_k", k, ".qopt", sep = "") )
+    qopt                 <- qopt[ new_order, ]
+    rownames(qopt)       <- 1:nrow(qopt)
+    
+    column                <- "population"
+    qopt$width            <- assign_width(new_panel, column, total_width = 10, 
+                                          min_width = 2) 
+    white_lines           <- get_group_division(qopt, new_panel, column)
+    mean_pop              <- get_group_mean(qopt, new_panel, column)
+    names(mean_pop)       <- sub("Botocudos$", ind, names(mean_pop))
+    
+    qopt <- order_components(qopt, new_panel, "population", group_component, k)
+    
+    barplot(as.matrix(t(qopt[ , 1:k ])), space=0,border=NA, 
+            xlab=NULL,
+            horiz = F, cex.main = 1,
+            cex.lab = 2, axes = F, axisnames= F,
+            width = qopt$width,
+            col = myColors, main = get_title(ind, k))
+    abline(v = white_lines, col = "white")
+  }
+  
+  text(x = mean_pop, y = -0., labels = names(mean_pop), srt = 90, xpd=NA, cex = 1, adj = 1)
+}
+
+dev.off()
+```
+
+```{r}
+
+myColors <- c("#99b333", "#33ff7d", "#0057ba", "#06004f", "#b875eb", "#d94d99", "#ffe600")
+group_component <- c("Bambaran", "CEU","JPT", "NGH", "POL", "Totonac", "Pakistanis")
+
+ind <- "MN0008"
+k <- 7
+
+mySamples <- boto$Sample
+mySamples <- mySamples[ ! mySamples %in% c("MN0008_non_U", "MN0008_L3U")]
+
+components <- sapply(mySamples, 
+                     function(ind) get_components_one_ind(as.character(ind), prefix_path, k) )
+
+barplot(components,  space = 0.1,
+        border = NA, 
+        xlab=NULL,
+        horiz = F, cex.main = 1,
+        cex.lab = 2, axes = F, axisnames= F,
+        col = myColors
+)
+
+text(x = 1.1*seq( 1, length(mySamples) ) - 0.5,
+     y = -0., labels = mySamples, 
+     srt = 90, xpd=NA, cex = 1, adj = 1)
+
+```
+
+# Build table with average components across 10 replicates
+```{r}
+n_reps <- 10
+k <- 6
+
+all_components_replicates <- sapply(1:n_reps, 
+                                    function(replicate) 
+                                      sapply(mySamples, 
+                                             function(ind) 
+                                               get_components_one_ind(as.character(ind), 
+                                                                      prefix_path, 
+                                                                      k,
+                                                                      replicate = replicate) ) )
+
+avg_ancestry <- matrix(
+  sapply(1:length(mySamples),
+         function(ind_index) 
+           sapply( 1:k, 
+                   function(component) {mean ( 
+                     unlist ( 
+                       all_components_replicates[ (k*( ind_index - 1) + 1):(k*ind_index) , ][component,] 
+                     )
+                   )
+                   }
+                   
+           )
+  ),
+  byrow = F, ncol = 24)
+
+avg_ancestry_percent <- matrix( percent( avg_ancestry ),
+                                ncol = 24, byrow = F )
+
+sd_ancestry <- matrix(
+  sapply(1:length(mySamples),
+         function(ind_index) 
+           sapply( 1:k, 
+                   function(component) {sd ( 
+                     unlist ( 
+                       all_components_replicates[ (k*( ind_index - 1) + 1):(k*ind_index) , ][component,]
+                     )
+                   )
+                     
+                   }
+                   
+           )
+  ),
+  byrow = F, ncol = 24)
+
+sd_ancestry_percent <- matrix( percent(sd_ancestry),
+                               ncol = 24, byrow = F)
+
+table_ancestry <- matrix( sapply(1:ncol(avg_ancestry_percent),
+                                 function(col_index) 
+                                   sapply(1:nrow(avg_ancestry_percent), 
+                                          function( row_index ) 
+                                            paste ( avg_ancestry_percent[row_index, col_index], 
+                                                    ", sd = ", 
+                                                    sd_ancestry_percent[ row_index, col_index],
+                                                    sep = "")
+                                   )
+),
+ncol = 24, byrow = F)
+
+colnames(table_ancestry) <- mySamples
+rownames(table_ancestry) <- group_component[1:k]
+
+View(table_ancestry)
+
+```
+
+# Ancestry with Maanasa's and Tábita's panels
+
+```{r}
+mat <- matrix(
+  c( 'Mbuti_Pygmies', 'Africa', 'Biaka_Pygmies', 'Africa', 
+     'Mandenkas', 'Africa', 'Yorubas', 'Africa',
+     'San', 'Africa', 'Bantus', 'Africa',
+     'Mozabites', 'Africa', 'YRI', 'Africa',
+     
+     'Melanesians', 'Oceania', 'Papuans', 'Oceania',
+     'Papuans_pygmy', 'Oceania', 'Solomons', 'Oceania',
+     
+     'Estonians', 'Europe', 'Chuvash', 'Europe',
+     'French', 'Europe', 'Sardinians', 'Europe',
+     'Orcadians', 'Europe', 'Russians', 'Europe',
+     'North_Italians', 'Europe', 'Tuscans', 'Europe',
+     'French_Basques', 'Europe', 'Hungarians', 'Europe',
+     'Ukranians', 'Europe',
+     
+     'Balkars', 'Caucasus', 'Adygei', 'Caucasus',
+     'Lezgins', 'Caucasus',
+     
+     'Druze', 'NearEast', 'Bedouins', 'NearEast',
+     'Palestinians', 'NearEast',
+     
+     'Malayan', 'SouthAsia', 'Paniya', 'SouthAsia',
+     'Brahui', 'SouthAsia', 'Balochi', 'SouthAsia',
+     'Hazara', 'SouthAsia', 'Makrani', 'SouthAsia',
+     'Sindhi', 'SouthAsia', 'Pathan', 'SouthAsia', 
+     'Kalash', 'SouthAsia', 'Burusho', 'SouthAsia',
+     'North_Kannadi', 'SouthAsia', 'Gujaratis', 'SouthAsia',
+     'Sakilli', 'SouthAsia', 'Aeta', 'SoutheastAsia',
+     'Agta', 'SoutheastAsia', 'Batak', 'SoutheastAsia',
+     'Bajo', 'SoutheastAsia', 'Kayah_Lebbo', 'SoutheastAsia',
+     
+     'Cambodians', 'EastAsia', 'Japanese', 'EastAsia',
+     'Han', 'EastAsia', 'Tujia', 'EastAsia',
+     'Yizu', 'EastAsia', 'Miaozu', 'EastAsia',
+     'Oroqens', 'EastAsia', 'Daur', 'EastAsia',
+     'Mongola', 'EastAsia', 'Hezhen', 'EastAsia',
+     'Xibo', 'EastAsia', 'Uygurs', 'EastAsia',
+     'Dai', 'EastAsia', 'Lahu', 'EastAsia',
+     'She', 'EastAsia', 'Naxi', 'EastAsia',
+     'Tu', 'EastAsia',
+     
+     'Khanty', 'Siberia', 'Yakuts', 'Siberia',
+     'Chukchis', 'Siberia', 'Naukan', 'Siberia',
+     'Nganasan2', 'Siberia', 'Yukaghirs', 'Siberia',
+     'Altaian-Kizhi', 'Siberia', 'Altaians', 'Siberia',
+     'Buryats', 'Siberia', 'Dolgans', 'Siberia', 
+     'Eskimo', 'Siberia', 'Evens', 'Siberia', 
+     'Evenkis', 'Siberia', 'Nenets', 'Siberia',
+     'Tuvinians', 'Siberia', 'Khakases', 'Siberia',
+     'Kets', 'Siberia', 'Koryaks', 'Siberia',
+     'Mongolians', 'Siberia', 'Nganasans', 'Siberia',
+     'Nivkhs', 'Siberia', 'Selkups', 'Siberia',
+     'Shors', 'Siberia', 'Tundra_Nentsi', 'Siberia',
+     'Teleut', 'Siberia',
+     
+     'Coastal_Tsimshian', 'Americas',
+     'Nisgaa', 'Americas',
+     'Tlingit', 'Americas', 
+     'Haida', 'Americas',
+     'Stswecemc', 'Americas',
+     'Splatsin', 'Americas', 
+     'CanAmerindian_1', 'Americas',
+     'Cree', 'Americas',
+     'Ojibwa', 'Americas',
+     'Algonquin', 'Americas',
+     'Southern_Athabascans_1', 'Americas', 
+     'Northern_Athabascans_1', 'Americas',
+     'Northern_Athabascans_2', 'Americas',
+     'Northern_Athabascans_3', 'Americas',
+     'Northern_Athabascans_4', 'Americas',
+     'Chipewyan', 'Americas',
+     
+     'Alaskan_Inuit', 'Americas',
+     'Aleutians', 'Americas',
+     'West_Greenlanders', 'Americas',
+     'East_Greenlanders', 'Americas',
+     'Saqqaq', 'Americas',
+     
+     'Cabecar', 'Americas',
+     'Pima', 'Americas',
+     'Tepehuano', 'Americas',
+     'Chorotega', 'Americas',
+     'Yaqui', 'Americas',
+     'Mixtec', 'Americas',
+     'Huichol', 'Americas',
+     'USAmerindian_1', 'Americas',
+     'USAmerindian_2', 'Americas',
+     'USAmerindian_4', 'Americas',
+     'USAmerindian_3', 'Americas',
+     'Zapotec1', 'Americas', 
+     'Zapotec2', 'Americas',
+     
+     'Kaqchikel', 'Americas',
+     'Maya', 'Americas',
+     'Maya1', 'Americas',
+     'Maya2', 'Americas', 
+     'Mixe', 'Americas', 
+     'Clovis', 'Americas',
+     
+     'Kumlai', 'Americas',
+     'Cucupa', 'Americas',
+     'Cochimi', 'Americas',
+     'InteriorTsimshian', 'Americas',
+     
+     'Inga', 'Americas', 
+     'Chono', 'Americas',
+     'Chilote', 'Americas',
+     'Huilliche', 'Americas', 
+     'Diaguita', 'Americas',
+     'Aymara', 'Americas',
+     'Quechua', 'Americas',
+     'Yaghan', 'Americas',
+     
+     'Purepecha', 'Americas',
+     'Waunana', 'Americas',
+     'Embera', 'Americas',
+     'Kogi', 'Americas',
+     'Arhuaco', 'Americas',
+     'Maleku', 'Americas',
+     'Huetar', 'Americas',
+     'Bribri', 'Americas', 
+     'Teribe', 'Americas', 
+     'Guaymi', 'Americas', 
+     
+     'Karitiana', 'Americas',
+     'Surui', 'Americas', 
+     'Guahibo', 'Americas',
+     'Piapoco', 'Americas', 
+     'Palikur', 'Americas',
+     'Ticuna', 'Americas',
+     'Wayuu', 'Americas',
+     'Tupiniquim', 'Americas', 
+     'Guarani', 'Americas',
+     'Jamamadi', 'Americas',
+     'Parakana', 'Americas', 
+     'Chane', 'Americas', 
+     'Kaingang', 'Americas',
+     'Toba', 'Americas',
+     'Arara', 'Americas', 
+     'Wichi', 'Americas'
+     
+     ),
+  
+  
+              ncol = 2, byrow = T)
+
+myAes <- data.frame(region = mat[,2],
+                    population = mat[,1] 
+                    )
+
+
+prepare_panel <- function( old_panel ){
+  new_panel            <- join(data.frame(indID = old_panel$indID,
+                                          famID = old_panel$famID), magic_panel)
+  new_panel$region     <- factor(new_panel$region, levels = unique(myAes$region), ordered = T)
+  new_panel$population <- factor(new_panel$population, levels = myAes$population, ordered = T)
+  new_panel <- droplevels(new_panel)
+  return(new_panel)
+}
+
+```
+
+```{r break admixture plot}
+
+
+  pop_breaks <- c("Yorubas", "Koryaks",
+                  "Coastal_Tsimshian", "Chipewyan",
+                  "Alaskan_Inuit", "Saqqaq",
+                  "Cabecar", "Zapotec2",
+                  "Kaqchikel", "Clovis",
+                  "Kumlai", "InteriorTsimshian",
+                  "Inga", "Yaghan",
+                  "Purepecha", "Guaymi", 
+                  "Karitiana", "Wichi"
+                  )
+
+divide_plot <- function( pop_breaks, qopt, mean_pop, white_lines ){
+  
+  n_blocks <- length(pop_breaks)/2
+  
+  # layout(mat = matrix(seq(1, n_blocks), nrow = n_blocks, byrow = T))
+  for(i in seq(1, n_blocks*2, 2)){
+    # par(mar = c(6, .5, 2, 2))
+    
+    index_1 <- min( which( new_panel$population == pop_breaks[i] ) )
+    index_2 <- max( which( new_panel$population == pop_breaks[i+1] ) )
+    barplot(as.matrix(t(qopt[ index_1:index_2, 1:k ])), space=0,
+            border=NA, 
+            xlab=NULL,
+            horiz = F, cex.main = 1,
+            cex.lab = 2, axes = F, axisnames= F,
+            width = qopt$width[ index_1:index_2 ],
+            col = myColors, main = k)
+    
+    index_1 <- which( names(white_lines) == pop_breaks[i] )
+    index_2 <- which( names(white_lines) == pop_breaks[i+1] )
+    offset_white_line <- ifelse(index_1 == 1, 
+                                0, white_lines[which(names(mean_pop) == pop_breaks[i - 1])])
+    
+    abline(v = white_lines[ index_1:index_2 ] - offset_white_line, col = "white")
+    
+    offset_text <- ifelse(index_1 == 1,
+                          0, mean_pop[ which(names(mean_pop) == pop_breaks[i - 1]) ])
+    
+    text(x = mean_pop[index_1:index_2] - offset_text - 0.5*(mean_pop[index_1] - offset_text), 
+         y = -0., labels = names(mean_pop)[index_1:index_2], 
+         srt = 90, xpd=NA, cex = 1, adj = 1)
+    
+  }
+}
+
+```
+
+
+```{r}
+
+fam <- read.table("~/Projects/Botocudos/Files/ADMIX/2020_08_04/817ind_Maanasa_Tupiniquim_Guarani_mind0.90.fam")
+fam[ ,3:6] <- NULL
+colnames(fam) <- c("famID", "indID")
+
+prefix_path <- "~/Projects/Botocudos/Files/ADMIX/2020_08_04/817ind_Maanasa_Tupiniquim_Guarani_mind0.90/817ind_Maanasa_Tupiniquim_Guarani_mind0.90"
+
+group_component <- c("Yorubas",
+                     "Papuans",
+                     "French", "Koryaks",#"Bajo", "Sindhi",
+                     "Northern_Athabascans_3", "Ticuna", "Mixe",
+                     "Pima",
+                     "Cabecar", "Aymara", "Karitiana",
+                     "Surui",
+                     "Guarani","Tupiniquim", "Tupiniquim")
+
+myColors <- c("gray0", "gray20", "gray40", "gray60", #"gray80", "gray90",
+              "#91AA55", "#A9627E", "#294A62", "#BE8C80",
+              "#987A87", "#76B08B", "#452958", "#686F80",
+             "#B19545", "#739AC0", "#777238"
+              
+              )
+
+# barplot(rep(1, length(myColors)), col = myColors, border = NA)
+
+
+# png("~/Desktop/test.png", width = 30, height = 15, res = 300, units = "in")
+
+# png("~/Desktop/test_FEWER_GROUPS.png", width = 30, height = 15, res = 300, units = "in")
+
+k <- 15
+new_panel            <- prepare_panel( old_panel = fam )
+new_order            <- get_new_row_order(new_panel)
+
+new_panel            <- new_panel[ new_order, ]
+qopt                 <- read.table( paste(prefix_path, "_k", k, ".qopt", sep = "") )
+qopt                 <- qopt[ new_order, ]
+rownames(qopt)       <- 1:nrow(qopt)
+
+column                <- "population"
+qopt$width            <- assign_width(new_panel, column, total_width = 10, min_width = 2) 
+white_lines           <- get_group_division(qopt, new_panel, column)
+mean_pop              <- get_group_mean(qopt, new_panel, column)
+
+max_anc_pop <- subset_pops_ancestry(new_panel = new_panel,
+                    qopt = qopt, k = k, option = "max" )
+
+qopt <- order_components(qopt, new_panel, "population", group_component, k)
+
+max_anc_pop <- subset_pops_ancestry(new_panel = new_panel,
+                    qopt = qopt, k = k, option = "max" )
+
+
+barplot(max_anc_pop$ancestry,
+        border=NA, 
+        names.arg = max_anc_pop$population, las = 2,
+        horiz = F,
+        col = myColors, main = k)
+
+divide_plot( pop_breaks, qopt, mean_pop, white_lines)
+
+# dev.off()
+```
+
+```{r}
+# find the populations with at least n% of each ancestry
+subset_pops_ancestry <- function(new_panel, qopt, k, option = "max",
+                                 threshold = 0, max_num_pop = 0){
+  
+  populations <- levels(new_panel$population)
+  
+  avg_anc_pop <- sapply(populations, 
+                        function( pop ) { index <- which( new_panel$population == pop)
+                                          colMeans( qopt[ index, 1:k ] )
+                                        } 
+  )
+  
+  make_df <- function(option, i, threshold = 0, max_num_pop = 0){
+    
+    if ( option == "max" ) {
+      population <-  populations[ which(avg_anc_pop[i,] == max(avg_anc_pop[i,])) ]
+      ancestry   <- max(avg_anc_pop[i,])
+    }else if ( option == "threshold" ) {
+      population <-  populations[ which(threshold <= avg_anc_pop[i,]) ]
+      ancestry   <- avg_anc_pop[ i, threshold <= avg_anc_pop[i,] ]
+      if ( max_num_pop ) {
+        population <- population[ order(ancestry, decreasing = T) ][1:max_num_pop]
+        ancestry   <- ancestry[ order(ancestry, decreasing = T) ][1:max_num_pop]
+      }
+    }
+    
+    df <- data.frame(k = i,
+                     population = population,
+                     ancestry = ancestry)
+    
+    return( df )
+    
+  }
+  
+  pops_ancestry <- do.call(rbind, lapply(1:k, 
+                                         function(i) make_df(i, option = option, 
+                                                             max_num_pop = max_num_pop)
+                                         )
+                           )
+
+  return( pops_ancestry )
+}
+
+# find the populations that have the maximum observed average ancestry
+```
+
+```{r}
+subset_pops_ancestry(new_panel = new_panel,
+                    qopt = qopt, k = k, option = "max" )
+
+
+```
+

@@ -1,7 +1,8 @@
 configfile: "multiple_purposes.yaml"
 import os,glob,itertools
+include: "parse_resources.smk"
 
-path_vcf = "~/scratch_monthly/Simons/VCF/*"
+path_vcf = "~/americas/Panels/SGDP/VCF/*"
 metadata_simons = "~/americas/Panels/SGDP/Simons_sample_pop_region_country.txt"
 # Don't forget to link required scripts
 gitpath="/users/dcruzdav/data/Git/Botocudos-scripts/"
@@ -44,11 +45,11 @@ rule fetch_heterozygous:
     shell:
         """
         bcftools view -m2 -M2 -Ou  -v snps {input.vcf}  \
-        -e  'GT="hom" || (REF ~ "C" & ALT ~ "T") 
-        || (REF ~ "G" & ALT ~ "A") || 
-        (REF ~ "T" & ALT ~ "C") || (REF ~ "A" & ALT ~ "G")
-        || (ALT ~ "C" & ALT ~ "T") ||(ALT ~ "G"& ALT ~ "A")' \
-    | bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' \
+                -e  'GT="hom" || (REF ~ "C" & ALT ~ "T") 
+                || (REF ~ "G" & ALT ~ "A") || 
+                (REF ~ "T" & ALT ~ "C") || (REF ~ "A" & ALT ~ "G")
+                || (ALT ~ "C" & ALT ~ "T") ||(ALT ~ "G"& ALT ~ "A")' |\
+            bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' \
         > {output}
         """
 
@@ -152,14 +153,17 @@ rule do_mpileup:
         mpileup = "{population}/{ind1}_{ind2}_{chr}_{african}.mpileup"
     log:
         "{population}/{ind1}_{ind2}_{chr}_{african}.log"
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("mpileup_mem", attempt, 4),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("mpileup_time", attempt, 12)
     shell:
         """
         samtools mpileup -r {wildcards.chr} \
-        -Bl {input.sites_bed} \
-        -b {input.bams_list} \
-        -a -o {output.mpileup} \
-        -Q20 \
-        > {log}
+            -Bl {input.sites_bed} \
+            -b {input.bams_list} \
+            -a -o {output.mpileup} \
+            -Q20 \
+            > {log}
         """
 
 rule count_and_sample_bam:
@@ -169,14 +173,16 @@ rule count_and_sample_bam:
     output:
         sampled = "{population}/{ind1}_{ind2}_{chr}_{african}.sampled.gz",
         counts = "{population}/{ind1}_{ind2}_{chr}_{african}.counts.gz"
-
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("count_mem", attempt, 4),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("count_time", attempt, 12)
     shell:
         """
         python count_and_sample.py \
-        --mpileup {input.mpileup} \
-        --counts {output.counts} \
-        --sampled {output.sampled} \
-        --refalt {input.refalt}
+            --mpileup {input.mpileup} \
+            --counts {output.counts} \
+            --sampled {output.sampled} \
+            --refalt {input.refalt}
         """
 
 rule merge_counts:
@@ -186,6 +192,9 @@ rule merge_counts:
         population = "{population}", african = African)
     output:
         sampled = "{population}/{ind1}_{ind2}_{african}.sampled.txt"
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("merge_genos_mem", attempt, 4),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("merge_genos_time", attempt, 2)
     shell:
         """
         for file in {input.sampled}
@@ -200,12 +209,15 @@ rule het_pi_Skoglund:
         sites = "{african}.refalt"
     output:
         pi = "{population}/{ind1}_{ind2}_{african}.pi.stats.txt"
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("pi_mem", attempt, 8),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("pi_time", attempt, 2)
     shell:
         """
         python3.6 het_pi_Skoglund.py \
-        -c {input.sampled} \
-        -s {input.sites} \
-        -o {wildcards.population}/{wildcards.ind1}_{wildcards.ind2}_{wildcards.african}
+            -c {input.sampled} \
+            -s {input.sites} \
+            -o {wildcards.population}/{wildcards.ind1}_{wildcards.ind2}_{wildcards.african}
     """
 #-----------------------------------------------------------------------------#
 # Rules below are run for data in vcf.gz

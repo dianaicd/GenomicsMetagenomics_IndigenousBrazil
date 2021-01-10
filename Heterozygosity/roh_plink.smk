@@ -1,4 +1,5 @@
 configfile: "multiple_purposes.yaml"
+include: "parse_resources.smk"
 #include: "genotype_calling_all.smk"
 #=============================================================================#
 # Some defaults
@@ -25,7 +26,7 @@ map_filter_name = {"window_kb":"homozyg-window-kb ",
 
 def build_filter(par_name):
     myFilter = ""
-    if "filters" in config.keys():
+    if "filters" in config['roh_plink'].keys():
         filters = list(config["roh_plink"]["filters"].keys())
         if par_name in filters:
             myFilter = "--" + map_filter_name[par_name] + " " + str(config["roh_plink"]["filters"][par_name])
@@ -46,16 +47,94 @@ bamlists = [l for l in list(config["roh_plink"]["bamlists"].keys())]
 
 rule all:
     input:
-        roh = expand("ROH/{bamfile}_{chr}_{rmTrans}_roh.hom",
-                     bamfile = bamlists, chr = chromosomes, rmTrans = ["all", "rmTrans"])
+        roh = expand("ROH/{bamfile}.chr{chr}.phased_{rmTrans}_roh.hom",
+                     bamfile = bamlists, chr = chromosomes, rmTrans = ["all", "rmTrans", "1240K"])
 
 
+rule bcf_to_vcf:
+    input:
+        bcf = "bcf/{file}.bcf"
+    output:
+        vcf = temp("vcf/{file}_all.vcf.gz")
+    log:
+        'logs/bcf_to_vcf_{file}.txt'
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("bcf2vcf_mem", attempt, 4),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("bcf4vcf_time", attempt, 4)
+    shell:
+        """
+        bcftools view -Oz -o {output.vcf} {input.bcf}
+        """
+
+rule rmTrans_vcf:
+    input:
+        bcf = "bcf/{file}.bcf"
+    output:
+        vcf = temp("vcf/{file}_rmTrans.vcf.gz")
+    threads:
+        4
+    log:
+        'logs/rmTrans_vcf_{file}.vcf'
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("vcf_rmTrans_mem", attempt, 4),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("vcf_rmTrans_time", attempt, 4)
+    shell:
+        """
+        bcftools filter --exclude \
+            "(REF=='C' & ALT='T') || (REF=='T' & ALT == 'C') || 
+            (REF=='G' & ALT='A') || (REF=='A' & ALT == 'G')" \
+            --threads {threads} \
+            -Oz -o {output.vcf} {input.bcf}
+        """
+
+
+rule vcf_to_plink:
+    input:
+        vcf = "vcf/{file}.vcf.gz"
+    output:
+        bed = "bed/{file}.bed"
+    log:
+        'logs/vcf_to_plink_{file}.txt'
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("vcf2ed_mem", attempt, 4),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("vcf2bed_time", attempt, 4)
+    params:
+        out = "bed/{file}"
+    shell:
+        """
+        plink --recode --geno 0.95 --make-bed --vcf {input.vcf} --out {params.out} --const-fid
+        """
+
+rule extract_1240K:
+    input:
+        bed = "bed/{file}.chr{chr}.phased_all.bed",
+        to_extract = '1240K/to_extract_chr{chr}.txt'
+    output:
+        temp_bim = temp('bed/{file}.chr{chr}.phased_all_temp.bim'),
+        bed = 'bed/{file}.chr{chr}.phased_1240K.bed'
+    log:
+        'logs/extract_1240K_{file}_{chr}.txt'
+    resources:
+    params:
+        bed_in = 'bed/{file}.chr{chr}.phased_all',
+        bed_out = 'bed/{file}.chr{chr}.phased_1240K',
+        bim = 'bed/{file}.chr{chr}.phased_all.bim',
+        map = 'bed/{file}.chr{chr}.phased_all.map'
+    shell:
+        """
+        awk 'BEGIN {{OFS="\\t"}} {{print $1,$1"_"$4,$3,$4,$5,$6}}' {params.bim} > {output.temp_bim}
+        cp {output.temp_bim} {params.bim}
+        plink --make-bed --bfile {params.bed_in} --extract {input.to_extract} --out {params.bed_out}
+        """
+        
 rule roh_plink:
     input:
-        bed = "Filtered/{bamfile}_{chr}_depth_filter_{rmTrans}.bed"
+        bed = "bed/{file}.bed"
     output:
-        roh = "ROH/{bamfile}_{chr}_{rmTrans}_roh.hom"
+        roh = "ROH/{file}_roh.hom"
     params:
+        bed = "bed/{file}",
+        roh = "ROH/{file}_roh",
         window_snp = build_filter("window_snp"),
         hets_window = build_filter("hets_window"),
         window_missing = build_filter("window_missing"),
@@ -64,11 +143,16 @@ rule roh_plink:
         segment_snp = build_filter("segment_snp"),
         segment_kb = build_filter("segment_kb"),
         homozyg_gap = build_filter("homozyg_gap")
+    resources:
+        memory=lambda wildcards, attempt: get_memory_alloc("roh_plink_mem", attempt, 4),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("roh_plink_time", attempt, 4)
+    log:
+        'logs/roh_plink_{file}.txt'
     shell:
         """
         plink --homozyg \
-        --bfile Filtered/{wildcards.bamfile}_{wildcards.chr}_depth_filter_{wildcards.rmTrans} \
-        --out ROH/{wildcards.bamfile}_{wildcards.chr}_{wildcards.rmTrans}_roh \
+        --bfile {params.bed} \
+        --out {params.roh} \
         {params.window_snp} \
         {params.hets_window} \
         {params.window_missing} \

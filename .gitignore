@@ -22,4 +22,5 @@ save2excel.Rmd
 save2excel.nb.html
 ._.DS_Store
 .Rhistory
-
+.vscode/
+.vscode/settings.json

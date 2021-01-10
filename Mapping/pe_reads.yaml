@@ -1,0 +1,17 @@
+pe_reads:
+    MN01701:
+        mtCapture:
+            MA2403_S4_L001: "../../FASTQ/mtCapture/Botocudos_mt/MA2403_OK/20190412-LIIGH-127860733/MA2403-256580344/MA2403_S4_L001_R*fastq.gz"
+            MA2403_S4_L002: "../../FASTQ/mtCapture/Botocudos_mt/MA2403_OK/20190412-LIIGH-127860733/MA2403-256580344/MA2403_S4_L002_R*fastq.gz"
+            MA2403_S4_L003: "../../FASTQ/mtCapture/Botocudos_mt/MA2403_OK/20190412-LIIGH-127860733/MA2403-256580344/MA2403_S4_L003_R*fastq.gz"
+            MA2403_S4_L004: "../../FASTQ/mtCapture/Botocudos_mt/MA2403_OK/20190412-LIIGH-127860733/MA2403-256580344/MA2403_S4_L004_R*fastq.gz"
+            MA2403_mt_S30: "../../FASTQ/mtCapture/fastq_Junio2019/MA2403/MA2403_mt_S30_R*_001.fastq.gz"
+    MN1943:
+        mtCapture:
+            MA2404_S5_L001: "../../FASTQ/mtCapture/Botocudos_mt/MA2404_OK/20190412-LIIGH-127860733/MA2404-256587351/MA2404_S5_L001_R*_001.fastq.gz"
+            MA2404_S5_L002: "../../FASTQ/mtCapture/Botocudos_mt/MA2404_OK/20190412-LIIGH-127860733/MA2404-256587351/MA2404_S5_L002_R*_001.fastq.gz"
+            MA2404_S5_L003: "../../FASTQ/mtCapture/Botocudos_mt/MA2404_OK/20190412-LIIGH-127860733/MA2404-256587351/MA2404_S5_L003_R*_001.fastq.gz"
+            MA2404_S5_L004: "../../FASTQ/mtCapture/Botocudos_mt/MA2404_OK/20190412-LIIGH-127860733/MA2404-256587351/MA2404_S5_L004_R*_001.fastq.gz"
+            MA2404_mt_S31: "../../FASTQ/mtCapture/fastq_Junio2019/MA2404/MA2404_mt_S31_R*_001.fastq.gz"
+mapQ: 30
+ref: "/scratch/axiom/FAC/FBM/DBC/amalaspi/popgen/reference_human/hs.build37.1/hs.build37.1.fa"

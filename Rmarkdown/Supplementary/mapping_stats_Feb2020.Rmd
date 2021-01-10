@@ -16,7 +16,6 @@ editor_options:
 knitr::opts_chunk$set(echo = F, message = F, warning = F)
 ```
 
-
 ```{r}
 require(plyr)
 require(ggplot2)
@@ -27,345 +26,89 @@ require(scales)
 require(knitr)
 require(DT)
 require(openxlsx)
+source("~/Projects/Botocudos/Scripts/DataQuality/functions_excel_tables.R")
+source("~/Projects/Botocudos/Scripts/DataQuality/functions_merge_clean_mapping_stats.R")
 ```
 
 ```{r}
-
-
 #------------------------------------------------------------------------------#
-# Load isotopic data if available
+# Load metadata (i.e., Samples names, isotopic data if available)
 backbone <- read.csv("~/Projects/Botocudos/Files/Tables/Backbone_Table1_2020.csv", stringsAsFactors = F)
-colnames(backbone) <- c("Sample", "CalibratedDate", "Area", "State") 
+colnames(backbone) <- c("Sample", "Group", "Tissue",
+                        "CalibratedDate", "Area", "State") 
 
 ```
 
-```{r read in file}
+## Supplementary Table 1:  Mapping stats per sample
+
+```{r merge stats into a single table}
 # Whole or Trimmed
 data_type <- "Whole"
 
 myPath <- "~/Projects/Botocudos/Files/Summaries/2019_11_21/"
-dp <- "sample_depth.hg19.csv"
-st <- "sample_stats.hg19.csv"
+depth_name <- "sample_depth.hg19.csv"
+stats_name <- "sample_stats.hg19.csv"
 
-dp <- read.csv(paste(myPath, data_type, "/", dp, sep = ""), stringsAsFactors = F)
+dp <- read.csv( paste( myPath, data_type, "/", 
+                       depth_name, sep = "" ),
+                stringsAsFactors = F
+)
 dp$SM <- sub(".hg19", "", dp$Sample)
-st <- read.csv(paste(myPath, data_type,"/", st, sep = ""), stringsAsFactors = F)
+st <- read.csv( paste( myPath, data_type, "/",
+                       stats_name, sep = ""), 
+                stringsAsFactors = F
+)
 
-myStats <- join(st, dp, by = "SM")
-myStats <- myStats[order(myStats$endo_final_prop),]
-myStats$SM <- factor(myStats$SM, levels = unique(myStats$SM), ordered = T)
-
-#------------------------------------------------------------------------------#
-# Function to do take care of the mess for splitting the sample into  a mix of 
-# libraries or separate libraries
-do_bricolage <- function(sample, libs1, libs2, new_sm1, new_sm2, new_lb1, new_lb2,
-                         path_depth_lib, lib_st){
-  
-  myDepth <- read.csv(path_depth_lib)
-  
-  myDepth$Sample <- sub(".depth.txt", "", myDepth$Sample)
-  
-  subset_stats <- function(lib_st, sample, libs, new_sample, lib_name){
-    sample_stats <- lib_st[lib_st$SM == sample,]
-  
-    subset_index <-  sample_stats$LB %in% libs
-    mySubset_stats <- data.frame(
-                       SM = paste(sample, lib_name, sep = "_"),
-                       SM_new = new_sample,
-                       reads_raw = sum(sample_stats$reads_raw[subset_index]),
-                       reads_trim = sum(sample_stats$reads_trim[subset_index]),
-                       mapping = sum(sample_stats$mapping[subset_index]),
-                       duplicates = sum(sample_stats$duplicates[subset_index]),
-                       mapping_final = sum(sample_stats$mapping_final[subset_index])
-    )
-    mySubset_stats$trim_prop <- mySubset_stats$reads_trim/mySubset_stats$reads_raw*100
-    mySubset_stats$endo_prop <- mySubset_stats$mapping/mySubset_stats$reads_raw*100
-    mySubset_stats$duplicates_prop <- mySubset_stats$duplicates/mySubset_stats$mapping*100
-    mySubset_stats$endo_final_prop <- mySubset_stats$mapping_final/mySubset_stats$reads_raw*100
-    
-    
-    return(mySubset_stats)
-  }
-
-  set1 <- subset_stats(lib_st = lib_st, sample = sample, libs = libs1,
-                       new_sample = new_sm1, lib_name = new_lb1)
-  set2 <- subset_stats(lib_st = lib_st, sample = sample, libs = libs2,
-                       new_sample = new_sm2, lib_name = new_lb2)
-  
-  sample_stats <- rbind(set1, set2)
-  myDepth$SM <- myDepth$Sample
-  
-  mySample <- join(sample_stats, myDepth, by = "SM")
-  mySample$SM <- mySample$SM_new
-  mySample$Sample <- mySample$SM_new
-  mySample$SM_new <- NULL
-  mySample$LB <- NULL
-  mySample$Library <- NULL
-  return(mySample)
-}
-
-#------------------------------------------------------------------------------#
-# Add MN0008_L3U and MN0008_non_U,
-# MN1943_L1 and MN01701_L1L2 (remove mtCapture)
-
-lib_st <- read.csv(paste("~/Projects/Botocudos/Files/Summaries/2019_11_21/",
-                   data_type, "/library_stats.hg19.csv", sep = ""))
-mn8 <- do_bricolage(sample = "MN0008", libs1 = c("L3U"), libs2 = c("L1", "L2"),
-                    new_sm1 = "MN0008_L3U", new_sm2 = "MN0008_non_U", 
-                    new_lb1 = "L3U", new_lb2 = "non_U",
-                    path_depth_lib = paste("~/Projects/Botocudos/Files/Summaries/2019_11_21/",
-                    data_type, "/MN0008_bylib.depth.txt", sep = ""),
-                    lib_st = lib_st)
-
-mn1943 <- do_bricolage(sample = "MN1943", libs1 = c("L1"), libs2 = c("mtCapture"),
-                    new_sm1 = "MN1943", new_sm2 = "MN1943_mtCapture", 
-                    new_lb1 = "L1", new_lb2 = "mtCapture",
-                    path_depth_lib = paste("~/Projects/Botocudos/Files/Summaries/2019_11_21/",
-                    data_type,"/MN1943_bylib.depth.txt", sep = ""),
-                    lib_st = lib_st)
-
-mn01701 <- do_bricolage(sample = "MN01701", libs1 = c("L1", "L2"), libs2 = c("mtCapture"),
-                    new_sm1 = "MN01701", new_sm2 = "MN01701_mtCapture", 
-                    new_lb1 = "L1L2", new_lb2 = "mtCapture",
-                    path_depth_lib = paste("~/Projects/Botocudos/Files/Summaries/2019_11_21/",
-                    data_type, "/MN01701_bylib.depth.txt", sep = ""),
-                    lib_st = lib_st)
-
-
-myStats <- myStats[!myStats$SM == "MN1943", ]
-myStats <- myStats[!myStats$SM == "MN01701", ]
-myStats <- rbind(myStats, mn8)
-myStats <- rbind(myStats, mn1943[mn1943$SM == "MN1943",])
-myStats <- rbind(myStats, mn01701[mn01701$SM == "MN01701",])
-
-#------------------------------------------------------------------------------#
-# go from 0 - 100 to 0 - 1 for proportions and further formatting
-myStats$trim_prop <- myStats$trim_prop/100
-myStats$duplicates_prop <- myStats$duplicates_prop/100
-myStats$endo_prop <- myStats$endo_prop/100
-myStats$endo_final_prop <- myStats$endo_final_prop/100
-
-# format the 95CI of Ry
-myStats$low_ry <-  sapply(strsplit(myStats$X95.CI, "-"), function(x) as.numeric(x[1]))
-myStats$high_ry <-  sapply(strsplit(myStats$X95.CI, "-"), function(x) as.numeric(x[2]))
+myStats <- merge_and_clean_stats(dp, st)
 
 write.csv(myStats, 
           paste("~/Projects/Botocudos/Files/Summaries/2019_11_21/", 
                 data_type, "/myStats.csv", sep = ""), 
           row.names = F)
-```
-
-## Supplementary Table 1:  Mapping stats per sample
-
-$\sum^{numberreads}_{i=1}{l_i}/number_reads$
-
-```{r define column names}
-
-myColNames <- c("Sample",            "Sample",                          "National Museum of Brazil (Museu Nacional, MN) identifier",
-                "SM",            "Sample",                              "National Museum of Brazil (Museu Nacional, MN) identifier",
-                # "library",                        "Library", "DNA library identifier",
-                # "LB",                        "Library", "DNA library identifier",
-                
-                "CalibratedDate",    "Calibrated date (AD)",            "OxCal estimated mean and standard deviation for calibrated dates",
-                "Area",              "Region",                          "Sample origin (region) according to MN's archives",
-                "State",             "State",                           "Sample origin (state) according to MN's archives", 
-                
-                "reads_raw",         "reads_raw",                       "Number of sequenced reads", 
-                "reads_trim",        "reads_trim",                      "Number of reads retained after trimming",
-                "trim_prop",         "trim_prop",                       "Percentage of reads retained after trimming",
-                
-                "mapping",          "mapping",                          "Number of reads mapped to the human genome (build 37.1) with a mapping quality >=30 before removing duplicates",
-                "endo_prop",        "endo_prop",                        "Percentage of retained reads that were uniquely mapped to the human genome",
-                
-                "duplicates",        "duplicates",                      "Number of reads flagged as PCR duplicates by picardtools MarkDuplicates",
-                "duplicates_prop",   "duplicates_prop",                 "Percentage of reads flagged as PCR duplicates by picardtools MarkDuplicates",
-                 
-                "mapping_final",     "mapping_final",                   "Number of reads mapped to the human genome (build 37.1) with a mapping quality >=30 after removing duplicates",
-                "endo_final_prop",   "endo_final_prop",                 "Percentage of retained reads that were uniquely mapped to the human genome after removing duplicates",
-                
-                "AvgReadDepth_tot",  "DoC_endogenous",                  "Depth of coverage on human genome (number of unique bases divided by the length of the human genome reference build 37.1)",
-                "AvgReadDepth_MT",   "DoC_MT",                          "Depth of coverage on mitochondrial genome (number of unique bases divided by the length of the mitochondrial genome, build 37.1)",
-                
-                "R_y",               "Ry_95CI",                         "Ratio of the reads mapping to the Y-chromosome and the reads mapping to sexual chromosomes (X and Y) and 95% confidence interval",
-                "Sex",               "Sex",                             "Genomic sex as determined by the Ry ratio",
-                "AvgReadLength",     "length_reads_endogenous",         "Average length of mapped reads with mapping quality >=30 after removing duplicates"
-                )
-
-change_name <- function(name){
-  new_name <- myColNames[which(myColNames == name)[1] + 1]
-  ifelse(is.na(new_name), return(name), return(new_name))
-}
-
-```
-
-```{r prepare caption}
-myCaption <- paste(unique(paste(myColNames[seq(2, length(myColNames), 3)], 
-                   myColNames[seq(3, length(myColNames), 3)], sep = ": ")),
-                   collapse = "\n\n")
-```
-
-```{r prepare numbers format}
-# colname, accuracy, percent
-myNumFormat <- matrix(c("reads_raw", 1, 0, 
-                 "reads_trim", 1, 0,
-                 "trim_prop", 0.1, 1,
-                 "mapping", 1, 0,
-                 
-                 "endo_prop", 0.01, 1,
-                 "duplicates", 1, 0,
-                 "duplicates_prop", 0.1, 1,
-                 
-                 "mapping_final", 1, 0,
-                 "endo_final_prop", 0.01, 1,
-                 "DoC_endogenous", 0.001, 0,
-                 "DoC_MT", 0.1, 0,
-                 "length_reads_endogenous", 0.1, 0), ncol = 3, byrow = T)
-
-format_column_num <- function(col_name, percent, accuracy, myT1){
-  if(percent){
-    myT1[,col_name]  <- percent(myT1[,col_name], accuracy = accuracy)
-  }else{
-    myT1[,col_name] <- number(myT1[,col_name], accuracy = accuracy)
-  }
-  return(myT1)
-}
-
-```
-
-```{r prepare table}
-myT1 <- myStats
-myT1$R_y <-  paste(round(myT1$R_y, 3), " (", round(myT1$low_ry, 3), 
-                   "-",  round(myT1$high_ry, 3),
-                   ")", sep = "")
-myT1$low_ry <- NULL
-myT1$high_ry <- NULL
-
-myT1 <- join(backbone, myT1, by = "Sample")
-
-colnames(myT1) <- sapply(colnames(myT1), function(name) change_name(name))
-
-samples_order <- myT1$Sample[order(myT1$DoC_endogenous)]
-
-myT1$Sample <- factor(myT1$Sample, levels = samples_order, ordered = T)
-myT1 <- myT1[order(myT1$Sample, decreasing = T),]
-
-# Drop duplicated column
-myT1[,which(colnames(myT1) == "Sample")[2]] <- NULL 
-# Drop some columns
-myT1$SE <- NULL
-myT1$Nseqs <- NULL
-myT1$NchrY <- NULL
-myT1$NchrY.NchrX <- NULL
-myT1$X95.CI <- NULL
-
-myXL <- myT1
-```
-
-```{r format prettyNum}
-for(i in seq(1, nrow(myNumFormat))){
-  myT1 <- format_column_num(myNumFormat[i, 1], 
-                            as.numeric(myNumFormat[i,3]), 
-                            as.numeric(myNumFormat[i,2]),
-                            myT1)
-}
-```
-
-```{r}
-# kable(myT1, caption = myCaption, digits = 1, row.names = F)
-
-myT1 %>%
-DT::datatable(
-    extensions = 'Buttons', 
-    options = list(dom = 'Bfrtip', 
-                   buttons = list('excel', "csv")),
-    rownames = F, caption = myCaption)
-```
-
-```{r write myStats}
-last_row_NA <- sapply(myT1[1,], function(x) return(NA))
-myExplanation <- unique(paste(myColNames[seq(2, length(myColNames), 3)], 
-                    myColNames[seq(3, length(myColNames), 3)], sep = ": "))
-
-myT1 <- rbind(myT1, last_row_NA)
-for(new_row in myExplanation){
-  last_row_NA <- as.data.frame(t(sapply(myT1[1,], function(x) return(NA))))
-  last_row_NA$Sample <- new_row
-  myT1 <- rbind(myT1, last_row_NA)
-}
-
-write.table(myT1, paste("~/Projects/Botocudos/Files/Tables/Sup_T1_", data_type,
-                        ".csv", sep = ""), 
-            na = "",
-            row.names = F, col.names = T, sep = ",")
-```
-
-```{r save to excel with openxlsx}
+#-----------------------------------------------------------------------------#
+# read in column names and description
+myColNames <- read.csv("~/Projects/Botocudos/Files/Tables/Caption_ST1.csv",
+                       stringsAsFactors = F)
+#-----------------------------------------------------------------------------#
+# get table with metadata}
+myT1 <- stats_to_readable_tables(myStats = myStats, 
+                                backbone = backbone,
+                                myColNames = myColNames,
+                                add_caption = F)
+#-----------------------------------------------------------------------------#
+# r save to excel with openxlsx
 ## data.frame to write
-df <- myXL
+# df <- myXL
+df <- myT1
+column_styles <- list(trim_prop               = list(numFmt = "0.0%"),
+                      duplicates_prop         = list(numFmt = "0.0%"),
+                      reads_raw               = list(numFmt = "COMMA"),
+                      reads_trim              = list(numFmt = "COMMA"),
+                      mapping                 = list(numFmt = "COMMA"),
+                      duplicates              = list(numFmt = "COMMA"),
+                      mapping_final           = list(numFmt = "COMMA"),
+                      endo_prop               = list(numFmt = "#0.00%"),
+                      endo_final_prop         = list(numFmt = "#0.00%"),
+                      DoC_MT                  = list(numFmt = "0.0"),
+                      length_reads_endogenous = list(numFmt = "0.0"))
 
-
-## Formatting can be applied simply through the write functions 
 #==============================================================================#
-## create a workbook and add a worksheet
-wb <- createWorkbook()
-addWorksheet(wb, paste("Sup_T1_", data_type, sep = ""))
-#--------------
-## headerStyles
-hs1 <- createStyle(fgFill = "white", halign = "CENTER", textDecoration = "Bold",
-                   border = c("top", "bottom", "left", "right"),
-                   borderStyle = "thin",
-                   fontColour = "black", fontSize = 16)
+# Make workbook and add sheet
+workbook_name <- "~/Projects/Botocudos/Files/Tables/Supplementary_tables.xlsx"
+workbook <- createWorkbook()
+sheet_name <- paste("Sup_T1_", data_type, sep = "")
+caption <- get_caption( myT1 = myT1, myColNames = myColNames )
 
-showGridLines(wb, 1, showGridLines = FALSE)
-setColWidths(wb, 1, cols = 1:ncol(myT1), widths = "auto")
-#-------------
-# write table
-writeData(wb, 1, df, startRow = 1, startCol = 1, headerStyle = hs1,
-          borders = "columns", borderStyle = "thin")
-#-------------------
-# add column styles
-# percent
-percent_cols <- which(colnames(df) %in% c("trim_prop", "duplicates_prop"))
-s <- createStyle(numFmt = "0.0%")
-addStyle(wb, 1, style = s,  cols = percent_cols, 
-         rows = 1:nrow(df)+1, gridExpand = TRUE, stack = T)
-# thousands separator
-comma_cols <- which(colnames(df) %in% c("reads_raw", "reads_trim", "mapping", 
-                                        "duplicates", "mapping_final"))
-s <- createStyle(numFmt = "COMMA")
-addStyle(wb, 1, style = s, rows = 1:nrow(df)+1, cols = comma_cols,
-         gridExpand = TRUE, stack = T)
-# trim decimal places and format %
-decimal_cols <- which(colnames(df) %in% c("endo_prop", "endo_final_prop"))
-s <- createStyle(numFmt = "#0.00%")
-addStyle(wb, 1, style = s, rows = 1:nrow(df)+1, cols = decimal_cols,
-         gridExpand = TRUE, stack = T)
-# trim decimal places
-decimal_cols <- which(colnames(df) %in% c("DoC_MT", "length_reads_endogenous"))
-s <- createStyle(numFmt = "0.0")
-addStyle(wb, 1, style = s, rows = 1:nrow(df)+1, cols = decimal_cols,
-         gridExpand = TRUE, stack = T)
-
-#format data font type
-theCaption <- myT1[is.na(myT1$reads_raw),]
-s <- createStyle(fontSize = 14)
-addStyle(wb, 1, style = s, rows = 1:(nrow(df)+nrow(theCaption))+1, cols = 1:ncol(df),
-         gridExpand = TRUE, stack = T)
-#------------------------------------------------------------------------------#
-# write column explanation
-writeData(wb, 1, theCaption, startRow = nrow(df)+2,
-          startCol = 1, colNames = F, 
-          borders = "none")
-
+add_new_sheet(sheet_name = sheet_name, workbook = workbook, header_style = F,
+              df = df, column_styles = column_styles,
+              caption = caption
+              )
 ## writing as an Excel Table
-openXL(wb) ## opens a temp version
-saveWorkbook(wb, paste("~/Projects/Botocudos/Files/Tables/Sup_T1_",
-                       data_type, ".xlsx", sep = ""), 
-             TRUE)
+# openXL(file =  workbook)
+
 ```
 
-
-```{r make a plot}
+```{r make a plot, eval = F}
 myStats <- myStats[order(myStats$AvgReadDepth_tot),]
 stats_to_plot <- myStats %>% 
   mutate(log_reads_raw = log10(reads_raw),
@@ -422,7 +165,7 @@ ggplot(  aes(x = SM, y = value)) +
 ```
 
 ### Plots with summary statistics
-```{r}
+```{r, eval = F}
 
 prepare_stats <- function(myPath){
   myStats <- read.csv(myPath, stringsAsFactors = F)
@@ -540,133 +283,50 @@ for(myCol in unique(trim$name)){
 }
 ```
 
-```{r venn diagram}
-user <- rep("non_USER", 24)
-lib_strategy <- rep("single-end", 24)
-enrichment <- rep("not enriched", 24 )
-tissue <- rep("teeth", 24)
-ethnicity <- rep("Botocudo", 24)
-carbon <- rep("post-Contact", 24)
-
-# 1: MN0008
-# 2: MN1943
-# 3: MN01701
-# 4: MN00019
-user[1] <- "USER"
-lib_strategy[2:3] <- "paired-end"
-enrichment[2:3] <- "enriched"
-tissue[1] <- "petrous"
-tissue[4] <- "skull"
-ethnicity[3] <- "Mummy"
-ethnicity[4] <- "Sambaqui"
-carbon[2:3] <- "pre-contact"
-
-```
-
-```{r}
-non_user <- myStats$Sample[-which(myStats$Sample %in% c("MN0008_L3U", "MN0008_non_U"))]
-single <- non_user
-tissue <- non_user
-
-paired <- c("MN1943", "MN01701")
-
-enriched <- paired
-post_contact <- non_user[-which(non_user %in% paired)]
-pre_contact <- paired
-ethnicity <- post_contact
-
-require(VennDiagram)
-
-# Prepare a palette of 3 colors with R colorbrewer:
-require(RColorBrewer)
-myCol <- brewer.pal(8, "Pastel2")
-
-myList <- list(non_user, single, paired, 
-               enriched, post_contact, 
-               pre_contact, ethnicity)
-myNames <- c("Non-USER", "Single-End", "Paired-End", 
-             "Enriched", "Post-Contact", 
-             "Pre-Contact", "Botocudo")
-venn.diagram(
-        x = myList,
-        category.names = myNames,
-        filename = '~/Desktop/venn_diagramm.png',
-        output=TRUE),
-        
-        # Output features
-        imagetype="png" ,
-        height = 480 , 
-        width = 480 , 
-        resolution = 300,
-        compression = "lzw",
-        
-        # Circles
-        lwd = 2,
-        lty = 'blank',
-        fill = myCol,
-        
-        # Numbers
-        cex = .6,
-        fontface = "bold",
-        fontfamily = "sans",
-        
-        # Set names
-        cat.cex = 0.6,
-        cat.fontface = "bold",
-        cat.default.pos = "outer",
-        # cat.pos = c(-27, 27, 135),
-        # cat.dist = c(0.055, 0.055, 0.085),
-        cat.fontfamily = "sans",
-        rotation = 1
-)
-```
-
 ## Supplementary Table 2: Mapping stats per library
 
-```{r prepare number format}
-myNumFormat <- matrix(c("reads_raw", 1, 0, 
-                 "reads_trim", 1, 0,
-                 "duplicates", 1, 0,
-                 "duplicates_prop", 3, 1,
-                 "mapping_final", 1, 0,
-                 "endo_prop", 4, 1
-                 ), ncol = 3, byrow = T)
+```{r}
+myColNames <- read.csv("~/Projects/Botocudos/Files/Tables/Caption_ST2.csv",
+                       stringsAsFactors = F)
+
+lib_stats <- read.csv("~/Projects/Botocudos/Files/Summaries/2019_11_21/Whole/library_stats.hg19.csv")
+sm_stats <- myStats
+
+bamdamage_path <- paste("~/Projects/Botocudos/Files/bamdamage/2020_01_23/",
+                        data_type, sep = "")
+
+myT2 <- merge_stats_libs ( sm_stats, lib_stats, myColNames, backbone,
+                           bamdamage_path =  bamdamage_path )
+
+myT2 <- myT2[ ! myT2$Sample %in% c("MN0008_non_U", "MN0008_L3U"), ]
+
+#------------------------------------------------------------------------------#
+# Put things in Excel
+column_styles <- list(trim_prop               = list(numFmt = "0.0%"),
+                      duplicates_prop         = list(numFmt = "0.0%"),
+                      reads_raw               = list(numFmt = "COMMA"),
+                      reads_trim              = list(numFmt = "COMMA"),
+                      mapping                 = list(numFmt = "COMMA"),
+                      duplicates              = list(numFmt = "COMMA"),
+                      mapping_final           = list(numFmt = "COMMA"),
+                      endo_prop               = list(numFmt = "#0.00%"),
+                      endo_final_prop         = list(numFmt = "#0.00%"),
+                      length_reads_endogenous = list(numFmt = "0.0")
+                      )
+sheet_name <- paste("Sup_T2_", data_type, sep = "")
+
+df <- myT2
+caption <- get_caption( myT1 = myT2, myColNames = myColNames )
+
+add_new_sheet(sheet_name = sheet_name, workbook = workbook, header_style = F,
+              df = df, column_styles = column_styles,
+              caption = caption, color_by_sample = T
+              )
+# openXL(file =  workbook)
+# saveWorkbook(wb = workbook, file = workbook_name, overwrite = TRUE)
 ```
 
-```{r}
-lib_st <- read.csv("~/Projects/Botocudos/Files/Summaries/2019_11_21/Whole/library_stats.hg19.csv")
-whole_st$LB <- "All"
-
-myT2 <- rbind(whole_st, lib_st)
-myT2 <- myT2[order(myT2$SM, myT2$LB),]
-myT2$LB <- factor(myT2$LB, levels = c("mtCapture", "L3U", "L2", "L1", "All"),
-                  ordered = T)
-myT2$SM <- factor(myT2$SM, levels = samples_order, ordered = T)
-myT2 <- myT2[order(myT2$SM, myT2$LB, decreasing = T),]
-
-
-
-myT2 <- myT2[,c("SM", "LB","reads_raw", "reads_trim", "trim_prop", 
-                "duplicates", "duplicates_prop", "mapping","mapping_final",
-                "endo_prop")]
-
-myT2_final <- myT2
-myT2_final <- myT2_final[, c("SM", "LB", "reads_raw", "reads_trim", "trim_prop",
-                             "duplicates", "duplicates_prop", "mapping_final", "endo_prop")]
-# colnames(myT2_final) <- sapply(colnames(myT2_final), function(name) change_name(name))
-# myT2_final$percent_duplicated_reads <- myT2_final$percent_duplicated_reads/100
-# myT2_final$percent_unique_reads_endogenous <- myT2_final$percent_unique_reads_endogenous/100
-
-for(i in seq(1, nrow(myNumFormat))){
-  myT2_final <- format_column_num(myNumFormat[i, 1], 
-                            as.numeric(myNumFormat[i,3]), 
-                            as.numeric(myNumFormat[i,2]),
-                            myT2_final)
-}
-```
-
-
-```{r}
+```{r, eval = F}
 # kable(myT2_final, row.names = F, digits = 1)
 myT2_final %>%
   DT::datatable(
@@ -680,74 +340,130 @@ myT2_final %>%
 
 ## Supplementary Table 3: Contamination estimates
 
-
-```{r add results from contaminationX}
+```{r}
 #------------------------------------------------------------------------------#
-## X
-minDepth <- seq(2,3)
-path <- "~/Projects/Botocudos/Files/Contamination/2020_01_24/contaminationX/"
-mySamples <- unique(myT1$Sample)
-libs <- c("All")
+# add results from contaminationX
+contaminationX_path <- "~/Projects/Botocudos/Files/Contamination/2020_01_24/contaminationX/"
+males_estimate <- prepare_contaminationX_table(contaminationX_path = contaminationX_path,
+                                               samples_libs = myT2,
+                                               samples_sex = myT1)
+#------------------------------------------------------------------------------#
+# add results from schmutzi
+schmutzi_path <- "~/Projects/Botocudos/Files/Contamination/2020_01_24/schmutzi/"
+schmutzi_estimate <- get_schmutzi_table(schmutzi_path = schmutzi_path)
+schmutzi_estimate
+#------------------------------------------------------------------------------#
+# add results from contamMix
+map_path <- "~/Projects/Botocudos/Files/Contamination/2020_01_24/contamMix/estimates.txt"
+contamMix_path <- "~/Projects/Botocudos/Files/Contamination/2020_01_24/contamMix/"
+samples <- unique(myT2$Sample)
+contamMix_estimate_all <- get_contamMix_table(contamMix_path = contamMix_path,
+                                          map_path = map_path,
+                                          samples = samples,
+                                          rmTrans = "all")
+contamMix_estimate_rmTrans <- get_contamMix_table(contamMix_path = contamMix_path,
+                                          map_path = map_path,
+                                          samples = samples,
+                                          rmTrans = "rmTrans")
 
-s <- mySamples[1]
-l <- libs[1]
-md <- minDepth[2]
+colnames(contamMix_estimate_all) <- sub("contamMix_estimate", 
+                                        "contamMix_est_all",
+                                        colnames(contamMix_estimate_all))
+colnames(contamMix_estimate_all) <- sub("num_reads_contamMix", 
+                                        "num_reads_contamMix_all",
+                                        colnames(contamMix_estimate_all))
+colnames(contamMix_estimate_rmTrans) <- sub("contamMix_estimate",
+                                            "contamMix_est_rmTrans",
+                                            colnames(contamMix_estimate_rmTrans))
+colnames(contamMix_estimate_rmTrans) <- sub("num_reads_contamMix", 
+                                        "num_reads_contamMix_rmTrans",
+                                        colnames(contamMix_estimate_rmTrans))
 
-empty_df <- function(sample, lib){
-  myDF <- data.frame(method = c("One-cns", "Two-cns"),
-                     estimate = c(NA, NA), lb = c(NA, NA), ub = c(NA, NA),
-                     err = c(NA, NA), nSites = c(NA, NA))
-  return(myDF)
-}
+contamMix_estimate_all[,c("Library", "damage")] <- NULL
+contamMix_estimate_rmTrans[,c("Library", "damage")] <- NULL
 
-x_cont <- data.frame()
-for(s in mySamples){
-  for(l in libs){
-    for(md in minDepth){
-      
-      tmp_res <- tryCatch(tmp_res <- read.table(paste(path, 
-                                                      s,".hg19_", l, 
-                                                      "_md", md, ".result", sep = "")),
-                          error =  function(e) empty_df(s, l),
-                          finally = function() return(tmp_res))
-      
-      colnames(tmp_res) <- c("method", "estimate", "lb", "ub", "err", "nSites")
-      tmp_res$Sample <- s
-      tmp_res$library <- l
-      tmp_res$depth <- md
-      x_cont <- rbind(x_cont, tmp_res)
-    }
-  }
-}
+#------------------------------------------------------------------------------#
+# 
+contamination <- join(contamMix_estimate_all,
+                      contamMix_estimate_rmTrans,
+                      by = "Sample")
+contamination <- join(contamination, 
+                      males_estimate[males_estimate$Library == "All",],
+                       by = "Sample", type = "full")
 
-x_cont <- join(x_cont, myT1[,c("Sex", "Sample")], by = "Sample")
-x_cont <- x_cont[!is.na(x_cont$estimate) & x_cont$Sex %in% c("XY", "Not Assigned", "consistent with XY but not XX"),]
+# contamination <- join(contamination,
+                      # schmutzi_estimate, by = "Sample")
 
-males <- x_cont[x_cont$method == "Two-cns",]
+contamination[,c("Library", "X_min_depth")] <- NULL
+contamination <- join( contamination,
+                       myT1[,c("Sample", "Sex", "DoC_MT")], 
+                       by = "Sample" )
+#------------------------------------------------------------------------------#
+# haplogroups
+mt_schmutzi <- read.table("~/Projects/Botocudos/Files/Haplogroups/2020_01_23/schmutzi_haplogrep/haplogroups_schmutzi.txt")
+mt_data <- read.table("~/Projects/Botocudos/Files/Haplogroups/2020_01_23/haplogroups.txt")
+y_data <- read.table("~/Projects/Botocudos/Files/Haplogroups/2020_01_23/Y/haplogroups_Y.txt")
+y_coverage <- read.table("~/Projects/Botocudos/Files/Haplogroups/2020_01_23/Y/Y_depth.txt")
+x_coverage <- read.table("~/Projects/Botocudos/Files/Contamination/2020_01_24/contaminationX/X_depth.txt")
 
-# write.table(males, "~/Projects/Botocudos/Files/Contamination/2020_01_24/contaminationX/estimates_X_males.txt", 
-# sep = "\t", quote = F, col.names = T, row.names = F)
+colnames(mt_schmutzi) <- c("Sample", "endo_schmutzi", "cont_schmutzi")
+colnames(mt_data) <- c("Sample", "rmTrans", "mt_haplogroup")
+colnames(y_data) <- c("Sample", "y_haplogroup")
+colnames(y_coverage) <- c("Sample", "DoC_Y")
+colnames(x_coverage) <- c("Sample", "DoC_X")
+contamination <- join(contamination, mt_data[mt_data$rmTrans == "all",
+                                             c("Sample", "mt_haplogroup")], by = "Sample")
+# contamination <- join(contamination, mt_schmutzi, by = "Sample")
+contamination <- join(contamination, y_data, by = "Sample")
+contamination <- join(contamination, y_coverage, by = "Sample")
+contamination <- join(contamination, x_coverage, by = "Sample")
 
-males_fmt <- males
-
-males_fmt$estimate <- percent(males_fmt$estimate)
-males_fmt$lb <- percent(males_fmt$lb)
-males_fmt$ub <- percent(males_fmt$ub)
-
-colnames(males_fmt) <- c("X_method", "X_estimate", "X_low_est", "X_upper_est",
-                         "X_error", "X_num_sites", "sample", "library", "X_min_depth",
-                         "sex")
+write.csv(contamination, "~/Projects/Botocudos/Files/Tables/Sup_T3.csv")
+```
 
 
+```{r}
+#------------------------------------------------------------------------------#
+# 
+
+myColNames <- read.csv("~/Projects/Botocudos/Files/Tables/Caption_ST3.csv",
+                       stringsAsFactors = F)
+
+column_styles <- list(
+                      contaminationX_num_sites    = list(numFmt = "COMMA"),
+                      num_reads_contamMix_all     = list(numFmt = "COMMA"),
+                      num_reads_contamMix_rmTrans = list(numFmt = "COMMA"),
+                      reads_all_contamMix         = list(numFmt = "COMMA"),
+                      reads_rmTrans_contamMix     = list(numFmt = "COMMA"),
+                      
+                      DoC_MT                      = list(numFmt = "0.0"),
+                      DoC_Y = list(numFmt = "0.000")
+                      )
+sheet_name <- paste("Sup_T3_", data_type, sep = "")
+colnames(contamination) <- sapply(colnames(contamination), 
+                           function(name) change_name(name) )
+  
+df <-  reduce_order_columns(myTable = contamination, 
+                           myColnames = myColNames)
+caption <- get_caption( myT1 = contamination, myColNames = myColNames )
+
+add_new_sheet(sheet_name = sheet_name, workbook = workbook, header_style = F,
+              df = df, column_styles = column_styles,
+              caption = caption, color_by_sample = T
+              )
+openXL(workbook)
+saveWorkbook(wb = workbook, file = workbook_name, overwrite = TRUE)
+# removeWorksheet(workbook, sheet = sheet_name)
 ```
 
 ```{r, eval = F}
-kable(males_fmt, row.names = F)
+kable(males_estimate, row.names = F)
 ```
 
-```{r add results from contammix}
+```{r add results from contammix, eval=F}
 prefix <- "~/Projects/Botocudos/Files/Contamination/2020_01_24/contamMix/"
 samples <- samples_order
+samples <- samples[!samples %in% c("MN0008_non_U", "MN0008_L3U")]
 rmTrans <- c("all", "rmTrans")
 
 # We ran the chains for 100k iterations, 
@@ -835,7 +551,7 @@ annot_mito <- join(annot_mito, MAP, by = c("sample", "lib", "damage"))
 kable(mito, row.names = F)
 ```
 
-```{r add results from schmutzi}
+```{r add results from schmutzi, eval=F}
 path <- "~/Projects/Botocudos/Files/Contamination/2020_01_24/schmutzi/"
 
 schmutzi_files <- list.files(path, pattern =".est")
@@ -913,6 +629,13 @@ cont %>%
                    buttons = list('excel', "csv")),
     rownames = F)
 ```
+
+To see the usage of a project:
+11:15
+$id username ( Ex for me: $id rhofmeis)
+it outputs: "uid=81418(rhofmeis) gid=11000(unil-empl-u-g) groups=11000(unil-empl-u-g),144375(ci-dcsr-infra-hpc-curentuser-u-g),149163(pi_odelanea_100241-pr-g),149411(heqtl_100247-pr-g),149412(glcoex_100246-pr-g),150304(poo_100286-pr-g),149410(impute_low_cov_seq_100248-pr-g)"
+Before each project name, there is a PROJECT_NUMBER (For impute_low_cov it's 149410)
+2.  run $beegfs-ctl --cfgFile=/etc/beegfs/beegfs-client-beegfs3.axiom.unil.ch.conf --getquota --gid PROJECT_NUMBER
 
 ## Supplementary Table 4: Haplogroups?
 
@@ -1102,7 +825,6 @@ dev.off()
 
 Lots of plots per library, merged in one pdf
 
-
 ```{r load damage per sample}
 myPath <- paste("~/Projects/Botocudos/Files/bamdamage/2020_01_23/", data_type, sep = "")
 
@@ -1127,7 +849,7 @@ for(s in samples){
 
 ```
 
-```{r plot damage per sample, eval=T, fig.width=16, fig.height=16}
+```{r plot damage per sample, eval=T, fig.width=16, fig.height=16, eval = F}
 nCol <- 8
 nRow <- 7
 cex <- 1.2
@@ -1158,7 +880,7 @@ dev.off()
 ```
 
 
-```{r load damage per library}
+```{r load damage per library, eval = F}
 myPath <- paste("~/Projects/Botocudos/Files/bamdamage/2020_01_23/", data_type,"/", sep = "")
 
 myDam <- vector("list", length = length(samples))
@@ -1241,6 +963,188 @@ for(s in samples){
 # blank_plot()
 
 
+dev.off()
+```
+
+```{r compare errors for MN00013, eval = F}
+# collect statistics from bamdamage for untrimmed and trimmed dataset
+read_types <- c("Whole", "Trimmed")
+myDam <- vector("list", length = 2)
+for(data_type in read_types){
+  myPath <- paste("~/Projects/Botocudos/Files/bamdamage/2020_01_23/", 
+                  data_type, sep = "")
+  
+  names(myDam) <- c("MN0008_non_U", "MN00013")
+  
+  # Compare problematic sample and a "control" (MN00013, and MN0008_non_U)
+  for(s in c("MN0008_non_U", "MN00013")){
+    path_dam <- paste(myPath, s, sep = "/")
+    path_dam <- paste(path_dam, "/", s, ".hg19.dam_5prime.csv", sep = "")
+    tmp_dam5 <- read.csv(path_dam)
+    path_dam <- sub("5prime", "3prime", path_dam)
+    tmp_dam3 <- read.csv(path_dam)
+    tmp_dam5$data_type <- data_type
+    tmp_dam3$data_type <- data_type
+    some_dam <- list(five_prime = tmp_dam5, three_prime = tmp_dam3)
+    myDam[[s]][["five_prime"]] <- rbind(myDam[[s]][["five_prime"]],tmp_dam5 ) #<- some_dam
+    myDam[[s]][["three_prime"]] <- rbind(myDam[[s]][["three_prime"]],tmp_dam3 )
+    }
+}
+```
+
+```{r, eval = F}
+reshape_sample <- function(sample, read_end){
+  damage <- myDam[[sample]][[read_end]] %>%
+    gather(damage_type, value, -data_type)
+  damage$read_end <- read_end
+  damage$sample <- sample
+  return(damage)
+}
+mn8 <- lapply(c("three_prime", "five_prime"), 
+              function(x) reshape_sample("MN0008_non_U", read_end =  x))
+mn13 <- lapply(c("three_prime", "five_prime"), 
+              function(x) reshape_sample("MN00013", read_end =  x))
+
+damage <- do.call(rbind,c(mn13,mn8))
+damage <- damage %>% subset(damage_type != "X") 
+
+
+# Maximum lengths are 81 and 71 bp for untrimmed and trimmed dataset, 
+# respectively
+myPath <- "~/Projects/Botocudos/Files/bamdamage/2020_01_23/"
+get_mean <- function(sample, data_type, damage_type, read_end = "five_prime"){
+  if ( data_type == "Trimmed" ) {
+    indexes <- 1:71
+  } else {
+    indexes <- 1:80
+  }
+  read_lengths <- read.csv(paste(myPath, data_type, "/", sample, "/", sample, 
+                                 ".hg19.length.csv", sep = ""))
+  read_lengths$cumsum_reads <- rev(cumsum(rev(read_lengths$counts)))
+  read_lengths <- rbind(data.frame(length = seq(1,20),
+                                   counts = 0,
+                                   cumsum_reads = read_lengths$cumsum_reads[1]),
+                        read_lengths)
+  sum_errors <- sum( damage[damage$data_type == data_type
+                            & damage$damage_type == damage_type 
+                            & damage$sample == sample 
+                            & damage$read_end == read_end,]$value[indexes] 
+                     * read_lengths$cumsum_reads[indexes] )
+  mean_error <- sum_errors / sum( read_lengths$length[indexes]
+                                  * read_lengths$counts[indexes] )
+  return(mean_error)
+}
+
+errors <- data.frame()
+
+for ( sample in c("MN00013", "MN0008_non_U") ){
+  for( data_type in c("Trimmed", "Whole") ){
+    trimmed_error <- sapply( unique(damage$damage_type),
+                             function(x) get_mean( sample = sample, 
+                                                   data_type = data_type,
+                                                   read_end = "three_prime",
+                                                   damage_type = x ) )
+    trimmed_error <- as.data.frame(t(trimmed_error))
+    trimmed_error$sample <- sample
+    trimmed_error$data_type <- data_type
+    errors <- rbind(errors, trimmed_error)
+  }
+}
+
+errors$data_type <- factor(errors$data_type, 
+                          levels = c("Whole", "Trimmed"),
+                          ordered = T)
+```
+
+```{r, eval = F}
+
+pdf("~/Projects/Botocudos/Plots/Error/MN00013_MN0008_comparison_bammds.pdf",
+    width = 7, height = 7)
+errors %>% 
+  gather(name, value, -sample, -data_type) %>%
+  mutate(name = sub("\\.\\.", " to ", name)) %>%
+  ggplot(aes(x = sample, y = value, fill = data_type )) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  facet_wrap(.~name, ncol = 3) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, size = 9, hjust = 1, vjust = 0.5)) +
+  scale_fill_discrete() +
+  labs(y = "Error rate", x = NULL, 
+       title = "Type-specific error rates (data from bammds)") +
+  scale_y_continuous(labels = percent)
+dev.off()
+```
+
+```{r, eval = F}
+
+damage_whole_trimmed <- function(sample, damage_type, read_end, col){
+  plot( damage$value[damage$sample == sample 
+                     & damage$data_type == "Whole" &
+                       damage$read_end == read_end &
+                       damage$damage_type == damage_type],
+        type = "l", lwd = 2, 
+        col = col, 
+        ylab = "Frequency", xlab = read_end, 
+        main = paste(sub("\\.\\.", " to ", damage_type), ", ", sample),
+        bty = "n")
+  
+  lines(x = 6:75,
+        damage$value[damage$sample == sample 
+                     & damage$data_type == "Trimmed" &
+                       damage$read_end == read_end &
+                       damage$damage_type == damage_type][1:70],
+        lty = "dashed", col = col, lwd = 2)
+}
+
+pdf("~/Projects/Botocudos/Plots/Error/MN00013_MN0008_damage_curves.pdf",
+    width = 7, height = 8)
+layout( matrix( seq( 1,4 ), byrow = T, ncol = 2 ) )
+damage_whole_trimmed(sample = "MN00013", damage_type = "C..T",
+                     read_end = "five_prime", col = "blue")
+damage_whole_trimmed(sample = "MN00013", damage_type = "G..A",
+                     read_end = "three_prime", col = "red")
+damage_whole_trimmed(sample = "MN0008_non_U", damage_type = "C..T",
+                     read_end = "five_prime", col = "blue")
+damage_whole_trimmed(sample = "MN0008_non_U", damage_type = "G..A",
+                     read_end = "three_prime", col = "red")
+legend( 40, 0.15, bty = "n", lty = c("solid", "dashed"), 
+        legend = c("Whole", "Trimmed"))
+dev.off()
+```
+
+```{r, eval = F}
+cumulative_damage <- function(sample, read_end, damage_type, col){
+  plot( cumsum( damage$value[damage$sample == sample 
+                             & damage$data_type == "Whole" &
+                               damage$read_end == read_end &
+                               damage$damage_type == damage_type] ),
+        type = "l", lwd = 2, 
+        col = col, 
+        ylab = "Cumulative error per base", xlab = read_end, 
+        main = paste(sub("\\.\\.", " to ", damage_type), ", ", sample),
+        bty = "n")
+  
+  lines(
+    cumsum( damage$value[damage$sample == sample 
+                         & damage$data_type == "Trimmed" &
+                           damage$read_end == read_end &
+                           damage$damage_type == damage_type][1:71] ),
+    lty = "dashed", col = col, lwd = 2)
+} 
+
+pdf("~/Projects/Botocudos/Plots/Error/MN00013_MN0008_cumulative_damage.pdf",
+    width = 7, height = 8)
+layout( matrix( seq( 1,4 ), byrow = T, ncol = 2 ) )
+cumulative_damage(sample = "MN00013", damage_type = "C..T",
+                     read_end = "five_prime", col = "blue")
+cumulative_damage(sample = "MN00013", damage_type = "G..A",
+                     read_end = "three_prime", col = "red")
+cumulative_damage(sample = "MN0008_non_U", damage_type = "C..T",
+                     read_end = "five_prime", col = "blue")
+cumulative_damage(sample = "MN0008_non_U", damage_type = "G..A",
+                     read_end = "three_prime", col = "red")
+legend( 40, 0.6, bty = "n", lty = c("solid", "dashed"), 
+        legend = c("Whole", "Trimmed"))
 dev.off()
 ```
 
