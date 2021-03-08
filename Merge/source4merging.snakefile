@@ -134,10 +134,6 @@ for panel in panels:
 
 rule mpileup_regions:
     input:
-        # bai = lambda wildcards: return_bai(wildcards.bamlist),
-        # bamlist = "{bamlist}_{nGroup}.txt",
-        # panel = lambda wildcards: config['merge_sample']["panels"][wildcards.panel]["path"] ,
-        # sites = "{panel}/{Chr}_sites.bed"
         bai = lambda wildcards: return_bai(wildcards.bamlist),
         bamlist = "{bamlist}_{nGroup}.txt",
         panel = lambda wildcards: panel_dicts[wildcards.panel]["path"] ,
@@ -290,8 +286,9 @@ rule panel_to_tped:
         "{panel}/logs/panel_to_tped.log"
     shell:
         "extension=$(echo {input.panel}|rev |cut -f1 -d. |rev) ;"
+        "panel=$(echo {input.panel} | sed \"s/.$extension//\");"
         "if [ $extension == 'bed' ] ; then " 
-        "   plink --recode transpose --bfile {wildcards.panel} --out {wildcards.panel}/{wildcards.panel} 2>{log} ;"
+        "   plink --recode transpose --bfile $panel --out {wildcards.panel}/{wildcards.panel} 2>{log} ;"
         "elif [ $extension == 'vcf' ] ; then"
         "   plink --recode --vcf {wildcards.panel} --out {wildcards.panel}/{wildcards.panel} 2>{log} ;"
         "elif [ $extension == 'ped' ] ; then "
