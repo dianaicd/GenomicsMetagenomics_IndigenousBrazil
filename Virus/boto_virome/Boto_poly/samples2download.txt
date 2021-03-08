@@ -1,0 +1,3 @@
+ftp.sra.ebi.ac.uk/vol1/run/ERR664/ERR664833/B3a_shotgun.trimmed.all.fastq.gz
+ftp.sra.ebi.ac.uk/vol1/run/ERR668/ERR668419/B3b_shotgun.trimmed.all.fastq.gz
+ftp.sra.ebi.ac.uk/vol1/run/ERR668/ERR668421/B3_mtDNACapture.trimmed.all.fastq.gz

@@ -1,0 +1,616 @@
+---
+title: "PCA_Viruses"
+author: "Arizmendi C., Yami O."
+date: "28/01/2020"
+output: html_document
+---
+<!--Modified script from Diana-->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message = F, warning = F)
+```
+
+```{r}
+library(cowplot)
+library(factoextra)
+library(plyr)
+library(data.table)
+library(stringr)
+library(gplots)
+# source("~/Projects/Botocudos/Scripts/misc/translate_ids.R")
+```
+
+Add the information regarding: input reads; number of alignments and number of reads aligned.  
+Botocudo samples
+```{r Loading # input, # alignments & # reads aligned}
+# Input reads
+input_reads_boto <- fread(file = "~/axiom_virome/Boto_virome/true_complete/unmapped_fnas/reads_fasta_boto.txt", header = F, sep = ':')
+colnames(input_reads_boto) <- c("samples", "input")
+
+# Remove '_unmapped.fna'
+input_reads_boto[, samples:=sapply(input_reads_boto$V1, FUN = function(x) str_replace(string = x, pattern = "_unmapped.fna", replacement = ""), USE.NAMES = F)]
+
+# Add number of alignments
+input_reads_boto[, algnts:=fread(file = "~/axiom_virome/Boto_virome/true_complete/DIAMOND_output/alignment_output/number_alignments_boto.txt", drop = 2)]
+
+# Add number of reads aligned
+input_reads_boto[, rds_algnd:=fread(file = "~/axiom_virome/Boto_virome/true_complete/DIAMOND_output/alignment_output/reads_aligned_boto.txt")]
+```
+
+Botocudo polynesian samples:
+```{r}
+# Input reads
+input_reads_bpoly <- fread(file = "~/axiom_virome/Boto_virome/Boto_poly/virome/unmapped_fnas/reads_fasta_boto_polys.txt", header = F, sep = ':')
+colnames(input_reads_bpoly) <- c("samples", "input")
+
+# Remove '_unmapped.fna'
+input_reads_bpoly[, samples:=sapply(input_reads_bpoly$samples, FUN = function(x) str_replace(string = x, pattern = "_unmapped.fna", replacement = ""), USE.NAMES = F)]
+
+# Add number of alignments
+input_reads_bpoly[, algnts:=fread(file = "~/axiom_virome/Boto_virome/Boto_poly/virome/DIAMOND_output/alignment_output/number_alignments.txt", drop = 2)]
+
+# Add number of reads aligned
+input_reads_bpoly[, rds_algnd:=fread(file = "~/axiom_virome/Boto_virome/Boto_poly/virome/DIAMOND_output/alignment_output/reads_aligned_botopoly.txt")]
+
+reads_boto_bpolys <- rbind(input_reads_bpoly, input_reads_boto)
+write.csv(x = reads_boto_bpolys, file = "reads_boto_bpolys.csv", quote = F, sep = ',', row.names = F)
+```
+
+Information about: total number of sequenced reads, tissue
+```{r other info}
+# Load
+sequenced_reads <- fread(input = "Sup_T1.csv", nrows = 26, header = T, select = c("Sample", "reads_raw"))
+# Change character to numeric type
+sequenced_reads$reads_raw <- sequenced_reads$reads_raw %>% 
+  str_replace_all(., pattern = " ", replacement = "") %>% 
+  as.numeric()
+# Remove "MN0008_L3U" & "MN0008_non_U" libraries
+sequenced_reads <- sequenced_reads[Sample != "MN0008_L3U" & Sample != "MN0008_non_U"]
+
+# Add boto-poly reads
+sequenced_reads <- rbind(sequenced_reads, data.table(matrix(c("Bot15", 1582021045, "Bot17", 647045202), 
+                  ncol = 2, 
+                  byrow = T, 
+                  dimnames = list(c(1,2), c("Sample", "reads_raw"))
+                  ))
+      )
+
+```
+
+1,315 human viruses
+
+Load human virus hits
+```{r}
+hvirush <- fread(file = "~/axiom_virome/Boto_virome/Boto_poly/virome/DIAMOND_output/alignment_output/human_virus_hits/all_boto_boto_poly/all_samples_boto_botopoly_hits_by_virus.csv")
+```
+
+Frequencies
+```{r Freqs}
+hist(as.matrix(sweep(hvirush[, 3:28], reads_boto_bpolys$input, MARGIN = 2, FUN = '/')), 
+     breaks = 50)
+hist(as.matrix(log(sweep(hvirush[, 3:28], reads_boto_bpolys$input, MARGIN = 2, FUN = '/')+1e-30)))
+```
+
+The figure on top corresponds to a heatmap on the number of hits per virus,
+divided by the total number of reads given to DIAMOND, and the figure below 
+is a heatmap taking the logarithm on the same data.
+
+```{r Load hits}
+virus <- read.csv("~/Projects/Botocudos/Files/Microbiome/Virome/HumanVirus2.txt",
+                  skip=2, header = T, sep = "\t")
+
+rownames(virus) <- gsub("_", " ", gsub("-", " ", virus[,1]))
+```
+
+
+```{r}
+####
+# Normalising by dividing by input reads
+heatmap(as.matrix(sweep(hvirush[, 3:28], reads_boto_bpolys$input, MARGIN = 2, FUN = '/')),
+                       col = rev(heat.colors(350)), 
+                       main = "Heatmap on normalized read counts",
+                       labRow = hvirush[, v_names])
+
+# Normalising with scale
+t(as.matrix(sweep(hvirush[, 3:28], reads_boto_bpolys$input, MARGIN = 2, FUN = '/')))
+
+hvirush[, 3:28] %>% sweep(., reads_boto_bpolys$input, MARGIN = 2, FUN = '/') %>% as.matrix %>% t
+  
+heatmap(hvirush[, 3:28] %>% 
+          sweep(., 
+                reads_boto_bpolys$input, 
+                MARGIN = 2,
+                FUN = '/') %>% 
+          as.matrix %>% 
+          t,
+        col = rev(heat.colors(350)),
+        scale = "row",
+        main = "Heatmap on normalized read counts",
+        labCol = hvirush[, v_names])
+
+# Normalising by dividing by input reads and log
+heatmap.2(as.matrix(sweep(hvirush[, 3:28], reads_boto_bpolys$input, MARGIN = 2, FUN = '/')),
+                       #col = rev(heat.colors(350)), 
+                       main = "Heatmap on normalized read counts",
+                       labCol = hvirush[, v_names])
+####
+hvirush[5, hits_Bot15]/ reads_boto_bpolys[5, input]
+apply(hvirush[, 3:28], MARGIN = 2, FUN = function(x) x/reads_boto_bpolys$input)
+sweep(hvirush[, 3:28], reads_boto_bpolys$input, MARGIN = 2, FUN = '/')
+hvirush[, 3:28]/reads_boto_bpolys$input
+  
+heatmap(as.matrix(virus[4:38,2:25]/as.numeric(virus[1, 2:25])), 
+        col = rev(heat.colors(350)), 
+        main = "Heatmap on normalized read counts")
+
+heatmap(as.matrix(log(virus[4:38,2:25]/as.numeric(virus[1, 2:25])+ 1e-30)), 
+        col = rev(heat.colors(350)), 
+        main = "Heatmap on normalized read counts (log)")
+
+```
+
+Export to excel 
+```{r excel}
+## Formatting can be applied simply through the write functions 
+#==============================================================================#
+## create a workbook and add a worksheet
+wb <- createWorkbook()
+addWorksheet(wb, paste("Sup_T1_", data_type, sep = ""))
+#--------------
+## headerStyles
+hs1 <- createStyle(fgFill = "white", halign = "CENTER", textDecoration = "Bold",
+                   border = c("top", "bottom", "left", "right"),
+                   borderStyle = "thin",
+                   fontColour = "black", fontSize = 16)
+
+showGridLines(wb, 1, showGridLines = FALSE)
+setColWidths(wb, 1, cols = 1:ncol(myT1), widths = "auto")
+#-------------
+# write table
+writeData(wb, 1, df, startRow = 1, startCol = 1, headerStyle = hs1,
+          borders = "columns", borderStyle = "thin")
+#-------------------
+# add column styles
+# percent
+percent_cols <- which(colnames(df) %in% c("trim_prop", "duplicates_prop"))
+s <- createStyle(numFmt = "0.0%")
+addStyle(wb, 1, style = s,  cols = percent_cols, 
+         rows = 1:nrow(df)+1, gridExpand = TRUE, stack = T)
+# thousands separator
+comma_cols <- which(colnames(df) %in% c("reads_raw", "reads_trim", "mapping", 
+                                        "duplicates", "mapping_final"))
+s <- createStyle(numFmt = "COMMA")
+addStyle(wb, 1, style = s, rows = 1:nrow(df)+1, cols = comma_cols,
+         gridExpand = TRUE, stack = T)
+# trim decimal places and format %
+decimal_cols <- which(colnames(df) %in% c("endo_prop", "endo_final_prop"))
+s <- createStyle(numFmt = "#0.00%")
+addStyle(wb, 1, style = s, rows = 1:nrow(df)+1, cols = decimal_cols,
+         gridExpand = TRUE, stack = T)
+# trim decimal places
+decimal_cols <- which(colnames(df) %in% c("DoC_MT", "length_reads_endogenous"))
+s <- createStyle(numFmt = "0.0")
+addStyle(wb, 1, style = s, rows = 1:nrow(df)+1, cols = decimal_cols,
+         gridExpand = TRUE, stack = T)
+
+#format data font type
+theCaption <- myT1[is.na(myT1$reads_raw),]
+s <- createStyle(fontSize = 14)
+addStyle(wb, 1, style = s, rows = 1:(nrow(df)+nrow(theCaption))+1, cols = 1:ncol(df),
+         gridExpand = TRUE, stack = T)
+#------------------------------------------------------------------------------#
+# write column explanation
+writeData(wb, 1, theCaption, startRow = nrow(df)+2,
+          startCol = 1, colNames = F, 
+          borders = "none")
+
+## writing as an Excel Table
+openXL(wb) ## opens a temp version
+saveWorkbook(wb, paste("~/Projects/Botocudos/Files/Tables/Sup_T1_",
+                       data_type, ".xlsx", sep = ""), 
+             TRUE)
+```
+
+
+
+
+```{r understand?}
+eg_matrix <- matrix(c(1, 11, 0, 2, 5, 9, 4, 5, 7, 6, 8, 8, 1, 2, 2, 7, 4, 0, 0, 0, 5, 7, 3, 8, 4), ncol = 5, byrow = T)
+rownames(eg_matrix) <- c("a", "b", "c", "d", "e")
+scale(eg_matrix, center = T, scale = F)
+scale(eg_matrix, center = T, scale = T)
+
+myclust <- hclust(dist(eg_matrix))
+mydendro <- as.dendrogram(myclust)
+plot(mydendro)
+plot(reorder(mydendro, wts = rowMeans(eg_matrix)))
+heatmap.2(eg_matrix)
+
+heatmap(eg_matrix)
+heatmap(t(eg_matrix))
+
+rowMeans(eg_matrix)
+sweep(eg_matrix, 1, rowMeans(eg_matrix))
+```
+
+Save the values in variables. *raw_hits*: with the raw numbers; *div_by_input*: each value is divided the number of input reads of the corresponding sample.
+```{r matrixes for heatmaps}
+raw_hits <- hvirush[, 3:28] %>% as.matrix
+div_by_input <- hvirush[, 3:28] %>% 
+  sweep(., 
+        reads_boto_bpolys$input, 
+        MARGIN = 2, 
+        FUN = '/') %>% 
+  as.matrix
+```
+
+Using the raw counts. Without scaling (scale deffault in heatmap is "row"): rows are not centered (substraction of the row means) nor scaled (divide centered rows by standard deviation of the centered rows).
+By default heatmap computes euclidean distance (this is by rows).
+By default, heatmap transpose your matrix, calculates the distance of the transposed, and finally clusters. Then calculates distance and clusters for rows. Distacne by deffaults calculates the distance of the rows in a matrix.
+
+Both heatmap and heatmap.2 reorder the branches (respecting the dendrogram) using the means (rowMeans & colMeans) going from the lowest to the highest value from right to left, or from bottom to top.
+
+In heatmap.2 the dotted lines represent the median of the breaks. In the color key there is a histogram. The horizontal lines to help find the value of the bin.
+
+```{r}
+heatmap(x = div_by_input,
+        col = rev(heat.colors(350)),
+        scale = "row",
+        labRow = hvirush[, v_names],
+        main = "Scaled by row. Hits/input")
+
+heatmap(x = div_by_input,
+        col = rev(heat.colors(350)),
+        scale = "col",
+        labRow = hvirush[, v_names],
+        main = "Scaled by col. Hits/input")
+
+heatmap(x = div_by_input,
+        col = rev(heat.colors(350)),
+        scale = "none",
+        labRow = hvirush[, v_names],
+        main = "wo scaling. Hits/input")
+
+heatmap(x = log10(div_by_input*1321270631 + 1),
+        col = rev(heat.colors(350)),
+        scale = "none",
+        labRow = hvirush[, v_names],
+        main = "log10(hits/input * max + 1)")
+
+#pdf(file = "heatmap_normalized_hits.pdf", height = 9.5, width = 15.5)
+heatmap.2(x = log10(div_by_input*1321270631 + 1),
+        col = rev(heat.colors(350)),
+        scale = "none",
+        # trace = "none",
+        denscol = "saddlebrown",
+        tracecol = "saddlebrown",
+        density.info = "histogram",
+        main = "log10(hits/input * max_input + 1)",
+        cexCol = 0.9,
+        srtCol = 45,
+        cexRow = 0.6,
+        #margins = c(15, 17),
+        #keysize = 1,
+        offsetRow = 0.25,
+        offsetCol = 0.25,
+        labRow = hvirush[, v_names])
+
+heatmap.2(x = div_by_input,
+        col = rev(heat.colors(350)),
+        scale = "none",
+        denscol = "saddlebrown",
+        tracecol = "saddlebrown",
+        density.info = "histogram",
+        labRow = hvirush[, v_names],
+        main = "hits/input")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+The PCAs below were done on DIAMOND's results.
+The number of hits per virus were divided by the amount
+of starting within samples. 
+We extracted the viruses that are reported to infect humans.
+After these filters, a few viruses were removed as they might be false negatives,
+e.g., Mamastrovirus (an RNA virus), Yaba monkey tumor virus 
+(a virus found in monkeys in Nigeria, transmitted to humans working with monkeys).
+
+The visualization of the data is done using the library `factoextra`.
+
+We plotted the individuals on the first two dimensions, and the 10 variables (viruses) that contribute the most to the first two dimensions.
+
+```{r}
+
+data <- t(virus[4:38, 2:25]/as.numeric(virus[1, 2:25]))*1e6 + 1e-9
+data <- data[, -which(colnames(data) == "Mamastrovirus 1")]
+data <- data[, -grep("Yaba", colnames(data))]
+data <- data[, -grep("retrovirus", colnames(data))]
+```
+
+
+```{r}
+x <- prcomp((data))
+
+
+p <- fviz_pca_ind(x, repel = T) 
+p <- p + 
+  geom_point(x = x$x[rownames(x$x) == "MN01701",1], 
+             y = x$x[rownames(x$x) == "MN01701",2], col = "red") + 
+  geom_point(x = x$x[rownames(x$x) == "MN1943",1], 
+             y = x$x[rownames(x$x) == "MN1943",2], col = "blue")
+
+y <- list(contrib = 10)
+contrib <- fviz_pca_var(x, select.var = y, repel = T, col.var = "contrib")
+
+var_exp <- fviz_screeplot(x)
+
+```
+
+```{r, fig.width=13, fig.height=8}
+plot_grid(p, contrib, ncol = 2)
+```
+
+We observe that the Human alphaherpesvirus 3 (*i.e.*, varicella-zoster virus)
+has a high contribution (about 40%) to the firs two components. Two other viruses are correlated with varicella, Human gammaherpesvirus 8 (agent causing Kaposi sarcoma) and NY 014 poxvirus (an unclassified poxvirus). As suggested by the heatmap, the first dimension is separating an individual with a high viral load from the rest of the population. The first two dimensions for this PCA explain 71.4% of the variance.
+
+```{r}
+print(var_exp)
+```
+
+
+For the following plots, we did a PCA using the log of the data, 
+to reduce the "strength" of the contribution from some variables.
+
+```{r}
+x <- prcomp(log(data))
+
+
+p <- fviz_pca_ind(x, repel = T) 
+p <- p + 
+  geom_point(x = x$x[rownames(x$x) == "MN01701",1], 
+             y = x$x[rownames(x$x) == "MN01701",2], col = "red") + 
+  geom_point(x = x$x[rownames(x$x) == "MN1943",1], 
+             y = x$x[rownames(x$x) == "MN1943",2], col = "blue")
+
+y <- list(contrib = 10)
+contrib <- fviz_pca_var(x, select.var = y, repel = T, col.var = "contrib")
+
+var_exp <- fviz_screeplot(x)
+```
+
+```{r, fig.width=13, fig.height=8}
+plot_grid(p, contrib, ncol = 2)
+```
+
+Almost magically, Human Parvovirus B19 appears in the top 10 viruses.
+We can say that as it is known to be a pretty small virus, we tried to reconstruct 
+its genome with the data we had.
+
+```{r}
+print(var_exp)
+```
+
+```{r}
+
+pv <- read.table("~/Projects/Botocudos/Files/Microbiome/Virome/Parvovirus/2019_03_14/geno2.txt")
+colnames(pv)<- c("chr", "start", "end", "cov")
+pv <- pv[pv$cov > 0,]
+chrs <- unique(pv$chr)
+l <- c(4354, 4767, 4922)
+names(l) <- c("HQ340602.1", "DQ333427.1", "AJ717293.1")
+
+
+par(mfcol=c(3,2))
+for(i in seq(1, length(l))){
+  plot(pv$start[pv$chr == names(l)[i]], pv$cov[pv$chr == names(l)[i]], 
+     type = "n" , xlim = c(0, l[i]), bty = "n",
+     main = paste("Genotype 2, strain", names(l)[i]),
+     xlab = "Position (bp)", ylab = "Genome coverage")
+segments(x0 =pv$start[pv$chr == names(l)[i]], x1 = pv$end[pv$chr == names(l)[i]],
+         y0 = pv$cov[pv$chr == names(l)[i]], lwd = 3, col = "blue")
+}
+
+pv <- read.table("~/Projects/Botocudos/Files/Microbiome/Virome/Parvovirus/2019_03_14/geno3.txt")
+colnames(pv)<- c("chr", "start", "end", "cov")
+pv <- pv[pv$cov > 0,]
+
+chrs <- unique(pv$chr)
+l <- c(5017, 5028, 5028)
+names(l) <- c("AY083234.1", "AJ249437.1", "NC_004295.1")
+
+for(i in seq(1, length(l))){
+  plot(pv$start[pv$chr == names(l)[i]], pv$cov[pv$chr == names(l)[i]], 
+     type = "n" , xlim = c(0, l[i]), bty = "n",
+     main = paste("Genotype 3, strain", names(l)[i]),
+     xlab = "Position (bp)", ylab = "Genome coverage")
+segments(x0 =pv$start[pv$chr == names(l)[i]], x1 = pv$end[pv$chr == names(l)[i]],
+         y0 = pv$cov[pv$chr == names(l)[i]],lwd = 3, col = "brown")
+}
+
+
+
+```
+
+# Bacteria
+We remove variables (bacteria) for which we have more than 50% of missing data.
+
+```{r}
+# PCA on Phyla level
+
+
+extract_counts <- function(rank){
+  whole <- data.frame()
+  
+  for(ind in boto$MA){
+    path <- paste("~/Projects/Botocudos/Files/Microbiome/Centrifuge/2019_03_07/centrifuge/", ind, "_nt.report", sep = "")
+    report <- read.csv(path, sep = "\t", header = F)
+    colnames(report) <- c("Reads_clade_percent",
+                          "Reads_clade",
+                          "Reads_taxon",
+                          "Rank", 
+                          "TaxID",
+                          "Sci_name")
+    report$Rank <- factor(report$Rank, 
+                          levels = c("-", "S", "G", "F", "O", "C", "P", "K", "D"),
+                          ordered = T)
+    total_classified <- report$Reads_clade[report$TaxID == 1]
+    
+    # Index to prokkaryotes and viruses
+    index <- grep("D", report$Rank)
+    report <- report[c(index[1]:index[2]-1, index[3]:dim(report)[1]),]
+    report$Reads_clade <- report$Reads_clade/total_classified
+    colnames(report) <- sub("Reads_clade", ind, colnames(report))
+    report$Sci_name <- sub("^ +", "", report$Sci_name)
+    if(dim(whole)[1] == 0){
+      whole <- report[report$Rank == rank, c("TaxID", "Sci_name", ind)]
+    }else{
+      whole <- join(whole, 
+                    report[report$Rank == rank, c("TaxID", "Sci_name",ind)], 
+                    by = "TaxID", type = "full")
+    }
+  }
+  
+  #hist(rowSums(is.na(whole)), breaks = dim(whole)[1])
+  # remove rows with a lot of missing data
+  whole <- whole[-which(rowSums(is.na(whole))/dim(whole)[2] > 0.5),] 
+  whole[is.na(whole)] <- 0
+  
+  return(whole)
+}
+
+boto <- read.csv("~/Projects/Botocudos/Files/database_names.csv")
+boto <- boto[-which(boto$Ethn == "Quack" |boto$MN == "MN0008"),]
+
+```
+
+```{r, fig.width=14}
+ranks <- factor(c("-", "S", "G", "F", "O", "C", "P", "D", "K"), 
+                  levels = c("-", "S", "G", "F", "O", "C", "P", "D", "K"),
+                  ordered = T)
+
+names(ranks) <- c("-", "Species", "Genus", "Family", "Order", "Phyla", "Domain")
+for(rank in c("Phyla", "Order", "Family", "Genus", "Species")){
+  cat(paste("## ", rank))
+  
+  for(do_log in c(F, T)){
+
+    r <- ranks[rank]
+    #whole <- extract_counts(r)
+    whole <- read.csv(paste("~/Projects/Botocudos/Files/Microbiome/Centrifuge/2019_03_07/", rank, ".txt", sep = ""), header = T, sep = "\t")
+    data <- t(as.matrix(whole[,3:dim(whole)[2]]))
+    data[is.infinite(data)] <- 0
+    rownames(data) <- ma2mn(rownames(data))
+    data <- data[-c(which(rownames(data) == "MN00013")),]
+    
+    colnames(data) <- whole$Sci_name
+    if(do_log){
+      x <- prcomp(log(data+1e-10))
+    }else{
+      x <- prcomp(data)
+    }
+    
+    
+    p <- fviz_pca_ind(x, repel = T) 
+    p <- p + 
+      geom_point(x = x$x[rownames(x$x) == "MN01701",1], 
+                 y = x$x[rownames(x$x) == "MN01701",2], col = "red") + 
+      geom_point(x = x$x[rownames(x$x) == "MN1943",1], 
+                 y = x$x[rownames(x$x) == "MN1943",2], col = "blue")
+    
+    y <- list(contrib = 10)
+    contrib <- fviz_pca_var(x, select.var = y, repel = T, col.var = "contrib")
+    
+    var_exp <- fviz_screeplot(x)
+    print(plot_grid(p, contrib, ncol = 2))
+    print(var_exp)
+  }
+  
+}
+```
+
+# PCA on pathogenic species
+
+Finally, I decided to restrict the PC analysis to 
+species found in humans. This has been a difficult task, and 
+for now I downloaded information for species reported as pathogens
+to humans from the PATRIC database.
+
+
+```{r, eval =T, fig.width=15}
+patric <- read.csv("~/Projects/Botocudos/Files/Microbiome/PATRIC/PATRIC_genome.csv")
+colnames(patric) <- sub("NCBI.Taxon.ID", "TaxID", colnames(patric))
+
+h <- list()
+for(rank in c("Species")){
+  cat(paste("## ", rank))
+  for(do_log in c(F, T)){
+    
+    r <- ranks[rank]
+    #whole <- extract_counts(r)
+    whole <- read.csv(paste("~/Projects/Botocudos/Files/Microbiome/Centrifuge/2019_03_07/", rank, ".txt", sep = ""), header = T, sep = "\t")
+    
+    patho <- join(whole, patric[, c("TaxID", "Genome.ID")],
+                  by = "TaxID")
+    patho <- patho[complete.cases(patho),]
+    patho$Genome.ID <- NULL
+    patho <- unique(patho)
+    data <- t(as.matrix(patho[,3:(dim(patho)[2])]))
+    data[is.infinite(data)] <- 0
+    rownames(data) <- ma2mn(rownames(data))
+    data <- data[-c(which(rownames(data) == "MN00013")),]
+    
+    colnames(data) <- patho$Sci_name
+    if(do_log){
+      x <- prcomp(log(data+1e-10))
+    }else{
+      x <- prcomp(data)
+    }
+    
+     heatmap(t(data), col = rev(heat.colors(93)))
+    
+    p <- fviz_pca_ind(x, repel = T) 
+    p <- p + 
+      geom_point(x = x$x[rownames(x$x) == "MN01701",1], 
+                 y = x$x[rownames(x$x) == "MN01701",2], col = "red") + 
+      geom_point(x = x$x[rownames(x$x) == "MN1943",1], 
+                 y = x$x[rownames(x$x) == "MN1943",2], col = "blue")
+    
+    y <- list(contrib = 10)
+    contrib <- fviz_pca_var(x, select.var = y, repel = T, col.var = "contrib")
+    
+    var_exp <- fviz_screeplot(x)
+    print(plot_grid(p, contrib, ncol = 2))
+    print(var_exp)
+  }
+  
+}
+
+```
+
+```{r}
+
+for(i in seq(3,25)){
+  a <- (whole[,c(2,i)])
+  a <- a[order(a[,2], decreasing = T),]
+  #print(ma2mn(colnames(whole)[i]))
+  #print(head(a, 10))
+  #n <- as.character(ma2mn(as.character(colnames(whole)[i])))
+  n <- colnames(whole)[i]
+  name <- paste("~/Projects/Botocudos/Files/Microbiome/Centrifuge/", n, "_most_abundant.txt", sep = "")
+  #write.table(a, file = name, sep = "\t", col.names = F, row.names = F, quote = F)
+  print(a[which(a[,2]*15e6 > 100000),])
+}
+```

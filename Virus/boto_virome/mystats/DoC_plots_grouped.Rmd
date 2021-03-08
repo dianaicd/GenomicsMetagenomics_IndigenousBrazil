@@ -1,0 +1,153 @@
+---
+title: "DoC_plots_grouped"
+output: html_document
+---
+
+```{r Libraries}
+library(openxlsx)
+library(data.table)
+```
+
+```{r Plotting function}
+plot_cov <- function(coverage, plot.title, my_color, limy) {
+  barplot(
+    height = coverage$V3,
+    main = plot.title,
+    ylab = "Number of reads",
+    # xlab = "Genome position (bp)",
+    col = my_color,
+    border = NA,
+    axes = T,
+    ylim = c(0, limy),
+    space = 0
+  )
+  title(xlab = "Genome position (bp)", line = 1)
+  
+  xtick <- ceiling(seq(from = 1, to = nrow(coverage), along.with = c(1:5)))
+  axis(side = 1, at = xtick, labels = F, tck = -0.005)
+  text(
+    x = xtick, par("usr")[3], labels = xtick, pos = 1, xpd = T, cex = 0.95,
+    offset = 0.19
+  )
+}
+```
+
+
+```{r Paths & titles}
+below_10 <- c(
+  "MN00045/coverage_tables/quality_0/MN00045.adeno_associated_2.mapq0.coverage.tsv",
+  "MN00346/coverage_tables/quality_0/MN00346.hepatitis_b_str_ayw.mapq0.coverage.tsv",
+  "MN00021/coverage_tables/quality_0/MN00021.hepatitis_b_str_ayw.mapq0.coverage.tsv",
+  "MN00023/coverage_tables/quality_0/MN00023.hepatitis_b_str_ayw.mapq0.coverage.tsv",
+  "MN00019/coverage_tables/quality_0/MN00019.hepatitis_b_str_ayw.mapq0.coverage.tsv",
+  "MN00067/coverage_tables/quality_0/MN00067.hepatitis_b_str_ayw.mapq0.coverage.tsv",
+  "MN00021/coverage_tables/quality_0/MN00021.mamastrovirus_1.mapq0.coverage.tsv",
+  "MN00068/coverage_tables/quality_0/MN00068.mamastrovirus_1.mapq0.coverage.tsv",
+  "MN00067/coverage_tables/quality_0/MN00067.mamastrovirus_1.mapq0.coverage.tsv",
+  "MN1943/coverage_tables/quality_0/MN1943.mamastrovirus_1.mapq0.coverage.tsv",
+  "MN00118/coverage_tables/quality_0/MN00118.mamastrovirus_1.mapq0.coverage.tsv",
+  "MN00013/coverage_tables/quality_0/MN00013.mamastrovirus_1.mapq0.coverage.tsv",
+  "MN00069/coverage_tables/quality_0/MN00069.mamastrovirus_1.mapq0.coverage.tsv",
+  "MN00056/coverage_tables/quality_0/MN00056.merkel_cell_polyo_iso_R17b.mapq0.coverage.tsv",
+  "MN0009/coverage_tables/quality_0/MN0009.merkel_cell_polyo_iso_R17b.mapq0.coverage.tsv",
+  "MN00013/coverage_tables/quality_0/MN00013.torque_teno_10.mapq0.coverage.tsv",
+  "MN00013/coverage_tables/quality_0/MN00013.torque_teno_12.mapq0.coverage.tsv",
+  "MN00013/coverage_tables/quality_0/MN00013.torque_teno_16.mapq0.coverage.tsv",
+  "MN00013/coverage_tables/quality_0/MN00013.torque_teno_28.mapq0.coverage.tsv",
+  "MN0008/coverage_tables/quality_0/MN0008.torque_teno_28.mapq0.coverage.tsv", "MN00013/coverage_tables/quality_0/MN00013.torque_teno_8.mapq0.coverage.tsv",
+  "MN00316/coverage_tables/quality_0/MN00316.bufavirus_3_str_BTN_63.mapq0.coverage.tsv",
+  "MN00013/coverage_tables/quality_0/MN00013.h_endogenus_retro_K113.mapq0.coverage.tsv",
+  "MN0008/coverage_tables/quality_0/MN0008.h_endogenus_retro_K113.mapq0.coverage.tsv",
+  "MN00119/coverage_tables/quality_0/MN00119.h_endogenus_retro_K113.mapq0.coverage.tsv",
+  "MN00056/coverage_tables/quality_0/MN00056.h_endogenus_retro_K113.mapq0.coverage.tsv",
+  "MN00119/coverage_tables/quality_0/MN00119.h_parvovirus_4_G1.mapq0.coverage.tsv",
+  "MN00013/coverage_tables/quality_0/MN00013.torque_teno_midi_14_DNA.mapq0.coverage.tsv",
+  "MN00118/coverage_tables/quality_0/MN00118.torque_teno_midi_14_DNA.mapq0.coverage.tsv"
+)
+below_10_titles <- regmatches(below_10, regexpr("MN\\d+\\.\\w+", below_10))
+below_10 <- paste0(c(rep("~/axiom_popgen/boto_virome/human_virus/mapping/output_mystats/", 21),
+                     rep("~/axiom_virome/Boto_virome/true_complete/virus_mappings/human_virus/mapping_temp/output_mystats/", 8)),
+                   below_10)
+below_10_colors <- c(
+  "chartreuse4",
+  rep("#9c52f2", 5),
+  rep("#ff3319", 7),
+  rep("deepskyblue1", 2),
+  "#cc85d1",
+  "bisque4",
+  "#d60036",
+  rep("#1b8e13", 2),
+  "#b85e00",
+  "deeppink2",
+  rep("aquamarine4", 4),
+  "royalblue2",
+  rep("#ff8c00", 2)
+)
+
+herpes7_parvoB19 <- c("MN00013/coverage_tables/quality_0/MN00013.h_herpes_7.mapq0.coverage.tsv", "MN0008/coverage_tables/quality_0/MN0008.h_herpes_7.mapq0.coverage.tsv", "MN00119/coverage_tables/quality_0/MN00119.h_herpes_7.mapq0.coverage.tsv", "MN00056/coverage_tables/quality_0/MN00056.h_herpes_7.mapq0.coverage.tsv", "MN00346/coverage_tables/quality_0/MN00346.h_parvovirus_B19.mapq0.coverage.tsv", "MN00013/coverage_tables/quality_0/MN00013.h_parvovirus_B19.mapq0.coverage.tsv", "MN00067/coverage_tables/quality_0/MN00067.h_parvovirus_B19.mapq0.coverage.tsv", "MN00021/coverage_tables/quality_0/MN00021.h_parvovirus_B19.mapq0.coverage.tsv", "MN00119/coverage_tables/quality_0/MN00119.h_parvovirus_B19.mapq0.coverage.tsv", "MN00039/coverage_tables/quality_0/MN00039.h_parvovirus_B19.mapq0.coverage.tsv", "MN0003/coverage_tables/quality_0/MN0003.h_parvovirus_B19.mapq0.coverage.tsv", "MN00066/coverage_tables/quality_0/MN00066.h_parvovirus_B19.mapq0.coverage.tsv")
+herpes7_parvoB19_titles <- regmatches(herpes7_parvoB19, regexpr("MN\\d+\\.\\w+", herpes7_parvoB19))
+herpes7_parvoB19 <- paste0("~/axiom_popgen/boto_virome/human_virus/mapping/output_mystats/", herpes7_parvoB19)
+
+herpes7_parvoB19_colors <- c(
+  rep("#ff5200", 4),
+  rep("#b319ab", 8)
+)
+```
+
+```{r Plots below 10x DoC}
+png("~/axiom_popgen/boto_virome/human_virus/mapping/output_mystats/plots_DoC/gathered_plots_DoC_below10.png", width = 10, height = 12, units = "in", res = 300)
+
+layout(matrix(seq(30), ncol = 3, byrow = T))
+
+for (i in c(1:29)) {
+  myCov <- fread(below_10[i], drop = 1)
+  par(xpd = T, mar = c(2, 4, 2, 2))
+  plot_cov(coverage = myCov, plot.title = below_10_titles[i], limy = 10, my_color = below_10_colors[i])
+}
+
+dev.off()
+```
+
+```{r Plots DoC herpes 7 & parvo B19}
+png("~/axiom_popgen/boto_virome/human_virus/mapping/output_mystats/plots_DoC/gathered_plots_DoC_herpes7_parvoB19.png", width = 7, height = 10, units = "in", res = 300)
+
+layout(matrix(seq(12), ncol = 3, byrow = T))
+
+for (i in c(1:12)) {
+  myCov <- fread(herpes7_parvoB19[i], drop = 1)
+  par(xpd = T)
+  plot_cov(coverage = myCov, plot.title = herpes7_parvoB19_titles[i], limy = 120, herpes7_parvoB19_colors[i])
+}
+
+dev.off()
+```
+
+```{r Plots DoC only herpes 7}
+
+png("~/axiom_popgen/boto_virome/human_virus/mapping/output_mystats/plots_DoC/gathered_plots_DoC_herpes7.png", width = 10, height = 10, units = "in", res = 300)
+
+layout(matrix(seq(2), ncol = 1, byrow = T))
+
+#Only for sample 13 & 8 (BoC treshold of 0.01)
+for (i in c(1:2)) {
+  myCov <- fread(herpes7_parvoB19[i], drop = 1)
+  par(xpd = T)
+  plot_cov(coverage = myCov, plot.title = herpes7_parvoB19_titles[i], limy = 80, herpes7_parvoB19_colors[i])
+}
+
+dev.off()
+```
+```{r Plots DoC only parvo B19}
+
+png("~/axiom_popgen/boto_virome/human_virus/mapping/output_mystats/plots_DoC/gathered_plots_DoC_parvoB19.png", width = 11, height = 7, units = "in", res = 300)
+
+layout(matrix(seq(8), ncol = 4, byrow = T))
+
+for (i in c(5:12)) {
+  myCov <- fread(herpes7_parvoB19[i], drop = 1)
+  par(xpd = T)
+  plot_cov(coverage = myCov, plot.title = herpes7_parvoB19_titles[i], limy = 120, herpes7_parvoB19_colors[i])
+}
+
+dev.off()
+```

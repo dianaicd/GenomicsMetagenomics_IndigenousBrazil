@@ -1,0 +1,115 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(data.table)
+library(ggplot2)
+```
+
+February 03 2020
+February 12 2020: human virus hits were added
+February 13 2020: Add the human virus hits raw numbers to the 
+
+Comparison of the values reported in the table "HumanVirus2" and the values obtained "now"
+```{r}
+H2V_vs_now<- as.data.table(read.csv(file = "/Users/yami_ommar/axiom_virome/Boto_virome/true_complete/Table_comparison_HV2_now.csv", header = T, sep = ";"))
+```
+
+Now compare the number of human viral hits obtained now vs 2019 (explanation in BitASMlab2020 [Feb 12 2020])
+```{r}
+# Number of viral hits against human viruses now
+hits_human_viruses_now <- c(405, 3069, 315, 1823, 16500, 1207, 6619, 1240, 702, 2725, 4415, 2679, 620, 7145, 1279, 213, 3572, 3687, 6572, 4918, 11426, 9791, 1004, 133)
+hits_human_viruses_H2V <- c(114, 1329, 103, 104, 1942, 378, 67, 434, 983, 785, 2232, 927, 505, 1584, 556, 79, 352, 1416, 4793, 812, 1187, 2019, 37, 81)
+samples <- c('MN00010', 'MN00013', 'MN00016', 'MN00019', 'MN00021', 'MN00022', 'MN00023', 'MN00039', 'MN0003', 'MN00045', 'MN00056', 'MN00064', 'MN00066', 'MN00067', 'MN00068', 'MN00069', 'MN0008', 'MN0009', 'MN00118', 'MN00119', 'MN00316', 'MN00346', 'MN01701', 'MN1943')
+
+names(hits_human_viruses_now) <- samples
+names(hits_human_viruses_H2V) <- samples
+
+human_virus_hits <- data.table(Now = hits_human_viruses_now, HV2 = hits_human_viruses_H2V, samples = samples)
+
+hits_times <- hits_human_viruses_now / hits_human_viruses_H2V
+```
+
+```{r}
+# Update the table with the human virus hits.
+H2V_vs_now[, c("human_virus_hits_now", "human_virus_hits_HV2") := list(hits_human_viruses_now[as.character(H2V_vs_now$L1_samples)], hits_human_viruses_H2V[as.character(H2V_vs_now$L1_samples)])]
+```
+
+```{r}
+# Input reads
+input_times <- H2V_vs_now$Reads_given_now / H2V_vs_now$Reads_given_HumanVirus2
+
+# Alignments done by DIAMOND
+alignments_times <- H2V_vs_now$alignments_now / H2V_vs_now$alignments_HV2
+
+# Reads aligned
+reads_aligned_times <- H2V_vs_now$reads_aligned_now / H2V_vs_now$reads_aligned_HV2
+
+# Subset hit times
+sub_hits_times <- hits_times[as.character(H2V_vs_now$L1_samples)]
+
+samples <- as.vector(apply(H2V_vs_now[,1], MARGIN = 1, FUN = function(X) rep(X, 4)))
+categories <- rep(c("input", "alignments", "reads_ailgned", "human_virus_hits"), 11)
+
+DIAMOND_times <- data.frame(samples, categories, times = as.vector(matrix(data = c(input_times, alignments_times, reads_aligned_times, sub_hits_times), byrow = T, ncol = 11)
+))
+
+ggplot(DIAMOND_times, aes(fill = factor(categories, levels = c("input", "alignments", "reads_ailgned", "human_virus_hits"), ordered = T), y = times, x = samples)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  ggtitle("Times more now than H2V DIAMOND") +
+  geom_abline(slope = 0, intercept = 1,  col = "red", lty = 2) +
+  scale_fill_manual(values = c("chartreuse4", "skyblue2", "peru", "gold2"), name = "Categories") +
+  ggsave("times_DIAMOND_2.pdf", width = 12)
+```
+
+```{r}
+samples <- as.vector(apply(H2V_vs_now[,1], MARGIN = 1, FUN = function(X) rep(X, 2)))
+comparison <- rep(c("HV2", "Now"), 11)
+DIA_input <- data.frame(samples, comparison, input = as.vector(t(H2V_vs_now[, Reads_given_now, Reads_given_HumanVirus2])))
+
+ggplot(DIA_input, aes(fill = comparison, y = input, x = samples)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  ggtitle("Number of reads inputted to DIAMOND") +
+  ggsave("Number_reads_inputted_DIAMOND.pdf", width = 12)
+```
+
+
+```{r}
+samples <- as.vector(apply(H2V_vs_now[,1], MARGIN = 1, FUN = function(X) rep(X, 2)))
+comparison <- rep(c("HV2", "Now"), 11)
+DIA_reads_aligned <- data.frame(samples, comparison, reads_aligned = as.vector(t(H2V_vs_now[, reads_aligned_now, reads_aligned_HV2])))
+
+ggplot(DIA_reads_aligned, aes(fill = comparison, y = reads_aligned, x = samples)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  ggtitle("Number of reads aligned by DIAMOND") +
+  ggsave("Number_reads_aligned_DIAMOND.pdf", width = 12)
+```
+
+```{r}
+samples <- as.vector(apply(H2V_vs_now[,1], MARGIN = 1, FUN = function(X) rep(X, 2)))
+comparison <- rep(c("HV2", "Now"), 11)
+DIA_reads_aligned <- data.frame(samples, comparison, alignments = as.vector(t(H2V_vs_now[, alignments_now, alignments_HV2])))
+
+ggplot(DIA_reads_aligned, aes(fill = comparison, y = alignments, x = samples)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  ggtitle("Number of alignments done by DIAMOND") +
+  ggsave("Number_alignments_DIAMOND.pdf", width = 12)
+```
+
+
+All samples
+```{r}
+# Vector of samples. Each element repeated 2 times.
+
+all_samples <- as.vector(sapply(samples, FUN = function(X){rep(X,2)}, simplify = T))
+comparison <- rep(c("HV2", "Now"), 24)
+DIA_human_virus_hits <- data.frame(all_samples, comparison, hits = as.vector(t(human_virus_hits[, Now, HV2])))
+
+ggplot(DIA_human_virus_hits, aes(fill = comparison, y = hits, x = all_samples)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  ggtitle("Hits against human viruses") +
+  ggsave("Human_viruses_hits_DIAMOND_now_vs_hv2.pdf", width = 12)
+```
+

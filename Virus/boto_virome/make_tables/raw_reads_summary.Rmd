@@ -1,0 +1,137 @@
+---
+title: "table_viruses"
+author: "DI Cruz Dávalos"
+date: "3/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, warning = F, message = F)
+```
+
+```{r require libraries}
+require(openxlsx)
+
+```
+
+```{r}
+virus <- read.csv("~/Projects/Botocudos/Files/Microbiome/Virome/2020_03_10/all_samples_boto_botopoly_hits_by_virus.csv", stringsAsFactors = F)
+
+colnames(virus) <- sub("hits_", "", colnames(virus))
+reads_given <- read.csv("~/Projects/Botocudos/Files/Microbiome/Virome/2020_03_10/reads_boto_bpolys.csv",
+                        stringsAsFactors = F)
+reads_given <- reads_given[order(reads_given$input, decreasing = T),]
+myST1 <- read.csv("~/Projects/Botocudos/Files/Tables/Sup_T1_Whole.csv", stringsAsFactors = F)
+
+```
+
+```{r prepare data frame per sheet}
+virus_per_sample <- function(sample){
+  myInput <- data.frame(name = "reads given to DIAMOND",
+                        tax_id = NA,
+                        number_reads = c(reads_given$input[reads_given$samples == sample]))
+  myDF <- virus[,c("v_names", "tax_id", sample)]
+  myDF <- myDF[order(myDF[,sample], decreasing = T),]
+  colnames(myDF) <- c("name", "tax_id", "number_reads")
+  myDF <- rbind(myInput, myDF)
+  return(myDF)
+}
+
+add_sheet <- function(sample, myDF){
+  #-------------
+  # write table
+  addWorksheet(wb, sample)
+  writeData(wb, sheet = sample, myDF, startRow = 1, startCol = 1, headerStyle = hs1,
+            borders = "columns", borderStyle = "thin")
+  #-------------------
+  # add column styles
+  # thousands separator
+  comma_cols <- c("number_reads")
+  s <- createStyle(numFmt = "COMMA")
+  addStyle(wb, sheet = sample, style = s, rows = 1:nrow(myDF)+1, cols = comma_cols,
+           gridExpand = TRUE, stack = T)
+
+}
+
+add_sheet_style <- function(sheet, myDF){
+  #format data font type
+  s <- createStyle(fontSize = 14)
+  addStyle(wb, sheet = sheet, style = s, rows = 1:(nrow(myDF)+1), cols = 1:ncol(myDF),
+           gridExpand = TRUE, stack = T)
+  
+  showGridLines(wb, sheet = sheet, showGridLines = FALSE)
+  setColWidths(wb, sheet = sheet, cols = 1:ncol(myDF), widths = "auto")
+}
+
+```
+
+```{r prepare first page}
+myST1$samples <- myST1$Sample
+mySheet <- join(reads_given, myST1[,c("samples","Label", "Tissue", 
+                                       "Calibrated.date..AD.", "Region",
+                           "State", "reads_raw")], by = c("samples"))
+mySheet <- mySheet[,c("samples", "Label", "Tissue", "Region", "State",
+                      "Calibrated.date..AD.", "reads_raw", "input", "algnts", 
+                      "rds_algnd")]
+mySheet$reads_raw <- as.numeric(gsub(" ", "", mySheet$reads_raw))
+
+mySheet$Label[is.na(mySheet$Label)] <- "Botocudo2014"
+mySheet$Tissue[is.na(mySheet$Tissue)] <- "Teeth"
+mySheet$Region[is.na(mySheet$Region)] <- "Rio Doce"
+mySheet$State[is.na(mySheet$State)] <- "Minas Gerais"
+mySheet$reads_raw[mySheet$samples == "Bot15"] <- 0
+mySheet$reads_raw[mySheet$samples == "Bot17"] <- 0
+mySheet$Calibrated.date..AD.[mySheet$samples == "Bot15"] <- "0+-0"
+mySheet$Calibrated.date..AD.[mySheet$samples == "Bot17"] <- "0+-0"
+
+colnames(mySheet) <- c("Sample", "Label", "Tissue", "Region", "State",
+                       "Calibrated date (AD)", "reads_raw", "non_human_reads",
+                       "alignments", "reads_aligned")
+```
+
+```{r save to excel workbook}
+
+#==============================================================================#
+## create a workbook and add a worksheet
+wb <- createWorkbook()
+
+#--------------
+## headerStyles
+hs1 <- createStyle(fgFill = "white", halign = "CENTER", textDecoration = "Bold",
+                   border = c("top", "bottom", "left", "right"),
+                   borderStyle = "thin",
+                   fontColour = "black", fontSize = 16)
+
+#------------------------------------------------------------------------------#
+# add first sheet
+  addWorksheet(wb, "Summary")
+  writeData(wb, sheet = "Summary", mySheet, startRow = 1, startCol = 1, headerStyle = hs1,
+            borders = "columns", borderStyle = "thin")
+  #-------------------
+  # add column styles
+  # thousands separator
+  comma_cols <- c("reads_raw", "non_human_reads", "alignments", "reads_aligned")
+  s <- createStyle(numFmt = "COMMA")
+  addStyle(wb, sheet = "Summary", style = s, rows = 1:nrow(mySheet)+1, 
+           cols = comma_cols,
+           gridExpand = TRUE, stack = T)
+  add_sheet_style(sheet = "Summary", myDF= mySheet)
+  
+#------------------------------------------------------------------------------#
+# add sheets per sample
+
+mySamples <- reads_given$samples
+
+for(s in mySamples){
+  myDF <- virus_per_sample(s)
+  add_sheet(s, myDF)
+  add_sheet_style(sheet = s, myDF= myDF)
+}
+
+## writing as an Excel Table
+openXL(wb) ## opens a temp version
+saveWorkbook(wb, "~/Projects/Botocudos/Files/Microbiome/Virome/2020_03_10/raw_hits_per_virus.xlsx", 
+             TRUE)
+```
+
+

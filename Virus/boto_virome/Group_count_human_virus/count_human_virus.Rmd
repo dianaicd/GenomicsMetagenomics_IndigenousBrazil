@@ -1,0 +1,52 @@
+---
+title: "Development: group & count human viruses"
+output: html_notebook
+---
+
+```{r}
+library(data.table)
+library(taxize)
+```
+
+February 14 2020: Open file.
+February 20 2020: Add the code: Open a .csv, look for the names using the taxids. Count and goup hits by virus.
+
+To avoid problems with taxize this might help
+```{r}
+httr::set_config(httr::config(http_version = 0))
+```
+
+Open the output of python script "select_hvirus_hits.py"
+```{r}
+hvs_hits <- fread(file = "MN1943_hvs_hits.csv", sep = ",", header = F)
+```
+
+Select some columns
+```{r}
+hvs_hits <- hvs_hits[, .(V1, V2, V3)]
+colnames(hvs_hits) <- c("read_id", "protein_id", "tax_id")
+```
+
+Get the virus names
+```{r}
+virus_nams <- ncbi_get_taxon_summary(id = hvs_hits[, V3], key = "8f5a7ee70253e037c5641bab48b0d6d74908")$name
+# virus_names <- sapply(hvs_hits[,V3], function(x) ncbi_get_taxon_summary(id = x, key="8f5a7ee70253e037c5641bab48b0d6d74908")$name, USE.NAMES = F, simplify = "vector")
+```
+
+Add the names to the table
+```{r}
+hvs_hits[, v_names:=virus_names]
+```
+
+Group hits according to virus
+```{r}
+# Count hits per virus
+hits_per_virus <- as.data.table(table(hvs_hits[, v_names]))
+# Don't lose taxid.
+present_virus <- as.data.table(unique(hvs_hits[, V3, v_names]))
+
+# Index to match the correct order
+index <- match(present_virus[, v_names], hits_per_virus[, V1])
+present_virus <- present_virus[, hits:=hits_per_virus[, N[index]]]
+```
+
