@@ -1,0 +1,48 @@
+files:
+  # Raghavan:
+  # Yoruba:
+  # YF:
+  # 20Y_20F_Skoglund:
+  # YF_Skoglund:
+  Maanasa:
+  # Maanasa_Castro12NatAm:
+  # Maanasa_Castro12NatAm_Skoglund:
+  # YF_Skoglund_Castro12NatAm:
+    prefix:
+      # "YF_Skoglund_Castro12NatAm/YF_Skoglund_Castro12NatAm_merged"
+      # "../2021_02_15/Maanasa_Castro12NatAm_Skoglund/Maanasa_Castro12NatAm_Skoglund_merged"
+      # "Maanasa_Castro12NatAm_merged"
+      # "YF_Skoglund_merged"
+      # "Yoruba_French_merged"
+      # "20Yoruba"
+      # "/users/dcruzdav/wally_americas/Panels/Skoglund2015/Brazil_n48_2015"
+      "Maanasa_mask1_flip"
+
+  # French:
+  # Castro12NatAm:
+  # YF:
+  # SkCa:
+  
+  # Skoglund:
+  TupMaskedGuarani:
+    prefix: 
+      "/users/dcruzdav/wally_americas/Panels/Castro2020/guarani_tupiniquim_masked/guarani_tupiniquim_masked"
+      # "../test/43ind"
+      # "20French"
+      # "/users/dcruzdav/wally_americas/Panels/Castro2020/native_american_pops/native_american_pops_Axiom_Human_Origins"
+      # "Yoruba_French_merged"
+      # "Skoglund_Castro12NatAm_merged"
+    # new_basename: "Castro_12NatAm"
+output:
+  "Maanasa_TupMaskedGuarani_merged.bed"
+  # "YF_Skoglund_Castro12NatAm_TupMaskedGuarani_merged.bed"
+  # "Maanasa_Castro12NatAm_Skoglund_TupMaskedGuarani_merged.bed"
+  # "Maanasa_Castro12NatAm_Skoglund_merged.bed"
+  # "YF_Skoglund_Castro12NatAm_merged.bed"
+  # "Yoruba_French_merged.bed"
+  # "YF_Skoglund_merged.bed"
+  # "20Y_20F_Skoglund_Castro12NatAm_merged.bed"
+  # "Skoglund_Yoruba_merged.bed"
+  # "Castro12NatAm_Skoglund_merged.bed"
+  # "SkCa_YF_merged.bed"
+  # "Skoglund_Castro12NatAm_merged.bed"
