@@ -47,8 +47,8 @@ bamlists = [l for l in list(config["roh_plink"]["bamlists"].keys())]
 
 rule all:
     input:
-        roh = expand("ROH/{bamfile}.chr{chr}.phased_{rmTrans}_roh.hom",
-                     bamfile = bamlists, chr = chromosomes, rmTrans = ["all", "rmTrans", "1240K"])
+        roh = expand("ROH/{bamfile}/{bamfile}.chr{chr}_{rmTrans}_roh.hom",
+                     bamfile = bamlists, chr = chromosomes, rmTrans = ["all", "rmTrans"]) #, "1240K"])
 
 
 rule bcf_to_vcf:
@@ -63,7 +63,7 @@ rule bcf_to_vcf:
         runtime=lambda wildcards, attempt: get_runtime_alloc("bcf4vcf_time", attempt, 4)
     shell:
         """
-        bcftools view -Oz -o {output.vcf} {input.bcf}
+        bcftools view -V indels -Oz -o {output.vcf} {input.bcf}
         """
 
 rule rmTrans_vcf:
@@ -81,7 +81,8 @@ rule rmTrans_vcf:
     shell:
         """
         bcftools filter --exclude \
-            "(REF=='C' & ALT='T') || (REF=='T' & ALT == 'C') || 
+            "TYPE='indel' || 
+            (REF=='C' & ALT='T') || (REF=='T' & ALT == 'C') || 
             (REF=='G' & ALT='A') || (REF=='A' & ALT == 'G')" \
             --threads {threads} \
             -Oz -o {output.vcf} {input.bcf}
@@ -96,8 +97,8 @@ rule vcf_to_plink:
     log:
         'logs/vcf_to_plink_{file}.txt'
     resources:
-        memory=lambda wildcards, attempt: get_memory_alloc("vcf2ed_mem", attempt, 4),
-        runtime=lambda wildcards, attempt: get_runtime_alloc("vcf2bed_time", attempt, 4)
+        memory=lambda wildcards, attempt: get_memory_alloc("vcf2ed_mem", attempt, 12),
+        runtime=lambda wildcards, attempt: get_runtime_alloc("vcf2bed_time", attempt, 1)
     params:
         out = "bed/{file}"
     shell:
@@ -129,12 +130,23 @@ rule extract_1240K:
         
 rule roh_plink:
     input:
-        bed = "bed/{file}.bed"
+        bed = lambda wildcards: "bed/{prefix}chr{chr}_{rmTrans}.bed".format(
+            prefix = config["roh_plink"]["bamlists"][wildcards.ind], 
+            chr = wildcards.chr,
+            rmTrans = wildcards.rmTrans
+            )
     output:
-        roh = "ROH/{file}_roh.hom"
+        roh = "ROH/{ind}/{ind}.chr{chr}_{rmTrans}_roh.hom",
+        summary = temp("ROH/{ind}/{ind}.chr{chr}_{rmTrans}_roh.hom.summary"),
+        indiv = temp("ROH/{ind}/{ind}.chr{chr}_{rmTrans}_roh.hom.indiv"),
+        nosex = temp("ROH/{ind}/{ind}.chr{chr}_{rmTrans}_roh.nosex")
     params:
-        bed = "bed/{file}",
-        roh = "ROH/{file}_roh",
+        bed = lambda wildcards: "bed/{prefix}chr{chr}_{rmTrans}".format(
+            prefix = config["roh_plink"]["bamlists"][wildcards.ind], 
+            chr = wildcards.chr,
+            rmTrans = wildcards.rmTrans
+            ),
+        roh = "ROH/{ind}/{ind}.chr{chr}_{rmTrans}_roh",
         window_snp = build_filter("window_snp"),
         hets_window = build_filter("hets_window"),
         window_missing = build_filter("window_missing"),
@@ -144,10 +156,10 @@ rule roh_plink:
         segment_kb = build_filter("segment_kb"),
         homozyg_gap = build_filter("homozyg_gap")
     resources:
-        memory=lambda wildcards, attempt: get_memory_alloc("roh_plink_mem", attempt, 4),
-        runtime=lambda wildcards, attempt: get_runtime_alloc("roh_plink_time", attempt, 4)
+        memory=8*1024, #lambda wildcards, attempt: get_memory_alloc("roh_plink_mem", attempt, 4),
+        runtime=20 #lambda wildcards, attempt: get_runtime_alloc("roh_plink_time", attempt, 4)
     log:
-        'logs/roh_plink_{file}.txt'
+        'logs/roh_plink_{ind}_chr{chr}_{rmTrans}.txt'
     shell:
         """
         plink --homozyg \

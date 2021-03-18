@@ -1,0 +1,9 @@
+# Config file for map_bowtie2.smk
+
+refs : ["Akhmeta", "Camelpox", "Cowpox", "Ectromelia", "Monkeypox", "Taterapox", "Vaccinia", "Variola"]
+
+mapping_quality: [0]
+
+samples: viking_sample.txt
+
+bowtie2_params: "--very-sensitive"

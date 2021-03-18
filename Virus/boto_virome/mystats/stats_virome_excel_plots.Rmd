@@ -1,0 +1,432 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Save the output tables of the snakemake pipeline "mystats" into excel tables.
+
+```{r}
+library(openxlsx)
+library(data.table)
+```
+
+### Excel tables
+
+```{r}
+sample <- fread(file = "MN00010/stats/quality_0/MN00010_stats.txt")
+
+# From the config.yaml file
+reference_ids <- c("AF113323_1", "AJ249437_1", "AJ717293_1", "AY083234_1", "DQ333427_1", "DQ357065_1", "FN669502_1", "HQ340602_1", "NC_000883_2", "NC_001540_1", 
+"NC_004295_1")
+
+sample[, reference_ids := reference_ids]
+setnames(sample, names(sample[, 1:5]), c("rds_b4_rmdup","rds_after_rmdup","avg_rd_lgth", "genome_cov", "ref_lgth"), skip_absent = T)
+
+sample[, depth_cov := (rds_after_rmdup*avg_rd_lgth)/ref_lgth]
+
+setcolorder(sample, c("reference_ids", "rds_b4_rmdup","rds_after_rmdup","avg_rd_lgth", "genome_cov", "ref_lgth", "depth_cov"))
+```
+
+
+Create a workbook and add a worksheet
+```{r}
+wb <- createWorkbook()
+addWorksheet(wb, sheetName = "MN00010")
+```
+
+Header styles
+```{r}
+hs1 <- createStyle(fgFill = "white", halign = "CENTER", textDecoration = "Bold",
+                   border = c("top", "bottom", "left", "right"),
+                   borderStyle = "thin",
+                   fontColour = "black", fontSize = 16)
+
+showGridLines(wb, 1, showGridLines = FALSE)
+
+setColWidths(wb, 1, cols = 1:ncol(sample), widths = "auto")
+
+writeData(wb, 1, sample, startRow = 1, startCol = 1, headerStyle = hs1,
+          borders = "columns", borderStyle = "thin")
+```
+
+Column styles
+```{r}
+# percent
+percent_cols <- which(colnames(sample) %in% c("genome_cov"))
+s <- createStyle(numFmt = "0.0%")
+addStyle(wb, 1, style = s,  cols = percent_cols, 
+         rows = 1:nrow(sample)+1, gridExpand = TRUE, stack = T)
+# thousands separator
+comma_cols <- which(colnames(sample) %in% c("rds_b4_rmdup", "rds_after_rmdup", "ref_lgth"))
+s <- createStyle(numFmt = "COMMA")
+addStyle(wb, 1, style = s, rows = 1:nrow(sample)+1, cols = comma_cols,
+         gridExpand = TRUE, stack = T)
+# trim decimal places and format %
+decimal_cols <- which(colnames(sample) %in% c("avg_rd_lgth", "depth_cov"))
+s <- createStyle(numFmt = "#0.00")
+addStyle(wb, 1, style = s, rows = 1:nrow(sample)+1, cols = decimal_cols,
+         gridExpand = TRUE, stack = T)
+
+#format data font type
+#theCaption <- sample[is.na(sample$rds_b4_rmdup),]
+s <- createStyle(fontSize = 14)
+addStyle(wb, 1, style = s, rows = 1:nrow(sample)+1, cols = 1:ncol(sample),
+         gridExpand = TRUE, stack = T)
+```
+
+Write column explanation
+```{r}
+## writing as an Excel Table
+openXL(wb) ## opens a temp version
+saveWorkbook(wb, "excel/quality_0.xlsx", TRUE)
+```
+
+### Damage plots
+
+```{r}
+library(scales)
+```
+
+
+```{r}
+# mapping quality
+q <- 30 
+
+sample_ids <- list.files(path = "~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats", pattern = "MN")
+reference_ids <- c("AF113323_1", "AJ249437_1", "AJ717293_1", "AY083234_1", "DQ333427_1", "DQ357065_1", "FN669502_1", "HQ340602_1", "NC_000883_2", "NC_001540_1", 
+"NC_004295_1")
+genotypes <- c(1, 3, 2, 3, 2, 1, 1, 2, NA, NA, 3)
+names(genotypes) <- reference_ids
+
+myDam <- vector("list", length = length(sample_ids))
+names(myDam) <- sample_ids
+
+setwd("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats")
+for (ref in reference_ids) {
+  for (s in sample_ids) {
+    tmp_dam5 <- fread(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/bamdamage/quality_", q, "/", ref, ".dam_5prime.csv"), 
+                      drop = 1)
+    tmp_dam3 <- fread(file = paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/bamdamage/quality_", q, "/", ref, ".dam_3prime.csv"), 
+                      drop = 1)
+    setnames(tmp_dam5, names(tmp_dam5), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    setnames(tmp_dam3, names(tmp_dam3), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    some_dam <- list(five_prime = tmp_dam5, three_prime = tmp_dam3)
+    myDam[[s]] <- some_dam
+  }
+}
+```
+
+```{r}
+plot_bamdamage <- function(five_prime, three_prime, titlecolor = "black", cex = 1, 
+                           cexmain = 2, txt_reads = F,
+                           y2 = 0.55, plot.title, plot.title2 = "", myColor = c(),
+                           legend_only = F, ncol_legend = 3, legend_cex = 1){
+  
+  if (length(myColor) == 0) {
+    myColor <- c("royalblue", "firebrick3", "lightblue3", "indianred1",
+                 "orange","orange3", "plum", "plum4", "paleturquoise3", 
+                 "paleturquoise4", "rosybrown2", "rosybrown3")
+    
+    names(myColor) <- c("C..T", "G..A", "T..C", "A..G", "C..A", "C..G",
+                        "T..A", "T..G", "A..C", "A..T", "G..C", "G..T")
+  }
+  
+  if (legend_only) {
+    myIndex <- round(seq(1, 13, length.out = ncol_legend + 1))
+    for (i in 1:(length(myIndex) - 1)) {
+      plot(1:10, 1:10, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+      
+      if (i == 1) {
+        legend(1, 10, legend = sub("\\.\\.", " to ",
+                                  names(myColor)[myIndex[i]:(myIndex[i + 1] - 1)]),
+               col = myColor[myIndex[i]:(myIndex[i + 1] - 1)],
+               lty = 1, bty = "n", cex = legend_cex, lwd = 1.6,
+               title = "Substitution type")
+      }else{
+        legend(1, 10, legend = sub("\\.\\.", " to ", names(myColor)[myIndex[i]:(myIndex[i + 1] - 1)]),
+               col = myColor[myIndex[i]:(myIndex[i + 1] - 1)],
+               lty = 1, bty = "n", cex = legend_cex, lwd = 1.6
+        )
+      }
+    }
+    return()
+  }
+  
+  plot_lines <- function(damage, left = T){
+    plot(damage$C..T[1:25], type = "n",
+         bty = "n", 
+        ylab = "Frequency", xlab = NA,
+         cex = cex, axes = F, ylim = c(0, y2))
+    
+    if (left) {
+      title(main = plot.title, xlab = "5'-position", cex.main = cexmain)
+      axis(side = 1, at = seq(0, 25, 5))
+      axis(side = 2)
+    }else{
+      axis(side = 1, at = seq(1, 25, 5), labels = seq(25, 1, -5))
+      axis(side = 4)
+      title(main = plot.title2, xlab = "3'-position", cex.main = cexmain, 
+            col.main = titlecolor)
+      nb_reads_legend <- paste0("Number of reads: ", txt_reads)
+      text(x = 12, y = 0.51, labels = nb_reads_legend, cex = 1.15)
+    }
+    
+    for (type in names(myColor)) {
+      lines(damage[1:25, type, with = F],
+            col = alpha(myColor[type], 0.8), 
+            lwd = 1.5, 
+            cex = cex)
+    }
+  }
+  
+  par(mar = c(4, 4, 3, 1))
+  plot_lines(damage = five_prime)
+  
+  par(mar = c(4, 1, 3, 3))
+  plot_lines(damage = three_prime[25:1, ], left = F)
+
+}
+```
+
+### All samples per virus
+
+```{r}
+nCol <- 8
+nRow <- 7
+cex <- 1.2
+
+for (ref in reference_ids) {
+  for (s in sample_ids) {
+    tmp_dam5 <- fread(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/bamdamage/quality_", q, "/", ref, ".dam_5prime.csv"), 
+                      drop = 1)
+    tmp_dam3 <- fread(file = paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/bamdamage/quality_", q, "/", ref, ".dam_3prime.csv"), 
+                      drop = 1)
+    setnames(tmp_dam5, names(tmp_dam5), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    setnames(tmp_dam3, names(tmp_dam3), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    some_dam <- list(five_prime = tmp_dam5, three_prime = tmp_dam3)
+    myDam[[s]] <- some_dam
+  }
+  
+
+  blank_plot <- function(){
+    plot(1:10,1:10, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+  }
+
+  pdf(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/all_samples/damageplots/damageplots_", ref, "_mapQ", q, "_gtype", genotypes[ref], ".pdf"), width = 14, height = 12)
+  layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
+  
+  for (s in sample_ids) {
+      y2 <- 0.55
+      nreads <- scan(file = paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/count_final_reads/quality_", q, "/", s, ".", ref, "_final_reads.txt"))
+      plot.title <- s
+      plot.title2 <- paste0("Number of reads: ", nreads)
+      five_prime <- myDam[[s]][["five_prime"]]
+      three_prime <- myDam[[s]][["three_prime"]]
+      plot_bamdamage(five_prime = five_prime, three_prime = three_prime,
+                    cex = 1, cexmain = 1.15,
+                    y2 = y2, plot.title = plot.title, plot.title2 = plot.title2,
+                    myColor = c())
+  }
+  dev.off()
+}
+```
+
+### Selected samples, all virus per sample
+
+```{r}
+nCol <- 6
+nRow <- 4
+cex <- 1.2
+
+selected_samples <- c("MN00013", "MN00021", "MN00039", "MN00067", "MN00119", "MN00346")
+# Sort referencs according to genotype
+sorted_refs <- names(sort(genotypes, na.last = T))
+# Colors according to genotype
+# Combinations: 242 (Diamine Green), 344 (Deep Lyons Blue), 117 (Carmine) & 337 (Aconite violet)
+gtype_colors <- c(rep("#1b8e13", 3), rep("#0024cc", 3), rep("#d60036", 3), rep("#9c52f2", 2))
+names(gtype_colors) <- sorted_refs
+
+for (s in selected_samples) {
+  for (ref in sorted_refs) {
+    tmp_dam5 <- fread(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/bamdamage/quality_", q, "/", ref, ".dam_5prime.csv"), 
+                      drop = 1)
+    tmp_dam3 <- fread(file = paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/bamdamage/quality_", q, "/", ref, ".dam_3prime.csv"), 
+                      drop = 1)
+    setnames(tmp_dam5, names(tmp_dam5), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    setnames(tmp_dam3, names(tmp_dam3), c("C..A", "G..A", "T..A", "A..C", "G..C", "T..C",  "A..G", "C..G", "T..G", "A..T", "C..T", "G..T"))
+    some_dam <- list(five_prime = tmp_dam5, three_prime = tmp_dam3)
+    myDam[[ref]] <- some_dam
+  }
+  
+  pdf(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/all_samples/damageplots/selected_samples/quality_", q, "/", "damageplots_", s, "_mapQ", q, ".pdf"), width = 14, height = 12)
+  layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
+  
+  for (ref in sorted_refs) {
+      y2 <- 0.55
+      nreads <- scan(file = paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/count_final_reads/quality_", q, "/", s, ".", ref, "_final_reads.txt"))
+      plot.title <- ref
+      plot.title2 <- paste0("Genotype: ", genotypes[ref])
+      five_prime <- myDam[[ref]][["five_prime"]]
+      three_prime <- myDam[[ref]][["three_prime"]]
+      plot_bamdamage(five_prime = five_prime, three_prime = three_prime,
+                    cex = 1, cexmain = 1.65, titlecolor = gtype_colors[ref],
+                    txt_reads = nreads, y2 = y2, plot.title = plot.title, 
+                    plot.title2 = plot.title2, myColor = c())
+  }
+  
+  plot_bamdamage(legend_only = T, myColor = c(), legend_cex = 1, ncol_legend = 2)
+
+  dev.off()
+} 
+```
+
+### Coverage plots
+
+```{r}
+library(tidyr)
+```
+
+
+```{r}
+# mapping quality
+q <- 10 
+
+sample_ids <- list.files(path = "~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats", pattern = "MN")
+reference_ids <- c("AF113323_1", "AJ249437_1", "AJ717293_1", "AY083234_1", "DQ333427_1", "DQ357065_1", "FN669502_1", "HQ340602_1", "NC_000883_2", "NC_001540_1", 
+"NC_004295_1")
+genotypes <- c(1, 3, 2, 3, 2, 1, 1, 2, NA, NA, 3)
+names(genotypes) <- reference_ids
+
+myCov <- vector("list", length = length(reference_ids))
+```
+
+```{r}
+plot_cov <- function(coverage, plot.title, myColor, boxColors, prots_coords, limy = limy){
+  par(xpd = T)
+  
+  # limy <- lapply(coverage, function(x){x$reads}) %>% unlist %>% max
+  
+  barplot(height = coverage, 
+          main = plot.title, 
+          ylab = "Number of reads",
+          col = myColor,
+          border = NA,
+          axes = T,
+          ylim = c(0, limy), 
+          space = 0)
+  
+  # Rectangles part
+  
+  space_btwn_box <- -limy/20
+  box_width <- -limy/20
+  box_top <- box_width
+  
+  for (i in c(1:length(prots_coords$start))) {
+    if (prots_coords[i, Name] %in% c("ns", "NS", "ns1", "NS1", "vp1", "VP1", "VP1/2")) {
+      box_top <- box_width
+    } else if (prots_coords[i, Name] %in% c("VP2", "vp2")) {
+      box_top <- box_top + space_btwn_box 
+    } else {
+      box_top <- 2 * box_top + space_btwn_box
+    }
+    
+    rect(xleft = prots_coords[i, start],
+         xright = prots_coords[i, end],
+         ytop = box_top,
+         ybottom = box_top + box_width,
+         col = alpha(boxColors[prots_coords[i, Name]], 0.8),
+         border = NA)
+    
+    box_top <- box_width
+    # box_top <- box_top + space_btwn_box
+    # text()
+  }
+  
+}
+```
+
+
+```{r}
+nCol <- 3
+nRow <- 4
+cex <- 1.2
+ncol_legend <- 3
+legend_cex <- 1
+
+selected_samples <- c("MN00013", "MN00021", "MN00039", "MN00067", "MN00119", "MN00346")
+# Sort referencs according to genotype
+sorted_refs <- names(sort(genotypes, na.last = T))
+# Colors according to genotype
+# Combinations: 242 (Diamine Green), 344 (Deep Lyons Blue), 117 (Carmine) & 337 (Aconite violet)
+gtype_colors <- c(rep("#1b8e13", 3), rep("#0024cc", 3), rep("#d60036", 3), rep("#9c52f2", 2))
+names(gtype_colors) <- sorted_refs
+names(myCov) <- sorted_refs
+
+boxColors <- c("royalblue", "firebrick3", "lightblue3", "indianred1",
+                 "orange","orange3", "plum", "plum4", "paleturquoise3",
+                 "paleturquoise4", "rosybrown2", "rosybrown3")
+
+prot_names <- c("11-kDa", "11 kDa protein", "7.5-kDa", "7.5 kDa protein", "hypothetical 11kDa protein",
+                "hypothetical protein", "ns", "NS", "ns1", "NS1", "vp1", "VP1", "VP1/2", "vp2", "VP2",
+                "VP3", "protein X", "X", "X-9 kDa protein")
+
+# prot_colors <- c(rep(NA, 2), rep(NA, 2), rep(NA, 2), rep("indianred1", 4),
+#                  rep("orange", 2), "orange3", rep("plum4", 2), NA, rep(NA, 3))
+prot_colors <- c(rep("royalblue", 2), rep("firebrick3", 2), rep("lightblue3", 2), rep("indianred1", 4), rep("orange", 2), "orange3", rep("plum", 2), "plum4", rep("seagreen", 3))
+
+names(prot_colors) <- prot_names
+
+standr_prots <- c("11kDa", "7.5kDa", "hypothetical", "NS1", "VP1", "VP1/2", "VP2", "VP3", "X")
+standr_pts_cols <- c("royalblue", "firebrick3", "lightblue3", "indianred1", "orange", "orange3", "plum", 
+                     "plum4", "seagreen")
+
+names(standr_pts_cols) <- standr_prots
+
+setwd("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats")
+
+
+for (s in selected_samples) {
+  for (ref in sorted_refs) {
+    tmp_cov <- fread(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/", s, "/coverage_tables/quality_", q, "/", s, ".", ref, ".mapq", q, ".coverage.tsv"), drop = 1)
+    setnames(tmp_cov, names(tmp_cov), c("position", "reads"))
+    proteins <- fread(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/refs_seqs_parvovirus_BMuhlemann/", sub(pattern = "_\\d$", "", ref), ".tsv"))
+    proteins <- proteins[complete.cases(proteins)]
+    some_cov <- list(coverage = tmp_cov, prots = proteins)
+    myCov[[ref]] <- some_cov
+  }
+  
+  png(paste0("~/axiom_virome/Boto_virome/true_complete/virus_mappings/parvovirus/single_fasta/output_mystats/all_samples/coverage_plots/selected_samples/quality_", q, "/", s, "_mapQ", q, ".png"), width = 7, height = 10, units = "in", res = 300)
+  layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
+  
+  limy <- lapply(myCov, function(x){x$coverage$reads}) %>% unlist %>% max
+  
+  for (ref in sorted_refs) {
+    plot_cov(coverage = myCov[[ref]]$coverage$reads, boxColors = prot_colors, 
+             prots_coords = myCov[[ref]]$prots,
+             plot.title = paste0(ref, " Genotype ", genotypes[ref]), 
+             myColor = gtype_colors[ref],
+             limy = limy)
+    
+    xtick <- c(1, 1000, 2000, 3000, 4000, 5000, 5600)
+    axis(side = 1, at = c(1, 1000, 2000, 3000, 4000, 5000, 5600), labels = F,
+         tck = -0.005)
+    
+    text(x = xtick,  par("usr")[3], labels = c("1", "1k", "2k", "3k", "4k", "5k", "5.6k"),
+         pos = 1, xpd = TRUE, cex = 0.45, offset = 0.19, srt = -45)
+  }
+  
+  plot(NULL , xaxt = 'n', yaxt = 'n', bty = 'n', ylab = '', xlab = '', xlim = 0:1, ylim = 0:1,
+       main = "Genes")
+  ycoord <- 1
+  for (i in c(1:length(standr_pts_cols))) {
+    legend(0, ycoord, legend = names(standr_pts_cols)[i],
+           col = alpha(standr_pts_cols[i], 0.8),
+           lty = 1, bty = "n", cex = 1, lwd = 5)
+    ycoord <- ycoord - 0.1
+  }
+  
+  dev.off()
+}
+
+```
+
