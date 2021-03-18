@@ -9,8 +9,18 @@ def param_default(myPar, myDict, myDef):
         param = myDict[myPar]
     else:
         param = myDef
-    return(param)
+    return param
 
+def fasta_name(outgroup_name, outgroup_file, index = False):
+    format_file = outgroup_file.split(".")[-1]
+    if format_file == "fa":
+        name = outgroup_file
+    elif format_file == "bam":
+        name = f"{outgroup_name}_baseQ{minQ}_mapQ{mapQ}.fa"
+    if index:
+        name = f"{name}.fai"
+
+    return name
 
 outgroup_name = [key for key,value in config["error_angsd"]["Outgroup_file"].items()][0]
 outgroup_file = config["error_angsd"]["Outgroup_file"][outgroup_name]
@@ -28,10 +38,15 @@ bamlists = list(config["error_angsd"]["bamlists"].keys())
 wildcard_constraints:
     bamlist = "(" + "|".join([b for b in bamlists]) + ")"
 
+minQ = param_default("minQ_perfect", config["error_angsd"], myDef = 30)
+mapQ = param_default("minMapQ_perfect", config["error_angsd"], myDef = 30)
+
 my_files = {
     perfect_name:config["error_angsd"]["Perfect_file"][perfect_name],
     outgroup_name:config["error_angsd"]["Outgroup_file"][outgroup_name]
 }
+
+
 # This magic snakefile will make a list with all the bamfiles
 # to run, plus sublists with bamfiles per population
 # as specified in the config file
@@ -72,7 +87,7 @@ rule do_fasta:
                                                             mapQ = param_default("minMapQ_perfect", config["error_angsd"], myDef = 30),
                                                             file = "{file}")
     resources:
-        runtime=4*60
+        runtime=8*60
     shell:
         """
         angsd -doFasta 2 -i {input.bam} -out {params.prefix_out} \
@@ -103,28 +118,13 @@ rule index_fasta:
         samtools faidx {input.fasta} &>{log}
         """
 
+
 rule do_AncError:
     input:
-        outgroup = lambda wildcards: "{outgroup}_baseQ{minQ}_mapQ{mapQ}.fa".format(
-            minQ = param_default("minQ_perfect", config["error_angsd"], myDef = 30),
-            mapQ = param_default("minMapQ_perfect", config["error_angsd"], myDef = 30),
-            outgroup = wildcards.outgroup
-            ),
-        outgroup_idx = lambda wildcards: "{outgroup}_baseQ{minQ}_mapQ{mapQ}.fa.fai".format(
-            minQ = param_default("minQ_perfect", config["error_angsd"], myDef = 30),
-            mapQ = param_default("minMapQ_perfect", config["error_angsd"], myDef = 30),
-            outgroup = wildcards.outgroup
-            ),
-        perfect = lambda wildcards: "{perfect}_baseQ{minQ}_mapQ{mapQ}.fa".format(
-            minQ = param_default("minQ_perfect", config["error_angsd"], myDef = 30),
-            mapQ = param_default("minMapQ_perfect", config["error_angsd"], myDef = 30),
-            perfect = wildcards.perfect
-            ),
-        perfect_idx = lambda wildcards: "{perfect}_baseQ{minQ}_mapQ{mapQ}.fa.fai".format(
-            minQ = param_default("minQ_perfect", config["error_angsd"], myDef = 30),
-            mapQ = param_default("minMapQ_perfect", config["error_angsd"], myDef = 30),
-            perfect = wildcards.perfect
-            ),
+        outgroup = lambda wildcards: fasta_name(outgroup_name = wildcards.outgroup, outgroup_file = outgroup_file),
+        outgroup_idx = lambda wildcards: fasta_name(outgroup_name = wildcards.outgroup, outgroup_file = outgroup_file, index = True),
+        perfect = lambda wildcards: f"{wildcards.perfect}_baseQ{minQ}_mapQ{mapQ}.fa",
+        perfect_idx = lambda wildcards: f"{wildcards.perfect}_baseQ{minQ}_mapQ{mapQ}.fa.fai",
         bam_group = "{group}/{group}.txt"
     output:
         error = "{group}/{group}_perfect.{perfect}_outgroup.{outgroup}_ancErr.ancError"
@@ -136,7 +136,7 @@ rule do_AncError:
         basename = "{group}/{group}_perfect.{perfect}_outgroup.{outgroup}_ancErr".format(group = "{group}", perfect = "{perfect}", outgroup = "{outgroup}")
     resources:
         mem = 1*1024,
-        runtime = 4*60
+        runtime = 23*60
     log:
         "logs/do_AncError_{group}_{perfect}_{outgroup}.log"
     shell:
