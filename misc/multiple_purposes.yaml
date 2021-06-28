@@ -1,6 +1,6 @@
 # Reference genome
 ref_genome:
-  "/scratch/axiom/FAC/FBM/DBC/amalaspi/popgen/reference_human/hs.build37.1/hs.build37.1.fa"
+  "/scratch/wally/FAC/FBM/DBC/amalaspi/popgen/reference_human/hs.build37.1/hs.build37.1.fa"
 
 #=============================================================================#
 # "Trim reads"
@@ -392,18 +392,21 @@ f3:
       type:
           "bed"
       path: 
-          "Nov2019_Maanasa_mask1_flip.bed"
+        "for_f3.bed"
+          #"Nov2019_Maanasa_mask1_flip.bed"
   Outgroup:
+    #"Yoruba"
     "Yorubas"
   # This file should have a column with indId and
   # one column with population ID
   ind_pop: 
-    "ind_pop.txt"
+    "for_f3.indpop"
+    #"ind_pop.txt"
   # qp3pop
   Source1:
-    "Source1.txt"
+    "for_f3.source1" #"Source1.txt"
   Source2:
-    "Source2.txt"
+    "for_f3.source1" #"Source2.txt"
 
 # qpDstat
 H1: 
@@ -632,21 +635,43 @@ merge_sample:
 #==============================================================================#
 # Genotype likelihoods
 geno_like:
+  genos_chr_mem: 8
+  genos_chr_time: 4
   nThreads:
     8
   panels: 
-    744ind_39k_mind0.9:
-      type:
-        "bed"
-      path: "744ind_Maanasa_Guarani_Tupiniquim_masked_39k_mind0.9.bed"
+    Raghavan681ind: 
+      path: "../2021_04_16/Raghavan681ind.bed"
+      type: "bed"
       homozygous: "no"
       rmdamage: "no"
-    665ind_200k_mind0.9:
-      type:
-        "bed"
-      path: "665ind_Maanasa_mind0.9.bed"
+    Raghavan278ind_Castro12NatAm_Skoglund: 
+      path: "six_favorite/Raghavan_Castro12NatAm_Skoglund/Raghavan278ind_Castro12NatAm_Skoglund.bed"
+      type: "bed"
       homozygous: "no"
       rmdamage: "no"
+    Raghavan681ind_Castro12NatAm_Skoglund: 
+      path: "six_favorite/Raghavan681ind_Castro12NatAm_Skoglund/Raghavan681ind_Castro12NatAm_Skoglund_merged.bed"
+      type: "bed"
+      homozygous: "no"
+      rmdamage: "no"
+    # Maanasa:
+    #   type: "bed"
+    #   path: "/users/dcruzdav/wally_americas/Panels/Maanasa/Maanasa_mask1_flip.bed"
+    #   homozygous: "no"
+    #   rmdamage: "no"
+    # 744ind_39k_mind0.9:
+    #   type:
+    #     "bed"
+    #   path: "744ind_Maanasa_Guarani_Tupiniquim_masked_39k_mind0.9.bed"
+    #   homozygous: "no"
+    #   rmdamage: "no"
+    # 665ind_200k_mind0.9:
+    #   type:
+    #     "bed"
+    #   path: "665ind_Maanasa_mind0.9.bed"
+    #   homozygous: "no"
+    #   rmdamage: "no"
     # Wollstein_mind0.95:
     #   type:
     #       "bed"
@@ -656,18 +681,42 @@ geno_like:
     #   rmdamage: "no"
 
   bamlists:
-    9botocudos_0.3x:
+    24ind_trim5:
       minQ: 20
       minmapQ: 30
-      trim: ""
+      trim: "-trim 5"
       paths:
-        9botocudos: "bams/*bam"
-    9botocudos_0.3x_trim:
-      minQ: 20
-      minmapQ: 30
-      trim: ""
-      paths:
-        9botocudos: "bams_trim/*bam"
+        24ind_trim5: "bams/*bam"
+    # 20HighCov:
+    #   minQ: 20
+    #   minmapQ: 30
+    #   trim: ""
+    #   paths: 
+    #     20HighCov: "twenty/*bam"
+    # 20down0.5x:
+    #   minQ: 20
+    #   minmapQ: 30
+    #   trim: ""
+    #   paths: 
+    #     20down0.5x: "downsampled/0.5/*bam"
+    # 24ind:
+    #   minQ: 20
+    #   minmapQ: 30
+    #   trim: ""
+    #   paths:
+    #     24ind: "bams/*bam"
+    # 9botocudos_0.3x:
+    #   minQ: 20
+    #   minmapQ: 30
+    #   trim: ""
+    #   paths:
+    #     9botocudos: "bams/*bam"
+    # 9botocudos_0.3x_trim:
+    #   minQ: 20
+    #   minmapQ: 30
+    #   trim: ""
+    #   paths:
+    #     9botocudos: "bams_trim/*bam"
     # Jan2020:
     #   minQ: 20
     #   minmapQ: 30
@@ -682,7 +731,17 @@ geno_like:
           # vicModern: "~/americas/fromVictor/Modern/*bam"
           # Posth: "~/americas/Panels/Posth2018/final_bam/*bam"
 
-
+merge_geno_like:
+  likelihoods:
+    #24ind: "Maanasa/24ind.beagle"
+    #20down0.5x: "Maanasa/20down0.5x.beagle"
+    #20HighCov: "Maanasa/20HighCov.beagle"
+    24ind_trim5: "Maanasa/24ind_trim5.beagle"
+  bed_files:
+    Raghavan681ind: "../2021_04_16/Raghavan681ind.bed"
+    Raghavan278ind_Castro12NatAm_Skoglund: "six_favorite/Raghavan_Castro12NatAm_Skoglund/Raghavan278ind_Castro12NatAm_Skoglund.bed"
+    Raghavan681ind_Castro12NatAm_Skoglund: "six_favorite/Raghavan681ind_Castro12NatAm_Skoglund/Raghavan681ind_Castro12NatAm_Skoglund_merged.bed"
+    #Maanasa: "/users/dcruzdav/wally_americas/Panels/Maanasa/Maanasa_mask1_flip.bed"
 #==============================================================================#
 # Impute with GLIMPSE
 GLIMPSE:
@@ -838,10 +897,72 @@ GLIMPSE:
 
 #==============================================================================#
 # NGS Admix
-NGSAdmix_time: 15
+NGSAdmix_time: 24
 NGSAdmix_mem: 8
 ngs_admix:
   panels:
+    Raghavan681ind_24ind_trim5: 
+      path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_25/Raghavan681ind/Raghavan681ind_24ind_trim5.beagle"
+      min_K: 2
+      max_K: 16
+      replicates: 10
+    Raghavan681ind_Castro12NatAm_Skoglund_24ind_trim5: 
+      path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_25/Raghavan681ind_Castro12NatAm_Skoglund/Raghavan681ind_Castro12NatAm_Skoglund_24ind_trim5.beagle"
+      min_K: 2
+      max_K: 16
+      replicates: 10
+    Raghavan278ind_Castro12NatAm_Skoglund_24ind_trim5:
+      path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_25/Raghavan278ind_Castro12NatAm_Skoglund/Raghavan278ind_Castro12NatAm_Skoglund_24ind_trim5.beagle"
+      min_K: 2
+      max_K: 16
+      replicates: 10
+    # 24ind_Raghavan681ind_April: 
+    #   path: "24ind_Raghavan681ind.beagle"
+    #   #path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_18/Raghavan681ind/24ind_Raghavan681ind.beagle"
+    #   min_K: 2
+    #   max_K: 8
+    #   replicates: 10
+    # 24ind_Raghavan681ind_Castro12NatAm_Skoglund: 
+    #   path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_18/Raghavan681ind_Castro12NatAm_Skoglund/24ind_Raghavan681ind_Castro12NatAm_Skoglund.beagle"
+    #   min_K: 2
+    #   max_K: 8
+    #   replicates: 10
+    # 24ind_Raghavan278ind_Castro12NatAm_Skoglund:
+    #   path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_18/Raghavan278ind_Castro12NatAm_Skoglund/24ind_Raghavan278ind_Castro12NatAm_Skoglund.beagle"
+    #   min_K: 2
+    #   max_K: 8
+    #   replicates: 10
+    # 20down0.5x_Raghavan681ind:
+    #   path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_18/Raghavan681ind/20down0.5x_Raghavan681ind.beagle"
+    #   min_K: 2
+    #   max_K: 8
+    #   replicates: 10
+    # 20down0.5x_Raghavan681ind_Castro12NatAm_Skoglund:
+    #   path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_18/Raghavan681ind_Castro12NatAm_Skoglund/20down0.5x_Raghavan681ind_Castro12NatAm_Skoglund.beagle"
+    #   min_K: 2
+    #   max_K: 8
+    #   replicates: 10
+    # 20down0.5x_Raghavan278ind_Castro12NatAm_Skoglund:
+    #   path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_18/Raghavan278ind_Castro12NatAm_Skoglund/20down0.5x_Raghavan278ind_Castro12NatAm_Skoglund.beagle"
+    #   min_K: 2
+    #   max_K: 8
+    #   replicates: 10
+
+    # 20HighCov_Raghavan681ind:
+    #   path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_18/Raghavan681ind/20HighCov_Raghavan681ind.beagle"
+    #   min_K: 2
+    #   max_K: 8
+    #   replicates: 10
+    # 20HighCov_Raghavan681ind_Castro12NatAm_Skoglund:
+    #   path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_18/Raghavan681ind_Castro12NatAm_Skoglund/20HighCov_Raghavan681ind_Castro12NatAm_Skoglund.beagle"
+    #   min_K: 2
+    #   max_K: 8
+    #   replicates: 10
+    # 20HighCov_Raghavan278ind_Castro12NatAm_Skoglund:
+    #   path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_18/Raghavan278ind_Castro12NatAm_Skoglund/20HighCov_Raghavan278ind_Castro12NatAm_Skoglund.beagle"
+    #   min_K: 2
+    #   max_K: 8
+    #   replicates: 10
     # 9botocudos_0.3x_744ind_39k_mind0.9:
     #   path: "9botocudos_0.3x_744ind_39k_mind0.9.beagle"
     #   min_K: 2
@@ -852,181 +973,22 @@ ngs_admix:
     #   min_K: 2
     #   max_K: 17
     #   replicates: 10
-    9botocudos_0.3x_665ind_200k_mind0.9:
-      path: "9botocudos_0.3x_665ind_200k_mind0.9.beagle"
-      min_K: 2
-      max_K: 17
-      replicates: 10
-    9botocudos_0.3x_trim_665ind_200k_mind0.9:
-      path: "9botocudos_0.3x_trim_665ind_200k_mind0.9.beagle"
-      min_K: 2
-      max_K: 17
-      replicates: 10
+    # 9botocudos_0.3x_665ind_200k_mind0.9:
+    #   path: "9botocudos_0.3x_665ind_200k_mind0.9.beagle"
+    #   min_K: 2
+    #   max_K: 17
+    #   replicates: 10
+    # 9botocudos_0.3x_trim_665ind_200k_mind0.9:
+    #   path: "9botocudos_0.3x_trim_665ind_200k_mind0.9.beagle"
+    #   min_K: 2
+    #   max_K: 17
+    #   replicates: 10
     # Maanasa_Tupiniquim_Guarani_39k_mind0.10:
     #   path: "Maanasa_Tupiniquim_Guarani_39k_mind0.10.beagle"
     #   min_K: 2
     #   max_K: 17
     #   replicates: 100
-    # 817ind_Maanasa_Tupiniquim_Guarani_mind0.90:
-    #   path: "817ind_Maanasa_Tupiniquim_Guarani_mind0.90.beagle"
-    #   min_K: 2
-    #   max_K: 17
-    #   replicates: 100
-    # 722ind_Maanasa_mind0.90:
-    #   path: "722ind_Maanasa_mind0.90.beagle"
-    #   min_K: 2
-    #   max_K: 17
-    #   replicates: 100
 
-    # Nov2019_Wollstein_mind0.95_rmtrans: 
-    #   path: "Nov2019_Wollstein_mind0.95_rmtrans.beagle"
-    #   max_K: 10
-    #   replicates: 100
-    # Jan2020_Wollstein_mind0.95_rmtrans:
-    #   path: "Wollstein_mind0.95_rmtrans/Jan2020_Wollstein_mind0.95_rmtrans.beagle"
-    #   max_K: 7
-    #   min_K: 6
-    #   replicates: 100
-    # MN00010:
-    #   path: "Wollstein_mind0.95/MN00010_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN01701:
-    #   path: "Wollstein_mind0.95/MN01701_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00019:
-    #   path: "Wollstein_mind0.95/MN00019_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00069:
-    #   path: "Wollstein_mind0.95/MN00069_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN1943:
-    #   path: "Wollstein_mind0.95/MN1943_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00039:
-    #   path: "Wollstein_mind0.95/MN00039_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00023:
-    #   path: "Wollstein_mind0.95/MN00023_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00022:
-    #   path: "Wollstein_mind0.95/MN00022_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00068:
-    #   path: "Wollstein_mind0.95/MN00068_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00016:
-    #   path: "Wollstein_mind0.95/MN00016_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00045:
-    #   path: "Wollstein_mind0.95/MN00045_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00316:
-    #   path: "Wollstein_mind0.95/MN00316_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00064:
-    #   path: "Wollstein_mind0.95/MN00064_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN0003:
-    #   path: "Wollstein_mind0.95/MN0003_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00066:
-    #   path: "Wollstein_mind0.95/MN00066_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00119:      
-    #   path: "Wollstein_mind0.95/MN00119_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00021:
-    #   path: "Wollstein_mind0.95/MN00021_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00067:
-    #   path: "Wollstein_mind0.95/MN00067_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00346:
-    #   path: "Wollstein_mind0.95/MN00346_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00118:
-    #   path: "Wollstein_mind0.95/MN00118_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN0009:
-    #   path: "Wollstein_mind0.95/MN0009_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00013:
-    #   path: "Wollstein_mind0.95/MN00013_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN00056:
-    #   path: "Wollstein_mind0.95/MN00056_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # MN0008_non_U:
-    #   path: "Wollstein_mind0.95_rmtrans/MN0008_non_U_Wollstein_mind0.95_rmtrans.beagle"
-    #   max_K: 7
-    #   min_K: 6
-    #   replicates: 10
-    # MN0008_L3U:
-    #   path: "Wollstein_mind0.95_rmtrans/MN0008_L3U_Wollstein_mind0.95_rmtrans.beagle"
-    #   max_K: 7
-    #   min_K: 6
-    #   replicates: 10
-    # MN0008:
-    #   path: "Wollstein_mind0.95/MN0008_Wollstein_mind0.95.beagle"
-    #   max_K: 7
-    #   min_K: 7
-    #   replicates: 10
-    # Bot15:
-    #   path: "Wollstein_mind0.95_rmtrans/Bot15_Wollstein_mind0.95_rmtrans.beagle"
-    #   max_K: 7
-    #   min_K: 6
-    #   replicates: 10
-    # Bot17:
-    #   path: "Wollstein_mind0.95_rmtrans/Bot17_Wollstein_mind0.95_rmtrans.beagle"
-    #   max_K: 7
-    #   min_K: 6
-    #   replicates: 10
 
 #==============================================================================#
 # fastNGSadmix
@@ -1071,27 +1033,35 @@ fastNGSadmix:
 # Downsample data
 
 downsample:
-  mem_sort:
-    "32G"
+
+  # mem_sort:
+    # "32G"
   depths: ""
   groups:
-    LagoaSta_trim5: 'LagoaSta_trim5.bam'
+    # MN0009: "MN0009.hg19"
+    # LagoaSta_trim5: 'LagoaSta_trim5.bam'
     # LagoaSta: "LagoaSta.bam"
     # Karitiana: "Karitiana.bam"
-    # KaritianaB: "KaritianaB.bam"
-    # KaritianaBI16: "KaritianaBI16.bam"
-    # KaritianaG: "KaritianaG.bam"
-    # KaritianaH: "KaritianaH.bam"
-    # MayaG: "MayaG.bam"
-    # MayaH: "MayaH.bam"
-    # Mixe: "Mixe.bam"
-    # MixeE: "MixeE.bam"
-    # MixeF: "MixeF.bam"
-    # PimaCEPH: "PimaCEPH.bam"
-    # PimaE: "PimaE.bam"
-    # PimaF: "PimaF.bam"
-    # SuruiA: "SuruiA.bam"
-    # SuruiB: "SuruiB.bam"
+    Aymara: "bam_modern/Aymara"
+    Chane: "bam_modern/Chane"
+    Huichol: "bam_modern/Huichol"
+    KaritianaB: "bam_modern/KaritianaB"
+    KaritianaBI16: "bam_modern/KaritianaBI16"
+    KaritianaG: "bam_modern/KaritianaG"
+    KaritianaH: "bam_modern/KaritianaH"
+    MayaG: "bam_modern/MayaG"
+    MayaH: "bam_modern/MayaH"
+    Mixe: "bam_modern/Mixe"
+    MixeE: "bam_modern/MixeE"
+    MixeF: "bam_modern/MixeF"
+    Piapoco: "bam_modern/Piapoco"
+    PimaCEPH: "bam_modern/PimaCEPH"
+    PimaE: "bam_modern/PimaE"
+    PimaF: "bam_modern/PimaF"
+    Quechua: "bam_modern/Quechua"
+    SuruiA: "bam_modern/SuruiA"
+    SuruiB: "bam_modern/SuruiB"
+    Yukpa: "bam_modern/Yukpa"
     # USR1: "USR1.bam"
     # Yoruba
     # Mbuti:
