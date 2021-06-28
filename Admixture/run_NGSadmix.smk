@@ -31,6 +31,7 @@ def expand_log(panel, k):
 
 #-------------------------------------------------------------------------------------------------#
 # Rules start here
+localrules: all_ngsadmix,parse_likelihood,find_best_run,merge_commands
 
 rule all_ngsadmix:
     input:
