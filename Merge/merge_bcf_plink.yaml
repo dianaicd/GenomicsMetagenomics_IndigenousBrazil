@@ -1,0 +1,8 @@
+panel:
+  YF_Skoglund_Castro11NatAm_Tupiniquim:
+  # Raghavan278ind_Castro11NatAm_Skoglund_Tupiniquim:
+    #path: "Raghavan278ind_Castro11NatAm_Skoglund_Tupiniquim_merged.bed"
+    path: "YF_Skoglund_Castro11NatAm_Tupiniquim.bed"
+ind:
+  MN0008_L3U_trim2:
+    prefix: "bcf/MN0008_L3U_trim2_maskStrict_repeatsUCSC_dp_GQ30_chr"

@@ -1,5 +1,5 @@
 configfile: "multiple_purposes.yaml"
-
+localrules: mito_bam_library,index,parse_estimates,merge_estimates
 import subprocess
 mito=config["Contamination"]["contamMix"]["Mitochondrial"]
 
@@ -92,7 +92,8 @@ rule index:
         "samtools index {input}"
 
 rmTrans={"all":"", "rmTrans":"--transverOnly"}
-
+if "trim" in config["Contamination"]["contamMix"]:
+    n_trim = config["Contamination"]["contamMix"]["trim"]
 rule print_output:
     input:
         data = "{file}_{rmTrans}.Rdata"
@@ -116,14 +117,17 @@ rule contammix:
         nIter=config["Contamination"]["contamMix"]["nIter"],
         path=config["Contamination"]["contamMix"]["path"],
         prefix="{file}_{rmTrans}",
-        basename="{file}_{rmTrans}"
+        basename="{file}_{rmTrans}",
+        trim=lambda wildcards: f"--trimBases {n_trim}" if "trim" in config["Contamination"]["contamMix"]  else ""
+    resources:
+        runtime=60*8
     log:
          "logs/{file}_{rmTrans}_contammix.log"
     shell:
         """
         /software/R/3.5.1/bin/Rscript {params.path} --samFn {input.bam} --nIter {params.nIter} \
         --malnFn {input.maln} --alpha 0.1 --figure {output.fig} \
-        --saveData {params.basename} {params.transitions}
+        --saveData {params.basename} {params.transitions} {params.trim}
         """
 
 rule realign:
