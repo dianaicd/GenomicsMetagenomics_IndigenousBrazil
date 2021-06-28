@@ -122,7 +122,7 @@ rule find_best_run:
                                                             rep = str( best_replicate )
                                                             )
 
-            command = "scp Axiom:" + os.getcwd() + "/" + best_run.replace(f"_{best_replicate}.qopt", ".qopt" ) + " ./\n"
+            command = "scp Wally:" + os.getcwd() + "/" + best_run.replace(f"_{best_replicate}.qopt", ".qopt" ) + " ./\n"
             scp_commands.write(command)
 
             new_prefix = best_run.replace( f"_{best_replicate}.qopt", ".qopt" )
