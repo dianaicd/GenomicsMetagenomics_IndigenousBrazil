@@ -145,7 +145,7 @@ rule do_AncError:
         perfect_idx = lambda wildcards: f"{wildcards.perfect}_baseQ{minQ}_mapQ{mapQ}.fa.fai",
         bam_group = "{group}/{group}.txt"
     output:
-        error = "{group}/{group}_perfect.{perfect}_outgroup.{outgroup}_ancErr_chr{chr}_{start}_{end}.ancError"
+        error = temp("{group}/{group}_perfect.{perfect}_outgroup.{outgroup}_ancErr_chr{chr}_{start}_{end}.ancError")
     threads:
         threads
     params:
@@ -167,6 +167,7 @@ rule do_AncError:
         -out {params.basename} \
         -bam {input.bam_group} \
         -nThreads {threads} \
+        -checkBamHeaders 0 \
         -minQ {params.minQ} -minMapQ {params.minMapQ} \
         -r    {wildcards.chr}:{wildcards.start}-{wildcards.end} &>{log}
         """
@@ -197,7 +198,7 @@ rule merge_ancErr_by_chr:
                 wildcards.chr
                 )
     output:
-        anc_error = "{group}/{group}_perfect.{perfect}_outgroup.{outgroup}_ancErr_chr{chr}.ancError"
+        anc_error = temp("{group}/{group}_perfect.{perfect}_outgroup.{outgroup}_ancErr_chr{chr}.ancError")
     wildcard_constraints:
         chr = "(" + "|".join([str(i) for i in chromosomes]) + ")"
     run:

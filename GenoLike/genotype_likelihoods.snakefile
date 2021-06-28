@@ -31,6 +31,7 @@ def expand_path(wildcards):
     #bams = [f for p in full_paths for f in glob.glob(p)]
     return(bams)
 
+localrules: all,make_bamlist,plink_to_vcf,ped_to_vcf,vcf_to_beagle,angsd_sites,merge_chr,merge_genos
 rule all:
     input:
         merged = expand("{panel}/{bamlist}_{panel}.beagle", panel = panels, bamlist = bamlists)
@@ -86,9 +87,6 @@ rule ped_to_vcf:
         plink --recode vcf --file {params.basename} --out {params.out} 
         
         """
-
-
-
 
 rule vcf_to_beagle:
     input:

@@ -6,8 +6,8 @@ import numpy as np
 include: "parse_resources.smk"
 
 if "panels" not in globals():
-    panels = list(config["ngs_admix"]["panels"].keys())
-    panel_dict = config["ngs_admix"]["panels"]
+    panels = list(config["admixture"]["panels"].keys())
+    panel_dict = config["admixture"]["panels"]
 
 min_K = {panel:panel_dict[panel]["min_K"] for panel in panels}
 max_K = {panel:panel_dict[panel]["max_K"]+1 for panel in panels}
@@ -31,37 +31,52 @@ def expand_log(panel, k):
 
 #-------------------------------------------------------------------------------------------------#
 # Rules start here
+localrules: link_file,all_ngsadmix,parse_likelihood,find_best_run,merge_commands
 
 rule all_ngsadmix:
     input:
-        qopt = ["{k}/{panel}_k{k}.qopt".format( panel = panel, k = str(k) ) for panel in panels for k in num_clusters( panel )],
-        fopt = ["{k}/{panel}_k{k}.fopt.gz".format( panel = panel, k = str(k) ) for panel in panels for k in num_clusters( panel ) ],
+        qopt = ["{k}/{panel}_k{k}.Q".format( panel = panel, k = str(k) ) for panel in panels for k in num_clusters( panel )],
+        fopt = ["{k}/{panel}_k{k}.P".format( panel = panel, k = str(k) ) for panel in panels for k in num_clusters( panel ) ],
         commands =  expand("{panel}/best_runs_scp_{panel}.txt", panel = panels)
 
-rule NGSadmix:
+rule link_file:
     input:
-        beagle = lambda wildcards: panel_dict[wildcards.panel]["path"]
+        bed = lambda wildcards: panel_dict[wildcards.panel]["path"]
     output:
-        qopt = temp("{k}/{panel}_k{k}_{rep}.qopt"),
-        log = temp("{k}/{panel}_k{k}_{rep}.log"),
-        filter = temp("{k}/{panel}_k{k}_{rep}.filter"),
-        fopt = temp("{k}/{panel}_k{k}_{rep}.fopt.gz")
-    log:
-        "logs/{k}_{panel}_{rep}.log"
+        bed = temp("{k}/{panel}_k{k}_{rep}.bed"),
+        bim = temp("{k}/{panel}_k{k}_{rep}.bim"),
+        fam = temp("{k}/{panel}_k{k}_{rep}.fam")
+    shell:
+        """
+        bim=$(echo {input.bed} | sed 's/.bed/.bim/')
+        fam=$(echo {input.bed} | sed 's/.bed/.fam/')
+        ln -s $(realpath {input.bed}) {output.bed}
+        ln -s $(realpath $bim) {output.bim}
+        ln -s $(realpath $fam) {output.fam}
+        """
+
+rule admixture:
+    input:
+        bed = "{k}/{panel}_k{k}_{rep}.bed",
+        bim = "{k}/{panel}_k{k}_{rep}.bim",
+        fam = "{k}/{panel}_k{k}_{rep}.fam"
+    output:
+        Q = temp("{k}/{panel}_k{k}_{rep}.Q"),
+        P = temp("{k}/{panel}_k{k}_{rep}.P"),
+        log = temp("{k}/{panel}_k{k}_{rep}.log")
     threads:
         4
     resources:
-        runtime = lambda wildcards, attempt: get_runtime_alloc( "NGSAdmix_time", 
+        runtime = lambda wildcards, attempt: get_runtime_alloc( "admixture_time", 
                                                                 attempt, 
                                                                 12
                                                                 ),
-        memory = lambda wildcards, attempt: get_memory_alloc("NGSAdmix_mem", attempt, 8)
+        memory = lambda wildcards, attempt: get_memory_alloc("admixture_mem", attempt, 8)
     shell:
         """
-        NGSadmix -likes {input.beagle} -K {wildcards.k} -P {threads} \
-            -o {wildcards.k}/{wildcards.panel}_k{wildcards.k}_{wildcards.rep} \
-            -printInfo 1 \
-             &> {log}
+        admixture {input.bed} {wildcards.k} -j{threads} &> {output.log}
+        mv {wildcards.panel}_k{wildcards.k}_{wildcards.rep}.{wildcards.k}.Q {output.Q}
+        mv {wildcards.panel}_k{wildcards.k}_{wildcards.rep}.{wildcards.k}.P {output.P}
         """
 
 rule parse_likelihood:
@@ -84,9 +99,9 @@ rule parse_likelihood:
         """
         myInput=({input.log})
         for file in ${{myInput[@]}} ; do
-            likelihood=$(grep like $file | sed 's/.*like=/\\t/; s/ after.*//')
+            likelihood=$(grep Loglikelihood $file |tail -n1| cut -f2 -d " ")
             rep=$(echo $file |sed 's/.*_//;s/.log//')
-            echo "$rep$likelihood" 
+            echo "$rep $likelihood" 
         done > {output.likelihood} 2>{log}
 
         """
@@ -98,15 +113,12 @@ rule find_best_run:
                                         rep = range(replicates[wildcards.panel]), 
                                         k = "{k}", 
                                         panel = "{panel}",
-                                        ext = ["qopt", "filter", "fopt.gz"])
-        # filter = "{k}/{panel}_k{k}_{rep}.filter",
-        # fopt = "{k}/{panel}_k{k}_{rep}.fopt.gz"
+                                        ext = ["Q", "P"])
                                 
     output:
         commands_scp = "{panel}/best_runs_scp_{panel}_k{k}.txt",
-        best_run_qopt = "{k}/{panel}_k{k}.qopt",
-        best_run_fopt = "{k}/{panel}_k{k}.fopt.gz",
-        best_filter = "{k}/{panel}_k{k}.filter"
+        best_run_qopt = "{k}/{panel}_k{k}.Q",
+        best_run_fopt = "{k}/{panel}_k{k}.P"
     log:
         "logs/{k}_{panel}.txt"
     resources:
@@ -117,19 +129,19 @@ rule find_best_run:
             likelihoods = np.loadtxt( input.likelihoods_path )
             best_replicate = np.argmax( likelihoods[:, 1]) #+ 1
             k = input.likelihoods_path.split("/")[1].split("_")[1].replace("k", "")
-            best_run = "{k}/{panel}_k{k}_{rep}.qopt".format(k = k, 
+            best_run = "{k}/{panel}_k{k}_{rep}.Q".format(k = k, 
                                                             panel = wildcards.panel,
                                                             rep = str( best_replicate )
                                                             )
 
-            command = "scp Axiom:" + os.getcwd() + "/" + best_run.replace(f"_{best_replicate}.qopt", ".qopt" ) + " ./\n"
+            command = "scp Wally:" + os.getcwd() + "/" + best_run.replace(f"_{best_replicate}.Q", ".Q" ) + " ./\n"
             scp_commands.write(command)
 
-            new_prefix = best_run.replace( f"_{best_replicate}.qopt", ".qopt" )
+            new_prefix = best_run.replace( f"_{best_replicate}.Q", ".Q" )
 
-            for sufix in [".qopt", ".fopt.gz", ".filter"]:
-                command = "cp {old_file} {new_file} ".format( old_file = best_run.replace(".qopt", sufix),
-                                                            new_file = new_prefix.replace(".qopt", sufix))
+            for sufix in [".Q", ".P"]:
+                command = "cp {old_file} {new_file} ".format( old_file = best_run.replace(".Q", sufix),
+                                                            new_file = new_prefix.replace(".Q", sufix))
                 print( command )
                 os.system( command )
 
