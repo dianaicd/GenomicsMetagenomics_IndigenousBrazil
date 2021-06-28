@@ -1,8 +1,8 @@
 # Reference genome
 ref_genome:
-  "/scratch/axiom/FAC/FBM/DBC/amalaspi/popgen/reference_human/hs.build37.1/hs.build37.1.fa"
+  "hs.build37.1.fa" #"/scratch/axiom/FAC/FBM/DBC/amalaspi/popgen/reference_human/hs.build37.1/hs.build37.1.fa"
 
-blockSize: 5e5
+blockSize: 30e6
 # Minimum base quality to consider for sampling an allele
 BaseQuality: 
     20
@@ -12,14 +12,76 @@ Genos_Moreno2019:
 
 #==============================================================================#
 # Genotype call on whole genome
+call_genos_mem: 10
+call_genos_time: 1
+
 geno_calls:
-    bamlists:
+    filters:
+        order: [mask, repeats, depth, gq ]
+        mask:
+            prefix : ""
+            label: "Strict"
+        depth:
+            min: 1/3
+            max: 2
+            absolute: False
+        gq:
+            min: 30
+        repeats:
+            prefix: ""
+            label: "UCSC"
+    individuals:
+        # A_Dai: ~/wally_americas/Panels/TeamAB_fclement/HGDP01307.flt.sort.rmdup.realign.md.bam
+        # A_Dinka: ~/wally_americas/Panels/TeamAB_fclement/DNK02.hg19.flt.sort.rmdup.realign.md.bam
+        # A_French: ~/wally_americas/Panels/TeamAB_fclement/HGDP00521.flt.sort.rmdup.realign.md.bam
+        # A_Han: ~/wally_americas/Panels/TeamAB_fclement/HGDP00778.flt.sort.rmdup.realign.md.bam
+        # A_Karitiana: ~/wally_americas/Panels/TeamAB_fclement/HGDP00998.flt.sort.rmdup.realign.md.bam
+        # A_Mandenka: ~/wally_americas/Panels/TeamAB_fclement/HGDP01284.flt.sort.rmdup.realign.md.bam
+        # A_Mbuti: ~/wally_americas/Panels/TeamAB_fclement/HGDP00456.flt.sort.rmdup.realign.md.bam
+        # A_Papuan: ~/wally_americas/Panels/TeamAB_fclement/HGDP00542.flt.sort.rmdup.realign.md.bam
+        # A_San: ~/wally_americas/Panels/TeamAB_fclement/HGDP01029.flt.sort.rmdup.realign.md.bam
+        # A_Sardinian: ~/wally_americas/Panels/TeamAB_fclement/HGDP00665.flt.sort.rmdup.realign.md.bam
+        # A_Yoruba: ~/wally_americas/Panels/TeamAB_fclement/HGDP00927.flt.sort.rmdup.realign.md.bam
+
+        # B_Australian1: ~/wally_americas/Panels/TeamAB_fclement/SS6004477-dedup.rg.bam
+        # B_Australian2: ~/wally_americas/Panels/TeamAB_fclement/SS6004478-dedup.rg.bam
+        # B_Dai: ~/wally_americas/Panels/TeamAB_fclement/SS6004467-dedup.rg.bam
+        # B_Dinka: ~/wally_americas/Panels/TeamAB_fclement/SS6004480-dedup.rg.bam
+        # B_French: ~/wally_americas/Panels/TeamAB_fclement/SS6004468-dedup.rg.bam
+        # B_Han: ~/wally_americas/Panels/TeamAB_fclement/SS6004469-dedup.rg.bam
+        # B_Karitiana: ~/wally_americas/Panels/TeamAB_fclement/SS6004476-dedup.rg.bam
+        # B_Mandenka: ~/wally_americas/Panels/TeamAB_fclement/SS6004470-dedup.rg.bam
+        # B_Mbuti: ~/wally_americas/Panels/TeamAB_fclement/SS6004471-dedup.rg.bam
+        # B_Mixe: ~/wally_americas/Panels/TeamAB_fclement/SS6004479-dedup.rg.bam
+        # B_Papuan: ~/wally_americas/Panels/TeamAB_fclement/SS6004472-dedup.rg.bam
+        # B_San: ~/wally_americas/Panels/TeamAB_fclement/SS6004473-dedup.rg.bam
+        # B_Sardinian: ~/wally_americas/Panels/TeamAB_fclement/SS6004474-dedup.rg.bam
+        # B_Yoruba: ~/wally_americas/Panels/TeamAB_fclement/SS6004475-dedup.rg.bam
+
+
+    # bamlists:
+        # MN0008: "/users/dcruzdav/wally_americas/Botocudos/BAM/2019_11_08/MN0008/MN0008.hg19.bam"
+        # MN0008_L3U: "/users/dcruzdav/wally_americas/Botocudos/BAM/2019_11_08/MN0008/MN0008_L3U.hg19.bam"
+        # MN0008_non_U: "/users/dcruzdav/wally_americas/Botocudos/BAM/2019_11_08/MN0008/MN0008_non_U.hg19.bam"
+        # MN0008_non_U_trim5: "/users/dcruzdav/wally_americas/Botocudos/BAM/Trimmed/2020_03_10/MN0008_non_U.hg19_trim5.bam"
+        # MN0008_trim_2bp_L3U_5bp_non_U:  "/users/dcruzdav/wally_americas/Botocudos/BAM/Trimmed/2020_03_10/MN0008_trim_2bp_L3U_5bp_non_U.hg19.bam"
+        # MN0008_L3U_trim2:  "/users/dcruzdav/wally_americas/Botocudos/BAM/Trimmed/2020_03_10/MN0008_L3U.hg19_trim2.bam"
+        # KaritianaBI16: "/users/dcruzdav/wally_americas/Panels/fromVictor/Modern/KaritianaBI16.bam"
+        # SpCave: ""
+        # Karitiana_HGDP_TeamAB: "/users/dcruzdav/wally_americas/Panels/TeamAB_fclement/HGDP00998.flt.sort.rmdup.realign.md.bam"
+        # SuruiA: "/users/dcruzdav/wally_americas/Panels/fromVictor/Modern/SuruiA.bam"
+        # SuruiB: "/users/dcruzdav/wally_americas/Panels/fromVictor/Modern/SuruiB.bam"
+        MayaG: "/users/dcruzdav/wally_americas/Panels/fromVictor/Modern/MayaG.bam"
+        MayaH: "/users/dcruzdav/wally_americas/Panels/fromVictor/Modern/MayaH.bam"
+            # USR1:
+    #     paths:
+    #         USR1: "~/americas/fromVictor/Ancient/USR1.bam"
         # Diana: 
         #     paths:
         #         Diana: "~/americas/d/diana.bam"
-        NatAm:
-            # paths:
-            NatAm: 'NatAm/*bam'
+        # NatAm:
+
+        #     NatAm: 'NatAm/*bam'
 #==============================================================================#
 # Panel(s) to which samples will be merged
 panels: 
@@ -94,9 +156,9 @@ bamlists:
     #         Malaspinas2014: "~/Project/Botocudos/Malaspinas2014/*bam"
     #         fromVictor_Ancient: "~/Project/Americas/fromVictor/Ancient/*bam"
     #         fromVictor_Modern : "~/Project/Americas/fromVictor/Modern/*bam"
-    # MN00010:
-    #     paths:
-    #         MN00010: '~/Project/Botocudos/BAM/MN00010.bam'
+    MN00010:
+        paths:
+            MN00010: '~/wally_americas/Botocudos/2019_11_08/BAM/MN00010.bam'
     # MN00013:
     #     paths:
     #         MN00013: '~/Project/Botocudos/BAM/MN00013.bam'
@@ -145,12 +207,12 @@ bamlists:
     MN0008:
         paths:
             MN0008: '~/americas/Botocudos/BAM/2019_11_08/MN0008/MN0008.hg19.bam'
-    MN0008_L3U:
-        paths:
-            MN0008_L3U: '~/americas/Botocudos/BAM/2019_11_08/MN0008_L3U/MN0008_L3U.hg19.bam'
-    MN0008_trim_2bp_L3U_5bp_non_U:
-        paths:
-            MN0008_trim_2bp_L3U_5bp_non_U: '~/americas/Botocudos/BAM/Trimmed/2020_03_10/MN0008_trim_2bp_L3U_5bp_non_U.hg19.bam'
+    # MN0008_L3U:
+    #     paths:
+    #         MN0008_L3U: '~/americas/Botocudos/BAM/2019_11_08/MN0008_L3U/MN0008_L3U.hg19.bam'
+    # MN0008_trim_2bp_L3U_5bp_non_U:
+    #     paths:
+    #         MN0008_trim_2bp_L3U_5bp_non_U: '~/americas/Botocudos/BAM/Trimmed/2020_03_10/MN0008_trim_2bp_L3U_5bp_non_U.hg19.bam'
     # Mbuti:
     #     paths:
     #         HGDP00456: "~/americas/Panels/TeamAB_fclement/HGDP00456.flt.sort.rmdup.realign.md.bam"
