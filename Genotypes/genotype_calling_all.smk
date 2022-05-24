@@ -27,7 +27,7 @@ def get_range(chr = False):
     return(ranges)
 #-----------------------------------------------------------------------------#
 
-chromosomes = [str(i) for i in range(1, 22)]
+# 
 bamlists = list(config["geno_calls"]["bamlists"].keys())
 
 dict_bamlists = config["geno_calls"]["bamlists"]
@@ -55,16 +55,25 @@ with open(ref_genome + ".fai", 'r') as index:
         upper_chr[chr] = [i - 1 for i in lower_chr[chr][1:]]
         upper_chr[chr].append(chr_size[chr])
 
+chromosomes = [str(i) for i in range(1, 23)]
+
+wildcard_constraints:
+    chr = "(" + "|".join([i for i in chromosomes]) + ")"
 #-----------------------------------------------------------------------------#
 # Get chromosome size and break it in blocks
 # include: "break_blocks.smk"
-include: "make_bamlist.smk"
+# include: "make_bamlist.smk"
 #-----------------------------------------------------------------------------#
 
 rule all:
     input:
-        bed_ind = expand("Filtered/{bamlist}_chr{chr}_depth_filter_{rmTrans}.bed",
-                        bamlist = bamlists, chr = chromosomes, rmTrans = ["all", "rmTrans"])
+        expand(
+            "Raw/{bamfile}_chr{chr}.bcf",
+            bamfile = bamlists,
+            chr = chromosomes
+            )
+        # bed_ind = expand("Filtered/{bamlist}_chr{chr}_depth_filter_{rmTrans}.bed",
+                        # bamlist = bamlists, chr = chromosomes, rmTrans = ["all", "rmTrans"])
 
 rule print_positions:
     output:
@@ -83,12 +92,12 @@ rule call_genos:
     params:
         minMapQ=30,
         minBaseQ=20,
-        ref = "/scratch/axiom/FAC/FBM/DBC/amalaspi/popgen/reference_human/hs.build37.1/hs.build37.1.fa",
+        ref =param_is_defined(name = "ref_genome"),
         threads = 4,
         moreno2019 = param_is_defined("Genos_Moreno2019", "Yes")
     resources:
         memory=lambda wildcards, attempt: get_memory_alloc("call_genos_mem", attempt, 4),
-        runtime=lambda wildcards, attempt: get_runtime_alloc("call_genos_time", attempt, 2)
+        runtime= 5#lambda wildcards, attempt: get_runtime_alloc("call_genos_time", attempt, 2)
     shell:
         """
             if [ {params.moreno2019} == "Yes" ]
@@ -98,7 +107,7 @@ rule call_genos:
                     --region {wildcards.chr}:{wildcards.start}-{wildcards.end} \
                 -b {input.bamlist} | bcftools call -f GQ -c \
                     --threads {params.threads} \
-                    -Ob -o {output.raw_genos}  \
+                    -Ob -o {output.raw_genos} - \
                 2>{log}
             else
                 bcftools mpileup -C 50 -q {params.minMapQ} -Q {params.minBaseQ} -a FMT/DP,SP \
@@ -107,7 +116,7 @@ rule call_genos:
                         -Ou  {input.bamlist} | \
                     bcftools annotate -c RPB | \
                     bcftools call --threads {params.threads} -c -V indels \
-                        -Ob -o {output.raw_genos} \
+                        -Ob -o {output.raw_genos} - \
                 2>{log}
             fi
         """
@@ -124,7 +133,7 @@ rule concat_genos_chr:
         genos_list = "Raw/{bamfile}_{chr}.list",
         genos_all_depths = "Raw/{bamfile}_chr{chr}.bcf"
     params:  
-        threads = 20
+        threads = 4
     log:
     run:
         def write_line(line, myChr):

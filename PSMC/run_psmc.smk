@@ -25,21 +25,23 @@ samples = list(config["psmc"]["samples"].keys())
 
 rule all:
     input:
-        psmc = expand("{sample}.diploid.psmc", sample = samples),
-        ms_command = expand("{sample}_ms-cmd.sh", sample = samples),
-        psmc_plot = expand("{sample}.diploid.eps", sample = samples)
+        psmc = expand("{sample}/{sample}.diploid.psmc", sample = samples),
+        ms_command = expand("{sample}/{sample}_ms-cmd.sh", sample = samples),
+        psmc_plot = expand("{sample}/{sample}.diploid.eps", sample = samples)
 
 rule link_utils:
     input:
         folder = param_default(config["psmc"], "path_utils", "/users/dcruzdav/Project_popgen/americas/install/psmc/utils/")
     output:
         utils = "utils/"
+    log:
+        "logs/link_utils.log"
     shell:
         """
         ln -s {input.folder} .
         """
 
-rule make_diploid_fq_chr:
+rule make_diploid_fq_chr_from_bam:
     input:
         ref_genome = param_default(config, "ref_genome", "hs.build37.1.fa"),
         bam = lambda wildcards: config["psmc"]["samples"][wildcards.sample]
@@ -55,15 +57,33 @@ rule make_diploid_fq_chr:
         max_depth=param_default(config["psmc"], "max_depth", 100)
     shell:
         """
-        samtools mpileup -r {wildcards.chr} -C50 -uf {input.ref_genome} {input.bam} | bcftools call --threads {threads} -c - \
-      | vcfutils.pl vcf2fq -d {params.min_depth} -D {params.max_depth} | gzip > {output.diploid}
+        samtools mpileup -r {wildcards.chr} -C50 -uf {input.ref_genome} {input.bam} \
+            | bcftools call --threads {threads} -c - | \
+            vcfutils.pl vcf2fq -d {params.min_depth} -D {params.max_depth} | \
+            gzip > {output.diploid}
+        """
+
+rule make_diploid_fq_chr_from_bcf:
+    input:
+        bcf = lambda wildcards: config["psmc"]["samples"][wildcards.sample] + "{chr}.bcf"
+    output:
+        diploid = temp("{sample}/{sample}.diploid.{chr}.fq.gz")
+    log:
+        "logs/diploid_fq_{sample}_{chr}.log"
+    resources:
+        memory=1*1024, #lambda wildcards, attempt: get_memory_alloc("psmc_consensus_mem", attempt, 4),
+        runtime=90 #lambda wildcards, attempt: get_runtime_alloc("psmc_consensus_time", attempt, 24)
+    shell:
+        """
+        bcftools view -V indels {input.bcf} |\
+        vcfutils.pl vcf2fq | gzip > {output.diploid}
         """
 
 rule merge_diploid_fq:
     input:
-        diploid = expand("{sample}.diploid.{chr}.fq.gz", chr = [str(i) for i in range(1,23)], sample = "{sample}")
+        diploid = lambda wildcards: [f"{wildcards.sample}/{wildcards.sample}.diploid.{chr}.fq.gz" for chr in range(1,23)]
     output:
-        diploid = "{sample}.diploid.fq.gz"
+        diploid = "{sample}/{sample}.diploid.fq.gz"
     shell:
         """
         cat {input.diploid} > {output.diploid}
@@ -72,9 +92,11 @@ rule merge_diploid_fq:
 rule consensus2fa:
     input:
         utils = "utils/",
-        diploid = "{sample}.diploid.fq.gz"
+        diploid = "{sample}/{sample}.diploid.fq.gz"
     output:
-        psmcfa = "{sample}.diploid.psmcfa"
+        psmcfa = "{sample}/{sample}.diploid.psmcfa"
+    log:
+        "logs/consensus2fa_{sample}.log"
     params:
         baseQ = param_default(config, "BaseQuality", 20)
     shell:
@@ -84,9 +106,14 @@ rule consensus2fa:
 
 rule psmc:
     input:
-        psmcfa = "{sample}.diploid.psmcfa"
+        psmcfa = "{sample}/{sample}.diploid.psmcfa"
     output:
-        psmc = "{sample}.diploid.psmc"
+        psmc = "{sample}/{sample}.diploid.psmc"
+    log:
+        "logs/psmc_{sample}.log"
+    resources:
+        memory = 4 * 1024,
+        runtime = 12*60
     params:
         N = param_default(config["psmc"], "N", 25),
         t = param_default(config["psmc"], "t", 15),
@@ -99,9 +126,11 @@ rule psmc:
 
 rule ms_command:
     input:
-        psmc = "{sample}.diploid.psmc"
+        psmc = "{sample}/{sample}.diploid.psmc"
     output:
-        ms_cmd = "{sample}_ms-cmd.sh"
+        ms_cmd = "{sample}/{sample}_ms-cmd.sh"
+    log:
+        "logs/ms_command_{sample}.log"
     shell:
         """
         utils/psmc2history.pl {input.psmc} | utils/history2ms.pl > {output.ms_cmd}
@@ -110,10 +139,14 @@ rule ms_command:
 
 rule psmc_plot:
     input:
-        psmc = "{sample}.diploid.psmc"
+        psmc = "{sample}/{sample}.diploid.psmc"
     output:
-        eps = "{sample}.diploid.eps"
+        eps = "{sample}/{sample}.diploid.eps"
+    log:
+        "logs/psmc_plot_{sample}.log"
+    params:
+        basename = "{sample}/{sample}.diploid"
     shell:
         """
-        utils/psmc_plot.pl {wildcards.sample}.diploid {input.psmc}
+        utils/psmc_plot.pl {params.basename} {input.psmc}
         """

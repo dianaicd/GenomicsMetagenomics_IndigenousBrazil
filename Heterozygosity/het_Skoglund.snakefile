@@ -42,6 +42,9 @@ rule fetch_heterozygous:
         vcf = "{name}.vcf.gz"
     output:
         "sites_het_{name}.txt"
+    resources:
+        memory=1024,
+        runtime=60
     shell:
         """
         bcftools view -m2 -M2 -Ou  -v snps {input.vcf}  \
@@ -91,6 +94,9 @@ rule keep_chromosomes_in_bam:
         sites_afr = "sites_het_{african}.txt"
     output:
         refalt = "{african}.refalt"
+    resources:
+        memory=1024,
+        runtime=60
     shell:
         """
         chromosomes=({chromosomes})
@@ -117,6 +123,9 @@ rule get_african_sites:
         sites_afr = "sites_het_{african}.txt"
     output:
         sites_bed = "{african}_{chr}_sites.bed"
+    resources:
+        memory=1024,
+        runtime=60
     shell:
         """
         cut -f 1,2 {input} |grep -P "^{wildcards.chr}\t"|\
@@ -137,6 +146,9 @@ rule make_lists:
     input:
         bam1 = lambda wildcards: expand_path(wildcards.ind1, wildcards.population),
         bam2 = lambda wildcards: expand_path(wildcards.ind2, wildcards.population)
+    resources:
+        memory=512,
+        runtime=10
     output:
         bams_list = "{population}/{ind1}_{ind2}.txt"
     run:
@@ -150,7 +162,7 @@ rule do_mpileup:
         sites_bed = "{african}_{chr}_sites.bed",
         bams_list = "{population}/{ind1}_{ind2}.txt"
     output:
-        mpileup = "{population}/{ind1}_{ind2}_{chr}_{african}.mpileup"
+        mpileup = temp("{population}/{ind1}_{ind2}_{chr}_{african}.mpileup")
     log:
         "{population}/{ind1}_{ind2}_{chr}_{african}.log"
     resources:
@@ -171,8 +183,8 @@ rule count_and_sample_bam:
         mpileup = "{population}/{ind1}_{ind2}_{chr}_{african}.mpileup",
         refalt = "{african}.refalt"
     output:
-        sampled = "{population}/{ind1}_{ind2}_{chr}_{african}.sampled.gz",
-        counts = "{population}/{ind1}_{ind2}_{chr}_{african}.counts.gz"
+        sampled = temp("{population}/{ind1}_{ind2}_{chr}_{african}.sampled.gz"),
+        counts = temp("{population}/{ind1}_{ind2}_{chr}_{african}.counts.gz")
     resources:
         memory=lambda wildcards, attempt: get_memory_alloc("count_mem", attempt, 4),
         runtime=lambda wildcards, attempt: get_runtime_alloc("count_time", attempt, 12)
@@ -209,12 +221,14 @@ rule het_pi_Skoglund:
         sites = "{african}.refalt"
     output:
         pi = "{population}/{ind1}_{ind2}_{african}.pi.stats.txt"
+    log:
+        "logs/pi_{population}_{ind1}_{ind2}_{african}.log"
     resources:
         memory=lambda wildcards, attempt: get_memory_alloc("pi_mem", attempt, 8),
         runtime=lambda wildcards, attempt: get_runtime_alloc("pi_time", attempt, 2)
     shell:
         """
-        python3.6 het_pi_Skoglund.py \
+        python het_pi_Skoglund.py \
             -c {input.sampled} \
             -s {input.sites} \
             -o {wildcards.population}/{wildcards.ind1}_{wildcards.ind2}_{wildcards.african}

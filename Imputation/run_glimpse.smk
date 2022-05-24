@@ -168,7 +168,7 @@ rule ligate_chunks:
                                                 for n in range(1, get_num_chunks( wildcards.chr ) ) 
         ]
     output:
-        ligated_bcf = "GLIMPSE_ligated/{bamlist}.chr{chr}.merged.bcf",
+        ligated_bcf = temp("GLIMPSE_ligated/{bamlist}.chr{chr}.merged.bcf"),
         list_files = temp("GLIMPSE_ligated/list_{bamlist}_chr{chr}.txt")
     log:
         'logs/ligate_chunks_{bamlist}_{chr}.txt'
