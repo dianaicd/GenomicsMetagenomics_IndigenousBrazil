@@ -13,6 +13,23 @@ Genos_Moreno2019:
 #==============================================================================#
 # Genotype call on whole genome
 geno_calls:
+    filters:
+        order: [mask,repeats,gq]
+        gq: 
+            min: 30
+        mask:
+            label: "Strict"
+        repeats:
+            label: "UCSC"
+    individuals:
+        MN0008: ""
+        MN00056: ""
+        KaritianaA: ""
+        KaritianaB: ""
+        MayaG: ""
+        MayaH: ""
+        SuruiA: ""
+        SuruiB: ""
     bamlists:
         # Diana: 
         #     paths:
