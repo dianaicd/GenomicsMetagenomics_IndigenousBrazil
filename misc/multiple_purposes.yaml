@@ -383,6 +383,20 @@ psmc:
 psmc_consensus_mem: 4
 psmc_consensus_time: 48
 psmc_consensus_threads: 8
+
+#=============================================================================#
+# smcpp
+smcpp:
+  populations:
+    Karitiana: ["A_Karitiana", "B_Karitiana"]
+    Surui: ["SuruiA", "SuruiB"]
+    Maya: ["MayaG", "MayaH"]
+    MN0008_L3U_trim2: ["MN0008_L3U_trim2"]
+    Huichol: ["Huichol"]
+    Dinka: ["A_Dinka", "B_Dinka"]
+  prefix: "input_smcpp/all.chr{chr}.vcf.gz"
+  mask: "input_smcpp/called_masks/{population}/{population}_chr{chr}.bed.gz"
+
 #=============================================================================#
 # AdmixTools
 f3:
