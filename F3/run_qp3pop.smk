@@ -44,6 +44,7 @@ rule make_3pop_list:
             else:
                 with open(input.pops) as myFile:
                     pops = [line.replace("\n", "").split()[2] for line in myFile.readlines()]
+                    pops = [pop for pop in set(pops)]
             return(pops)
         
         pops1 = read_source(source1)

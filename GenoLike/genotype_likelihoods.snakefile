@@ -13,11 +13,11 @@ panels = list(config["geno_like"]["panels"].keys())
 
 chromosomes = [str(x) for x in range(1,23)] 
 
-wildcard_constraints:
-    extension = "(bed|vcf|ped)",
-    chr =   "|".join(chromosomes)  ,
-    panel =  "(" + "|".join([p for p in panels])+ ")(?!_" + "|_".join([b for b in bamlists]) + ")" ,
-    bamlist = ")".join(["(?<!"+p for p in panels])  + "_)" + "|".join([b for b in bamlists])
+# wildcard_constraints:
+#     extension = "(bed|vcf|ped)",
+#     chr =   "|".join(chromosomes)  ,
+#     panel =  "(" + "|".join([p for p in panels])+ ")(?!_" + "|_".join([b for b in bamlists]) + ")" ,
+#     bamlist = ")".join(["(?<!"+p for p in panels])  + "_)" + "|".join([b for b in bamlists])
 
 def expand_path(wildcards):
     myDict = config["geno_like"]["bamlists"][wildcards.bamlist]["paths"]
@@ -32,9 +32,10 @@ def expand_path(wildcards):
     #bams = [f for p in full_paths for f in glob.glob(p)]
     return(bams)
 
+localrules: all,make_bamlist,plink_to_vcf,ped_to_vcf,vcf_to_beagle,angsd_sites,merge_chr,merge_genos
 rule all:
     input:
-        merged = expand("{panel}/{bamlist}_{panel}.beagle", panel = panels, bamlist = bamlists)
+        merged = expand("{panel}/{panel}_{bamlist}.beagle", panel = panels, bamlist = bamlists)
 
 rule make_bamlist:
     input:
@@ -71,25 +72,22 @@ rule plink_to_vcf:
         
         """
 
-rule ped_to_vcf:
-    input:
-        panel = "{panel}/{panel}.ped"
-    output:
-        "{panel}/{panel}.vcf"
-    resources:
-        memory=lambda wildcards, attempt: get_memory_alloc("plink_to_vcf_mem", attempt, 1),
-        runtime=lambda wildcards, attempt: get_runtime_alloc("plink_to_vcf_time", attempt, 1)
-    params:
-        basename = "{panel}/{panel}",
-        out = "{panel}/{panel}",
-    shell:
-        """
-        plink --recode vcf --file {params.basename} --out {params.out} 
+# rule ped_to_vcf:
+#     input:
+#         panel = "{panel}/{panel}.ped"
+#     output:
+#         "{panel}/{panel}.vcf"
+#     resources:
+#         memory=lambda wildcards, attempt: get_memory_alloc("plink_to_vcf_mem", attempt, 1),
+#         runtime=lambda wildcards, attempt: get_runtime_alloc("plink_to_vcf_time", attempt, 1)
+#     params:
+#         basename = "{panel}/{panel}",
+#         out = "{panel}/{panel}",
+#     shell:
+#         """
+#         plink --recode vcf --file {params.basename} --out {params.out} 
         
-        """
-
-
-
+#         """
 
 rule vcf_to_beagle:
     input:
@@ -210,11 +208,11 @@ rule merge_genos:
         bamlist = "{panel}/{bamlist}.beagle",
         ids = "{panel}/{panel}_ids.txt"
     output:
-        merged = "{panel}/{bamlist}_{panel}.beagle"
+        merged = "{panel}/{panel}_{bamlist}.beagle"
     params:
         homozygous = lambda wildcards: config["geno_like"]["panels"][wildcards.panel]["homozygous"]
     log:
-        "logs/{bamlist}_{panel}_genolike.log"
+        "logs/{panel}_{bamlist}_genolike.log"
     resources:
         memory=lambda wildcards, attempt: get_memory_alloc("merge_genos_mem", attempt, 32),
         runtime = lambda wildcards, attempt: get_runtime_alloc("merge_genos_time", attempt, 1)
@@ -223,7 +221,7 @@ rule merge_genos:
         if [ ! -e merge_genos.pl ]
         then ln -s ~/data/Git/Botocudos-scripts/GenoLike/merge_genos.pl ./
         fi 
-        perl merge_genos.pl -g2 {input.panel}\
-            -g1 {input.bamlist} -id {input.ids} \
+        perl merge_genos.pl -g1 {input.panel}\
+            -g2 {input.bamlist} -id {input.ids} \
             -o {output.merged} -homozygous {params.homozygous}       2>>{log}
         """
