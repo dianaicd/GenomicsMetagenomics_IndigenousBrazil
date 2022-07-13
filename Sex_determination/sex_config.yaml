@@ -1,0 +1,28 @@
+
+replicates: 1000
+
+genome:
+  hg19: 
+    fasta: /work/FAC/FBM/DBC/amalaspi/popgen/shared_ressources/reference_human/GCA_000001405.15_GRCh38.p13_onlyChrom/GCA_000001405.15_GRCh38.fa
+    # any R evaluation is allowed. Please use " and not '
+sex_params:
+  maleChr: chrY
+  femaleChr: chrX
+  mtChr: chrM
+  autosomeChr: '[f"chr{x}" for x in range(1,23)]'
+  #autosomes: paste0("chr",1:22)  
+  #     # either of XY, ZW, XO or ZO
+  #     system: XY                           
+  #     # larger sex chromosome
+  larger_chr: chrX      
+  #     # mappability correction for the larger sex chromosome                  
+  #     mappability_correction: 1  
+  #     # sex with larger ratio (larger sexual chr vs autosomes)          
+  #     sex_with_larger_ratio: Female     
+  #     # ratio of sex chromosome to autosomes in the other sex     
+  #     sex_to_autosomes_second_sex: 0.5     
+  #     name_second_sex: Male   
+BAM_female: 
+  MN00056.hg19: MN00056.hg19.bam
+BAM_male: 
+  MN0009.hg19: MN0009.hg19.bam
