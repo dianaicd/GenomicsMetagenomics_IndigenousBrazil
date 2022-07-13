@@ -1,4 +1,4 @@
-configfile: 'smcpp/multiple_purposes.yaml'
+configfile: 'multiple_purposes.yaml'
 
 chromosomes = [str(i) for i in range(1, 23)]
 
@@ -15,7 +15,7 @@ def smc_command(use_docker, mount_dir):
     if use_docker:
         command = f'docker run --rm -v {mount_dir}:/mnt terhorst/smcpp:latest '
     else:
-        command = 'smc++ '
+        command = 'module load gcc python gmp mpfr gsl ; source ~/popgen/smcpp_venv/bin/activate ; smc++ '
     return command 
 
 rule all:
@@ -57,9 +57,9 @@ rule vcf2smc:
         #inds=$( echo {params.individuals} | sed -e 's/[0-9a-zA-Z_-]*/&_&/g ; s/ /,/g ; s/,$//' )
         inds=$( echo {params.individuals} | sed -e 's/ /,/g ; s/,$//' )
         {params.command} \
+            --cores {threads} \
             vcf2smc --mask {input.mask} {input.vcf} {output.smc} {wildcards.chr} \
-            {wildcards.population}:$inds \
-             --cores {threads}
+            {wildcards.population}:$inds 
         '''
 
 rule estimate:
@@ -76,10 +76,11 @@ rule estimate:
     shell:
         '''
         {params.command} \
+            --cores {threads} \
             estimate -o {params.out_prefix} \
+            --timepoints 33 100000 -c 50000 -rp .1 --knots 60 \
             {params.mutation_rate} \
-            {input.smc} \
-            --cores {threads}
+            {input.smc} 
         '''
 
 rule plot:
@@ -128,9 +129,9 @@ rule joint_vcf2smc:
         {params.command} \
             vcf2smc {input.vcf} \
             --mask {input.bed} \
+            --cores {threads} \
             {output.smc} {wildcards.chr} \
-             {wildcards.pop1}:${{pop1_inds}} {wildcards.pop2}:${{pop2_inds}}\
-            --cores {threads}
+             {wildcards.pop1}:${{pop1_inds}} {wildcards.pop2}:${{pop2_inds}}
         '''
 
 rule split:
@@ -162,13 +163,13 @@ rule split:
 
 rule merge_masks_inds:
     input:
-        lambda wildcards: [f"input_smcpp/called_masks/{ind}/{ind}_chr{wildcards.chr}.bed" for ind in pop_inds[wildcards.population]]
+        lambda wildcards: [f"input_smcpp/called_masks/{ind}/{ind}_chr{wildcards.chr}.bed.gz" for ind in pop_inds[wildcards.population]]
     output:
         tmp_bed = "input_smcpp/merged_masks/{population}.chr{chr}.tmp.bed",
         bed = "input_smcpp/merged_masks/{population}.chr{chr}.bed.gz"
     shell:
         """
-        cat {input} | sort -k1,1 -k2,2n > {output.tmp_bed}
+        gunzip -c {input} | sort -k1,1 -k2,2n > {output.tmp_bed}
         bedtools merge -i {output.tmp_bed} | bgzip > {output.bed}
         tabix -f {output.bed}
         """
