@@ -1,0 +1,36 @@
+# MSMC2
+msmc2:
+  # path to the input VCF files
+  #vcf: "Final_phased/{ind}.chr{chr}.phased.vcf.gz"
+  vcf: "Final_phased/{ind}.chr{chr}.phased.vcf.gz"
+  # name of dir for msmc2 files from generate_multihetsep.py
+  input_msmc2_dir: "input_msmc2_gp0.80"
+  # prefix for dir were final outputs will be stored
+  prefix_dir: "out_msmc2"
+  n_bootstraps: 20
+  bootstrap_prefix: "bootstrapped"
+  threads: 11
+  # # called and phased
+  # inds: ["KaritianaA", "KaritianaB", "MN0008", "MN00056", "MayaG", "MayaH", "SuruiA", "SuruiB", "A_Yoruba", "B_Yoruba", "A_French", "B_French" ]
+  #imputed
+  inds: ["KaritianaA", "KaritianaB", "MN0008", "MN00056", "MayaG", "MayaH", "SuruiA", "SuruiB"]
+  populations: 
+    2Karitiana: ["KaritianaA", "KaritianaB"]
+    # 2Boto: ["MN0008", "MN00056"]
+    MN0008: ["MN0008"]
+    # 2Maya: ["MayaG", "MayaH"]
+    # 2Surui: ["SuruiA", "SuruiB"]
+    # 2Yoruba: ["A_Yoruba", "B_Yoruba"]
+    # 2French: ["A_French", "B_French"]
+  combinations: [
+    # "2Yoruba_2French",
+    # "2Boto_2Karitiana",
+    # "2Boto_2Surui",
+    # "2Boto_2Maya",
+    # "2Maya_2Surui",
+    # "2Karitiana_2Maya",
+    # "2Karitiana_2Surui",
+    # "MN0008_2Maya",
+    "MN0008_2Karitiana"
+    # "MN0008_2Surui"
+    ]
