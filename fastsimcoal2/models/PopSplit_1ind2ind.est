@@ -1,0 +1,15 @@
+// Priors and rules file
+// *********************
+[PARAMETERS]
+//#isInt? #name #dist.#min #max
+//all Ns are in number of haploid individuals
+1 NeK unif 10 100000 output
+1 NeB unif 10 100000 output
+1 NAnc unif 10 100000 output
+1 SPLIT unif 1 1000 output
+[COMPLEX PARAMETERS]
+0 ratio = NAnc / NeK
+
+
+//1 TENDBOT = TBOT+50 hide 
+

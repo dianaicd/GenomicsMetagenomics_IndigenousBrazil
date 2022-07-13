@@ -1,0 +1,91 @@
+# List here the individuals that will be merged per population;
+# ideally, set a significative name for each individual
+individuals_to_merge:
+  1Boto_2Karitiana:
+    MN0008: Filtered/chr{chr}/MN0008_L3U_trim2_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf  
+    A_Karitiana: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+    B_Karitiana: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+  # 2Karitiana: 
+  #   A_Karitiana: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+  #   B_Karitiana: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+  # 2Maya:
+  #   MayaG: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+  #   MayaH: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+  2Surui:
+    SuruiA: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+    SuruiB: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+  # MN0008:
+  #   MN0008: Filtered/chr{chr}/MN0008_L3U_trim2_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+  # Aymara: 
+  #   Aymara: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+  # Chane: 
+  #   Chane: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+  # Huichol: 
+  #   Huichol: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+  # 2Mixe: 
+  #   MixeE: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+  #   MixeF: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+  # Piapoco: 
+  #   Piapoco: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+  # 2Pima: 
+  #   PimaE: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+  #   PimaF: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+  # Quechua: 
+  #   Quechua: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf
+  # Yukpa: 
+  #   Yukpa: Filtered/chr{chr}/{ind}_maskStrict_repeatsUCSC_dp_GQ30_chr{chr}.bcf 
+
+# List here the populations that will be merged together.
+# Each set of populations will be merged into a vcf file
+# named as each of the entries
+# This will take the VCFs for each of the populations specified above
+populations_to_merge:
+  #Aymara_2Maya: [Aymara, 2Maya]
+  1Boto_2Karitiana_2Surui: [1Boto_2Karitiana, 2Surui]
+  #2K_1B_2M: [2Karitiana, MN0008, 2Maya]
+  # doing pop1_pop2 and pop2_pop1 as they are useful for fsc2
+  # 2Karitiana 2Maya 2Surui Aymara Chane Huichol 2Mixe Piapoco 2Pima Quechua Yukpa 
+  # 1Boto_2Karitiana: [MN0008, 2Karitiana]
+  # 1Boto_2Maya: [MN0008, 2Maya]
+  # 1Boto_2Surui: [MN0008, 2Surui]
+  # 1Boto_Aymara: [MN0008, Aymara]
+  # 1Boto_Chane: [MN0008, Chane]
+  # 1Boto_Huichol: [MN0008, Huichol]
+  # 1Boto_2Mixe: [MN0008, 2Mixe]
+  # 1Boto_Piapoco: [MN0008, Piapoco]
+  # 1Boto_2Pima: [MN0008, 2Pima]
+  # 1Boto_Quechua: [MN0008, Quechua]
+  # 1Boto_Yukpa: [MN0008, Yukpa]
+  # 2Surui_2Karitiana: [2Surui, 2Karitiana]
+  # 2Surui_2Maya: [2Surui, 2Maya]
+  # 2Surui_Aymara: [2Surui, Aymara]
+  # 2Surui_Chane: [2Surui, Chane]
+  # 2Surui_Huichol: [2Surui, Huichol]
+  # 2Surui_2Mixe: [2Surui, 2Mixe]
+  # 2Surui_Piapoco: [2Surui, Piapoco]
+  # 2Surui_2Pima: [2Surui, 2Pima]
+  # 2Surui_Quechua: [2Surui, Quechua]
+  # 2Surui_Yukpa: [2Surui, Yukpa]
+  # 2Karitiana_2Maya: [2Karitiana, 2Maya]
+  # 2Karitiana_2Surui: [2Karitiana, 2Surui]
+  # 2Karitiana_Aymara: [2Karitiana, Aymara]
+  # 2Karitiana_Chane: [2Karitiana, Chane]
+  # 2Karitiana_Huichol: [2Karitiana, Huichol]
+  # 2Karitiana_2Mixe: [2Karitiana, 2Mixe]
+  # 2Karitiana_Piapoco: [2Karitiana, Piapoco]
+  # 2Karitiana_2Pima: [2Karitiana, 2Pima]
+  # 2Karitiana_Quechua: [2Karitiana, Quechua]
+  # 2Karitiana_Yukpa: [2Karitiana, Yukpa]
+
+ancestral: "chimpHg19.fa"
+
+fastsimcoal2:
+  replicates: 100
+  models:
+    # PopSplit_2ind1ind: [2K_1B, 2M_1B, 2S_1B]
+    # PopSplit_2ind2ind: [2K_2M, 2S_2M, 2S_2K]
+    #   1Boto_2Karitiana: [MN0008, 2Karitiana]
+    #PopSplit_1ind1ind: [1Boto_Aymara, 1Boto_Chane, 1Boto_Huichol, 1Boto_Piapoco, 1Boto_Quechua, 1Boto_Yukpa]
+    #PopSplit_1ind2ind: [1Boto_2Maya, 1Boto_2Surui, 1Boto_2Mixe, 1Boto_2Pima, 1Boto_2Karitiana]
+    #PopSplit_2ind1ind: [2Surui_Aymara, 2Surui_Chane, 2Surui_Huichol, 2Surui_Piapoco, 2Surui_Quechua, 2Surui_Yukpa, 2Karitiana_Aymara, 2Karitiana_Chane, 2Karitiana_Huichol, 2Karitiana_Piapoco, 2Karitiana_Quechua, 2Karitiana_Yukpa]
+    #PopSplit_2ind2ind: [2Surui_2Karitiana, 2Surui_2Maya, 2Surui_2Mixe, 2Surui_2Pima, 2Karitiana_2Maya, 2Karitiana_2Surui, 2Karitiana_2Mixe, 2Karitiana_2Pima]
