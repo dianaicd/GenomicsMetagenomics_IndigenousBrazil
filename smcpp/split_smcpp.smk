@@ -9,7 +9,8 @@ mount_dir = config['smcpp_mount_dir'] if 'smcpp_mount_dir' in config.keys() else
 populations = list(pop_inds.keys())
 combinations = [f"{populations[i]}.{populations[j]}" for i in range(0, len(populations)) for j in range(i+1, len(populations))]
 wildcard_constraints:
-    pop1 = "|".join([pop for pop in populations])
+    pop1 = "|".join([pop for pop in populations]),
+    population = "|".join([pop for pop in populations])
 
 def smc_command(use_docker, mount_dir):
     if use_docker:
@@ -45,6 +46,7 @@ rule vcf2smc:
         vcf = config['smcpp']['prefix'] ,
         vcf_index = config['smcpp']['prefix'] + '.tbi',
         #mask = config["smcpp"]["mask"]
+        # mask = "centromeres/chr{chr}.bed.gz"
         mask = "input_smcpp/merged_masks/{population}.chr{chr}.bed.gz"
     output:
         smc = 'smc/{population}.chr{chr}.smc.gz'
@@ -57,8 +59,7 @@ rule vcf2smc:
         #inds=$( echo {params.individuals} | sed -e 's/[0-9a-zA-Z_-]*/&_&/g ; s/ /,/g ; s/,$//' )
         inds=$( echo {params.individuals} | sed -e 's/ /,/g ; s/,$//' )
         {params.command} \
-            --cores {threads} \
-            vcf2smc --mask {input.mask} {input.vcf} {output.smc} {wildcards.chr} \
+            vcf2smc --cores {threads} --mask {input.mask} {input.vcf} {output.smc} {wildcards.chr} \
             {wildcards.population}:$inds 
         '''
 
@@ -71,6 +72,7 @@ rule estimate:
     params:
         command = smc_command(use_docker, mount_dir = mount_dir),
         out_prefix = 'analysis/{population}',
+        name = lambda wildcards: f"smc/{wildcards.population}.chr*.smc.gz",
         mutation_rate = 1.25e-8
     threads: 6
     shell:
@@ -79,8 +81,10 @@ rule estimate:
             --cores {threads} \
             estimate -o {params.out_prefix} \
             --timepoints 33 100000 -c 50000 -rp .1 --knots 60 \
+            --cores {threads} \
+            --spline cubic \
             {params.mutation_rate} \
-            {input.smc} 
+            {params.name} 
         '''
 
 rule plot:
@@ -114,6 +118,7 @@ rule joint_vcf2smc:
         #docker_img = 'Dockerfile',
         vcf = config['smcpp']['prefix'] ,
         vcf_index = config['smcpp']['prefix'] + '.tbi',
+        # bed = "centromeres/chr{chr}.bed.gz",
         bed = "input_smcpp/merged_masks/{pop1}.{pop2}.chr{chr}.bed.gz"
     output:
         smc = 'smc/{pop1}_{pop2}.chr{chr}.smc.gz'
@@ -128,6 +133,7 @@ rule joint_vcf2smc:
         pop2_inds=$( echo {params.inds_pop2} | sed -e 's/ /,/g ; s/,$//' )
         {params.command} \
             vcf2smc {input.vcf} \
+            --cores {threads} \
             --mask {input.bed} \
             --cores {threads} \
             {output.smc} {wildcards.chr} \
@@ -152,8 +158,9 @@ rule split:
         out = "split/{pop1}.{pop2}/"
     shell:
         """
+        files=$(ls smc/{{{wildcards.pop1}_{wildcards.pop2}.chr,{wildcards.pop1}.chr,{wildcards.pop2}.chr}}*.smc.gz)
         {params.command} \
-        split -o {params.out} {input.model_pop1} {input.model_pop2} {input.smc_files}
+        split -o {params.out} {input.model_pop1} {input.model_pop2} $files
         """
 
 # Finally, run split to refine the marginal estimates into an estimate of the joint demography:
