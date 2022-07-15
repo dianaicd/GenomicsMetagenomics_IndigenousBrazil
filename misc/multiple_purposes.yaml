@@ -1,5 +1,6 @@
 # Reference genome
 ref_genome:
+  #hs.build37.1.fa
   "/work/FAC/FBM/DBC/amalaspi/popgen/shared_ressources/reference_human/hs.build37.1/hs.build37.1.fa"
 
 #=============================================================================#
@@ -263,16 +264,20 @@ IBS:
 # Relatedness with realSFS
 
 relatedness:
-  nThreads: 8
+  nThreads: 4
   ancestral: "chimpHg19.fa"
   minQ: 20
   minMapQ: 30
   Samples:
-    MN00056: "bams/MN00056.hg19.bam"
-    MN0008: "bams/MN0008.hg19.bam"
-  Sites:
-    test: "subset_test.txt"
-optim_sfs_mem: 250
+    #MN00056: "bams/MN00056.hg19.bam"
+    MN0008: "/users/dcruzdav/popgen/Botocudos/BAM/2019_11_08/MN0008/MN0008_L3U.hg19.bam"
+    A_Yoruba: "/users/dcruzdav/popgen/Panels/TeamAB_fclement/HGDP00927.flt.sort.rmdup.realign.md.bam"
+    A_Dai: "/users/dcruzdav/popgen/Panels/TeamAB_fclement/HGDP01307.flt.sort.rmdup.realign.md.bam"
+    A_Surui: "/users/dcruzdav/popgen/Panels/fromVictor/Modern/SuruiA.bam"
+    MayaG: "/users/dcruzdav/popgen/Panels/fromVictor/Modern/MayaG.bam"
+  # Sites:
+  #   test: "subset_test.txt"
+optim_sfs_mem: 8
 optim_sfs_time: 2
 #=============================================================================#
 # IBS analyses with IBSrelate
@@ -453,6 +458,7 @@ psmc_consensus_threads: 8
 
 #=============================================================================#
 # smcpp
+smcpp_docker: False
 smcpp:
   populations:
     Karitiana: ["A_Karitiana", "B_Karitiana"]
@@ -1170,7 +1176,7 @@ merge_geno_like:
 #==============================================================================#
 # Impute with GLIMPSE
 imputation_GLIMPSE:
-  GP_filter: [0.99]
+  GP_filter: [0.99, 0.8]
   nThreads:
     8
   path_map: "genetic_maps_b37/chr{chr}.b37.gmap.gz"
@@ -1912,3 +1918,41 @@ haploid_call:
       ind: "24ind.ind"
       minMinor: 0
       maxMis: 23
+      
+#=============================================================================#
+# MSMC2
+msmc2:
+  # path to the input VCF files
+  #vcf: "Final_phased/{ind}.chr{chr}.phased.vcf.gz"
+  vcf: "Final_phased/{ind}.chr{chr}.phased.vcf.gz"
+  # name of dir for msmc2 files from generate_multihetsep.py
+  input_msmc2_dir: "input_msmc2_phased"
+  # prefix for dir were final outputs will be stored
+  prefix_dir: "out_msmc2"
+  n_bootstraps: 20
+  bootstrap_prefix: "bootstrapped"
+  threads: 11
+  # # called and phased
+  inds: ["KaritianaA", "KaritianaB", "MN0008", "MN00056", "MayaG", "MayaH", "SuruiA", "SuruiB", "A_Yoruba", "B_Yoruba", "A_French", "B_French" ]
+  #imputed
+  # inds: ["KaritianaA", "KaritianaB", "MN0008", "MN00056", "MayaG", "MayaH", "SuruiA", "SuruiB"]
+  populations: 
+    2Karitiana: ["KaritianaA", "KaritianaB"]
+    2Boto: ["MN0008", "MN00056"]
+    MN0008: ["MN0008"]
+    2Maya: ["MayaG", "MayaH"]
+    2Surui: ["SuruiA", "SuruiB"]
+    2Yoruba: ["A_Yoruba", "B_Yoruba"]
+    2French: ["A_French", "B_French"]
+  combinations: [
+    "2Yoruba_2French",
+    "2Boto_2Karitiana",
+    "2Boto_2Surui",
+    "2Boto_2Maya",
+    "2Maya_2Surui",
+    "2Karitiana_2Maya",
+    "2Karitiana_2Surui",
+    "MN0008_2Maya",
+    "MN0008_2Karitiana",
+    "MN0008_2Surui"
+    ]
