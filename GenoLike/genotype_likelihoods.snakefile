@@ -5,8 +5,7 @@
 configfile: "multiple_purposes.yaml"
 import os, glob
 include: "parse_resources.smk"
-localrules: make_bamlist,merge_genos,angsd_sites,merge_chr
-
+localrules: make_bamlist, merge_chr, merge_genos, plink_to_vcf, vcf_to_beagle
 
 bamlists = list(config["geno_like"]["bamlists"].keys())
 panels = list(config["geno_like"]["panels"].keys()) 

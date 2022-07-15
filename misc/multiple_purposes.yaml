@@ -1,20 +1,36 @@
-# # Reference genome
-# ref_genome:
-#   "/db/local/amalaspi/reference_human/hs.build37.1/hs.build37.1.fa" 
+# Reference genome
+ref_genome:
+  "/work/FAC/FBM/DBC/amalaspi/popgen/shared_ressources/reference_human/hs.build37.1/hs.build37.1.fa"
 
-# #=============================================================================#
-# # "Trim reads"
-# Trim:
-#   trim_bp: 5
-#   bams:
-#     ancient:
-#       fromVictor_and_Posth: 'ancient_bams/*bam'
-# #=============================================================================#
-# # bamdamage
-# bamdamage:
-#   bamdamage_fraction: 100000
-#   Samples:
-#     Botocudos: "MN*/*.hg19.bam"
+#=============================================================================#
+# "Trim reads"
+Trim:
+  trim_bp: 2
+  bams:
+    fromEduardo:
+      fromEduardo: "~/popgen/bams_Eduardo/*bam"
+    # MN0008: 
+    #   MN0008: "~/americas/Botocudos/BAM/2019_11_08/MN0008/MN0008.hg19.bam"
+    #   MN0008_L3U: "~/americas/Botocudos/BAM/2019_11_08/MN0008_L3U/MN0008_L3U.hg19.bam"
+    #   MN0008_non_U: "~/americas/Botocudos/BAM/2019_11_08/MN0008_non_U/MN0008_non_U.hg19.bam"
+    # Karitiana:
+    #   Karitiana: "~/americas/fromVictor/Modern/Karitiana.bam"
+    # LagoaSanta_15x:
+    #   LagoaSanta_15x: "~/americas/fromVictor/Ancient/LagoaSta.bam"
+    # MN00056:
+    #   MN00056:  'MN00056.hg19.bam'
+    # MN00013:
+    #   MN00013:  'MN00013.hg19.bam'
+    # MN0009:
+    #   MN0009:  'MN0009.hg19.bam'
+    # MN00118:
+    #   MN00118:  'MN00118.hg19.bam'
+#=============================================================================#
+# bamdamage
+bamdamage:
+  bamdamage_fraction: 100000
+  Samples:
+    Botocudos: "MN*/*.hg19.bam"
 
 # #=============================================================================#
 # # Contamination
@@ -134,100 +150,156 @@
 # vcf_path:
 #   "SS6004475.annotated.nh.vcf.gz"
 
-# Heterozygosity:
-#   populations:
-#     Mbuti:
-#       HGDP00456: "~/americas/Panels/TeamAB_fclement/HGDP00456.flt.sort.rmdup.realign.md.bam"
-#       SS6004471: "~/americas/Panels/TeamAB_fclement/SS6004471-dedup.rg.bam"
-#     Dai:
-#       SS6004467: "~/americas/Panels/TeamAB_fclement/SS6004467-dedup.rg.bam"
-#       HGDP01307: "~/americas/Panels/TeamAB_fclement/HGDP01307.flt.sort.rmdup.realign.md.bam"
-#     French:
-#       SS6004468: "~/americas/Panels/TeamAB_fclement/SS6004468-dedup.rg.bam"
-#       HGDP00521: "~/americas/Panels/TeamAB_fclement/HGDP00521.flt.sort.rmdup.realign.md.bam"
-#     Han:
-#       SS6004469: "~/americas/Panels/TeamAB_fclement/SS6004469-dedup.rg.bam"
-#       HGDP00778: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00778.flt.sort.rmdup.realign.md.bam"
-#     Mandenka:
-#       SS6004470: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004470-dedup.rg.bam"
-#       HGDP01284: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP01284.flt.sort.rmdup.realign.md.bam"
-#     Papuan:
-#       SS6004472: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004472-dedup.rg.bam"
-#       HGDP00542: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00542.flt.sort.rmdup.realign.md.bam"
-#     San:
-#       SS6004473: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004473-dedup.rg.bam"
-#       HGDP01029: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP01029.flt.sort.rmdup.realign.md.bam"
-#     Sardinian:
-#       SS6004474: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004474-dedup.rg.bam"
-#       HGDP00665: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00665.flt.sort.rmdup.realign.md.bam"
-#     Yoruba:
-#       SS6004475: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004475-dedup.rg.bam"
-#       HGDP00927: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00927.flt.sort.rmdup.realign.md.bam"
-#     Karitiana:
-#       SS6004476: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004476-dedup.rg.bam"
-#       HGDP00998: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00998.flt.sort.rmdup.realign.md.bam"
-#     Australian:
-#       SS6004477: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004477-dedup.rg.bam"
-#       SS6004478: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004478-dedup.rg.bam"
-#     Mixe:
-#       Mixe: "~/americas/fromVictor/Modern/Mixe.bam"
-#       MixeE: "~/americas/fromVictor/Modern/MixeE.bam"
-#       MixeF: "~/americas/fromVictor/Modern/MixeF.bam"
-#     WCD:
-#       WCD01: "~/americas/fromVictor/Modern/WCD01.bam"
-#       WCD02: "~/americas/fromVictor/Modern/WCD02.bam"
-#       WCD03: "~/americas/fromVictor/Modern/WCD03.bam"
-#       WCD05: "~/americas/fromVictor/Modern/WCD05.bam"
-#       WCD08: "~/americas/fromVictor/Modern/WCD08.bam"
-#       WCD13: "~/americas/fromVictor/Modern/WCD13.bam"
-#     Pima:
-#       PimaCEPH: "~/americas/fromVictor/Modern/PimaCEPH.bam"
-#       PimaE: "~/americas/fromVictor/Modern/PimaE.bam"
-#       PimaF: "~/americas/fromVictor/Modern/PimaF.bam"
-#     Surui:
-#       SuruiA: "~/americas/fromVictor/Modern/SuruiA.bam"
-#       SuruiB: "~/americas/fromVictor/Modern/SuruiB.bam"
-#     Maya:
-#       MayaG: "/users/dcruzdav/americas/fromVictor/Modern/MayaG.bam"
-#       MayaH: "/users/dcruzdav/americas/fromVictor/Modern/MayaH.bam"
-#     USR:
-#       USR1: "~/americas/fromVictor/Ancient/USR1.bam"
-#       USR2: "~/americas/Panels/USR/USR2.bam"
-#     LagoaSta:
-#       LagoaSta: "/users/dcruzdav/americas/fromVictor/Ancient/LagoaSta.bam"
-#       LS4: "/users/dcruzdav/americas/fromVictor/Ancient/LS4.bam"
-#       LS6: "/users/dcruzdav/americas/fromVictor/Ancient/LS6.bam"
-#       LS7: "/users/dcruzdav/americas/fromVictor/Ancient/LS7.bam"
-#       LS8: "/users/dcruzdav/americas/fromVictor/Ancient/LS8.bam"
-#     Lovelock:
-#       Lovelock: "~/americas/Panels/Moreno2018b/Lovelock1_final.bam"
-#       Lovelock2: "~/americas/fromVictor/Ancient/Lovelock2.bam"
-#       Lovelock3: "~/americas/fromVictor/Ancient/Lovelock3.bam"
-#     Botocudos:
-#       MN00010: "boto/MN00010.hg19.bam"
-#       MN00013: "boto/MN00013.hg19.bam"
-#       MN00016: "boto/MN00016.hg19.bam"
-#       MN00019: "boto/MN00019.hg19.bam"
-#       MN00021: "boto/MN00021.hg19.bam"
-#       MN00022: "boto/MN00022.hg19.bam"
-#       MN00023: "boto/MN00023.hg19.bam"
-#       MN00039: "boto/MN00039.hg19.bam"
-#       MN0003: "boto/MN0003.hg19.bam"
-#       MN00045: "boto/MN00045.hg19.bam"
-#       MN00056: "boto/MN00056.hg19.bam"
-#       MN00064: "boto/MN00064.hg19.bam"
-#       MN00066: "boto/MN00066.hg19.bam"
-#       MN00067: "boto/MN00067.hg19.bam"
-#       MN00068: "boto/MN00068.hg19.bam"
-#       MN00069: "boto/MN00069.hg19.bam"
-#       MN0008: "boto/MN0008.hg19.bam"
-#       MN0009: "boto/MN0009.hg19.bam"
-#       MN00118: "boto/MN00118.hg19.bam"
-#       MN00119: "boto/MN00119.hg19.bam"
-#       MN00316: "boto/MN00316.hg19.bam"
-#       MN00346: "boto/MN00346.hg19.bam"
-#       MN01701: "boto/MN01701.hg19.bam"
-#       MN1943: "boto/MN1943.hg19.bam"
+Heterozygosity:
+  populations:
+    Mbuti:
+      HGDP00456: "~/americas/Panels/TeamAB_fclement/HGDP00456.flt.sort.rmdup.realign.md.bam"
+      SS6004471: "~/americas/Panels/TeamAB_fclement/SS6004471-dedup.rg.bam"
+    Dai:
+      SS6004467: "~/americas/Panels/TeamAB_fclement/SS6004467-dedup.rg.bam"
+      HGDP01307: "~/americas/Panels/TeamAB_fclement/HGDP01307.flt.sort.rmdup.realign.md.bam"
+    French:
+      SS6004468: "~/americas/Panels/TeamAB_fclement/SS6004468-dedup.rg.bam"
+      HGDP00521: "~/americas/Panels/TeamAB_fclement/HGDP00521.flt.sort.rmdup.realign.md.bam"
+    Han:
+      SS6004469: "~/americas/Panels/TeamAB_fclement/SS6004469-dedup.rg.bam"
+      HGDP00778: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00778.flt.sort.rmdup.realign.md.bam"
+    Mandenka:
+      SS6004470: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004470-dedup.rg.bam"
+      HGDP01284: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP01284.flt.sort.rmdup.realign.md.bam"
+    Papuan:
+      SS6004472: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004472-dedup.rg.bam"
+      HGDP00542: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00542.flt.sort.rmdup.realign.md.bam"
+    San:
+      SS6004473: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004473-dedup.rg.bam"
+      HGDP01029: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP01029.flt.sort.rmdup.realign.md.bam"
+    Sardinian:
+      SS6004474: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004474-dedup.rg.bam"
+      HGDP00665: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00665.flt.sort.rmdup.realign.md.bam"
+    Yoruba:
+      SS6004475: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004475-dedup.rg.bam"
+      HGDP00927: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00927.flt.sort.rmdup.realign.md.bam"
+    Karitiana:
+      SS6004476: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004476-dedup.rg.bam"
+      HGDP00998: "/users/dcruzdav/americas/Panels/TeamAB_fclement/HGDP00998.flt.sort.rmdup.realign.md.bam"
+    Australian:
+      SS6004477: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004477-dedup.rg.bam"
+      SS6004478: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004478-dedup.rg.bam"
+    Mixe:
+      Mixe: "~/americas/fromVictor/Modern/Mixe.bam"
+      MixeE: "~/americas/fromVictor/Modern/MixeE.bam"
+      MixeF: "~/americas/fromVictor/Modern/MixeF.bam"
+    WCD:
+      WCD01: "~/americas/fromVictor/Modern/WCD01.bam"
+      WCD02: "~/americas/fromVictor/Modern/WCD02.bam"
+      WCD03: "~/americas/fromVictor/Modern/WCD03.bam"
+      WCD05: "~/americas/fromVictor/Modern/WCD05.bam"
+      WCD08: "~/americas/fromVictor/Modern/WCD08.bam"
+      WCD13: "~/americas/fromVictor/Modern/WCD13.bam"
+    Pima:
+      PimaCEPH: "~/americas/fromVictor/Modern/PimaCEPH.bam"
+      PimaE: "~/americas/fromVictor/Modern/PimaE.bam"
+      PimaF: "~/americas/fromVictor/Modern/PimaF.bam"
+    Surui:
+      SuruiA: "~/americas/fromVictor/Modern/SuruiA.bam"
+      SuruiB: "~/americas/fromVictor/Modern/SuruiB.bam"
+    Maya:
+      MayaG: "/users/dcruzdav/americas/fromVictor/Modern/MayaG.bam"
+      MayaH: "/users/dcruzdav/americas/fromVictor/Modern/MayaH.bam"
+    USR:
+      USR1: "~/americas/fromVictor/Ancient/USR1.bam"
+      USR2: "~/americas/Panels/USR/USR2.bam"
+    LagoaSta:
+      LagoaSta: "/users/dcruzdav/americas/fromVictor/Ancient/LagoaSta.bam"
+      LS4: "/users/dcruzdav/americas/fromVictor/Ancient/LS4.bam"
+      LS6: "/users/dcruzdav/americas/fromVictor/Ancient/LS6.bam"
+      LS7: "/users/dcruzdav/americas/fromVictor/Ancient/LS7.bam"
+      LS8: "/users/dcruzdav/americas/fromVictor/Ancient/LS8.bam"
+    Lovelock:
+      Lovelock: "~/americas/Panels/Moreno2018b/Lovelock1_final.bam"
+      Lovelock2: "~/americas/fromVictor/Ancient/Lovelock2.bam"
+      Lovelock3: "~/americas/fromVictor/Ancient/Lovelock3.bam"
+    Botocudos:
+      MN00010: "boto/MN00010.hg19.bam"
+      MN00013: "boto/MN00013.hg19.bam"
+      MN00016: "boto/MN00016.hg19.bam"
+      MN00019: "boto/MN00019.hg19.bam"
+      MN00021: "boto/MN00021.hg19.bam"
+      MN00022: "boto/MN00022.hg19.bam"
+      MN00023: "boto/MN00023.hg19.bam"
+      MN00039: "boto/MN00039.hg19.bam"
+      MN0003: "boto/MN0003.hg19.bam"
+      MN00045: "boto/MN00045.hg19.bam"
+      MN00056: "boto/MN00056.hg19.bam"
+      MN00064: "boto/MN00064.hg19.bam"
+      MN00066: "boto/MN00066.hg19.bam"
+      MN00067: "boto/MN00067.hg19.bam"
+      MN00068: "boto/MN00068.hg19.bam"
+      MN00069: "boto/MN00069.hg19.bam"
+      MN0008: "boto/MN0008.hg19.bam"
+      MN0009: "boto/MN0009.hg19.bam"
+      MN00118: "boto/MN00118.hg19.bam"
+      MN00119: "boto/MN00119.hg19.bam"
+      MN00316: "boto/MN00316.hg19.bam"
+      MN00346: "boto/MN00346.hg19.bam"
+      MN01701: "boto/MN01701.hg19.bam"
+      MN1943: "boto/MN1943.hg19.bam"
+
+
+
+#=============================================================================#
+# IBS
+
+IBS:
+  bamlists: "24ind.txt"
+
+#=============================================================================#
+# Relatedness with realSFS
+
+relatedness:
+  nThreads: 8
+  ancestral: "chimpHg19.fa"
+  minQ: 20
+  minMapQ: 30
+  Samples:
+    MN00056: "bams/MN00056.hg19.bam"
+    MN0008: "bams/MN0008.hg19.bam"
+  Sites:
+    test: "subset_test.txt"
+optim_sfs_mem: 250
+optim_sfs_time: 2
+#=============================================================================#
+# IBS analyses with IBSrelate
+IBS:
+  bamlists:
+    22Botocudos: "22Botocudos.txt"
+#=============================================================================#
+# Runs of homozygosity in plink
+roh_plink:
+  # bamlists:
+  #   MN0008: "MN0008"
+  bamlists:
+    MayaG: "MayaG/MayaG_maskStrict_repeatsUCSC_dp_GQ30_"
+    MayaH: "MayaH/MayaH_maskStrict_repeatsUCSC_dp_GQ30_"
+    # SuruiA: "SuruiA/SuruiA_maskStrict_repeatsUCSC_dp_GQ30_"
+    # SuruiB: "SuruiB/SuruiB_maskStrict_repeatsUCSC_dp_GQ30_"
+    # MN0008: "MN0008/MN0008_maskStrict_repeatsUCSC_dp_GQ30_"
+    # MN0008_L3U: "MN0008_L3U/MN0008_L3U_maskStrict_repeatsUCSC_dp_GQ30_"
+    # MN0008_L3U_trim2: "MN0008_L3U_trim2/MN0008_L3U_trim2_maskStrict_repeatsUCSC_dp_GQ30_"
+    # MN0008_trim_2bp_L3U_5bp_non_U: "MN0008_trim_2bp_L3U_5bp_non_U/MN0008_trim_2bp_L3U_5bp_non_U_maskStrict_repeatsUCSC_dp_GQ30_"
+    # SpCave: "SpCave/SpCave_maskStrict_repeatsUCSC_dp_GQ30_"
+    # Karitiana_HGDP_TeamAB: "Karitiana_HGDP_TeamAB/Karitiana_HGDP_TeamAB_maskStrict_repeatsUCSC_dp_GQ30_"
+    # A_Dai: "A_Dai/A_Dai_maskStrict_repeatsUCSC_dp_GQ30_"
+    # A_Dinka: "A_Dinka/A_Dinka_maskStrict_repeatsUCSC_dp_GQ30_"
+    # A_French: "A_French/A_French_maskStrict_repeatsUCSC_dp_GQ30_"
+    # A_Han: "A_Han/A_Han_maskStrict_repeatsUCSC_dp_GQ30_"
+    # A_Karitiana: "A_Karitiana/A_Karitiana_maskStrict_repeatsUCSC_dp_GQ30_"
+    # A_Mandenka: "A_Mandenka/A_Mandenka_maskStrict_repeatsUCSC_dp_GQ30_"
+    # A_Mbuti: "A_Mbuti/A_Mbuti_maskStrict_repeatsUCSC_dp_GQ30_"
+    # A_Papuan: "A_Papuan/A_Papuan_maskStrict_repeatsUCSC_dp_GQ30_"
+    # A_San: "A_San/A_San_maskStrict_repeatsUCSC_dp_GQ30_"
+    # A_Sardinian: "A_Sardinian/A_Sardinian_maskStrict_repeatsUCSC_dp_GQ30_"
+    # A_Yoruba: "A_Yoruba/A_Yoruba_maskStrict_repeatsUCSC_dp_GQ30_"
 
 # #=============================================================================#
 # # Relatedness with realSFS
@@ -356,120 +428,31 @@ smcpp:
   prefix: "input_smcpp/all.chr{chr}.vcf.gz"
   mask: "input_smcpp/called_masks/{population}/{population}_chr{chr}.bed.gz"
 
-# #=============================================================================#
-# # AdmixTools
-# f3:
-#   panel:
-#     Nov2019_Maanasa_mask1_flip:
-#       # bed, vcf, bim
-#       type:
-#           "bed"
-#       path: 
-#         "for_f3.bed"
-#           #"Nov2019_Maanasa_mask1_flip.bed"
-#   Outgroup:
-#     #"Yoruba"
-#     "Yorubas"
-#   # This file should have a column with indId and
-#   # one column with population ID
-#   ind_pop: 
-#     "for_f3.indpop"
-#     #"ind_pop.txt"
-#   # qp3pop
-#   Source1:
-#     "for_f3.source1" #"Source1.txt"
-#   Source2:
-#     "for_f3.source1" #"Source2.txt"
-#     Maanasa_Castro12NatAm_Skoglund_all_all:
-#     # YF_Skoglund_Castro11NatAm_Tupiniquim_MN0008_L3U_trim2_rmTrans:
-#     # YF_Skoglund_Castro11NatAm_Tupiniquim_MN0008_L3U_trim2:
-#     # Raghavan278ind_Castro11NatAm_Skoglund_Tupiniquim_MN0008_L3U_trim2:
-#     # Maanasa_Castro12NatAm_Skoglund_TupMaskedGuarani:
-#     #Maanasa_TupMaskedGuarani:
-#     # YF_Skoglund_Castro12NatAm_TupMaskedGuarani:
-#     # 25bams_Maanasa_Castro12NatAm_Skoglund:
-#     # 24bams_665ind_Maanasa_Castro12NatAm_Skoglund:
-#     # 25bams_YF_Skoglund_Castro12NatAm_rmTrans:
-#     # 25bams_Skoglund_Yoruba_merged_variant:
-#     # Skoglund43_Castro12:
-#     # 25bams_Maanasa_mask1_flip:
-#     # Skoglund2015:
-#     # Castro2020:
-#   #it actually works just for bed     # bed, vcf, bim
-#         type:
-#             "bed"
-#         path: 
-#           # "YF_Skoglund_Castro11NatAm_Tupiniquim/YF_Skoglund_Castro11NatAm_Tupiniquim_MN0008_L3U_trim2_rmTrans.bed"
-#           # "24bams_Maanasa_Castro12NatAm_Skoglund_merged.bed"
-#           "for_f3.bed"
-#           # "YF_Skoglund_Castro11NatAm_Tupiniquim_MN0008_L3U_trim2.bed"
-#           # "Raghavan278ind_Castro11NatAm_Skoglund_Tupiniquim_MN0008_L3U_trim2.bed"
-#           # "25bams_Maanasa_TupMaskedGuarani_merged.bed"
-#           # "25bams_Maanasa_Castro12NatAm_Skoglund_TupMaskedGuarani_merged.bed"
-#           # "25bams_YF_Skoglund_Castro12NatAm_TupMaskedGuarani_merged.bed"
-#           # "25bams_Maanasa_Castro12NatAm_Skoglund_merged.bed"
-#           # "24bams_665ind_Maanasa_Castro12NatAm_Skoglund.bed"
-#           # "25bams_Maanasa_mask1_flip.bed"
-#           # "25bams_YF_Skoglund_Castro12NatAm_merged_variant_rmTrans.bed"
-#           # "25bams_Skoglund_Yoruba_merged_variant.bed"
-#           # "25bams_Skoglund43_Castro12_variableAmericas_myCalls.bed"
-#           # "25bams_yoruba_guarani_tupiniquim_masked.bed"
-#             # "25bams_Skoglund2015_autosomes_variable_unique_Yoruba.bed"
-
-#   Outgroup:
-#     "YRI"
-#     # "Yorubas"
-#     # "Yoruba"
-#   # # This file should have a column with indId and
-#   # # one column with population ID
-#   ind_pop: 
-#     # "YF_Skoglund_Castro11NatAm_Tupiniquim_MN0008_L3U_trim2.indpop"
-#     "24bams_Maanasa_Castro12NatAm_Skoglund_merged.indpop"
-#     #"YF_Skoglund_Castro11NatAm_Tupiniquim_MN0008_L3U_trim2.indpop"
-#     # "Raghavan278ind_Castro11NatAm_Skoglund_Tupiniquim_MN0008_L3U_trim2.indpop"
-#     # "25bams_Maanasa_TupMaskedGuarani_merged.indpop"
-#     # "25bams_Maanasa_Castro12NatAm_Skoglund_TupMaskedGuarani_merged.indpop"
-#     # "25bams_YF_Skoglund_Castro12NatAm_TupMaskedGuarani_merged.indpop"
-#     # "25bams_Maanasa_Castro12NatAm_Skoglund_merged.indpop"
-#     # "24bams_665ind_Maanasa_Castro12NatAm_Skoglund.indpop"
-#     # "25bams_YF_Skoglund_Castro12NatAm_merged_variant.indpop"
-#     # "25bams_Skoglund_Yoruba_merged_variant.indpop"
-#     # "25bams_Skoglund43_Castro12_variableAmericas_myCalls.indpop"
-#     # "25bams_Maanasa_mask1_flip.indpop"
-#     # "25bams_Skoglund2015_autosomes_variable_unique_Yoruba.indpop"
-#     # "25bams_yoruba_guarani_tupiniquim_masked.indpop"
-#   # # qp3pop
-#   Source1:
-#     # "x.txt"
-#     # "24bams_Maanasa_Castro12NatAm_Skoglund_merged.source1"
-#     "24bams_Maanasa_Castro12NatAm_Skoglund_merged.source2"
-#     # "YF_Skoglund_Castro11NatAm_Tupiniquim_MN0008_L3U_trim2.source1"
-#     # "Raghavan278ind_Castro11NatAm_Skoglund_Tupiniquim_MN0008_L3U_trim2.source1"
-#     # "25bams_Maanasa_TupMaskedGuarani_merged.source1"
-#     # "25bams_Maanasa_Castro12NatAm_Skoglund_TupMaskedGuarani_merged.source1"
-#     # "25bams_YF_Skoglund_Castro12NatAm_TupMaskedGuarani_merged.source1"
-#     # "25bams_Maanasa_Castro12NatAm_Skoglund_merged.source1"
-#     # "24bams_665ind_Maanasa_Castro12NatAm_Skoglund.source1"
-#     # "25bams_YF_Skoglund_Castro12NatAm_merged_variant.source1"
-#     # "25bams_Skoglund43_Castro12_variableAmericas_myCalls.source1"
-#   #   "25bams_Maanasa_mask1_flip.source1"
-#     # "25bams_Skoglund2015_autosomes_variable_unique_Yoruba.source1"
-#     # "25bams_yoruba_guarani_tupiniquim_masked.source1"
-#   Source2:
-#     # "x.txt"
-#     "24bams_Maanasa_Castro12NatAm_Skoglund_merged.source2"
-#     # "YF_Skoglund_Castro11NatAm_Tupiniquim_MN0008_L3U_trim2.source2"
-#     # "Raghavan278ind_Castro11NatAm_Skoglund_Tupiniquim_MN0008_L3U_trim2.source2"
-#     # "25bams_Maanasa_TupMaskedGuarani_merged.source2"
-#     # "25bams_Maanasa_Castro12NatAm_Skoglund_TupMaskedGuarani_merged.source2"
-#     # "25bams_YF_Skoglund_Castro12NatAm_TupMaskedGuarani_merged.source2"
-#     # "25bams_Maanasa_Castro12NatAm_Skoglund_merged.source2"
-#     # "24bams_665ind_Maanasa_Castro12NatAm_Skoglund.source2"
-#     # "25bams_YF_Skoglund_Castro12NatAm_merged_variant.source2"
-#     # "25bams_Skoglund43_Castro12_variableAmericas_myCalls.source2"
-#   #   "25bams_Maanasa_mask1_flip.source2"
-#     # "25bams_Skoglund2015_autosomes_variable_unique_Yoruba.source2"
-#     # "25bams_yoruba_guarani_tupiniquim_masked.source2"
+#=============================================================================#
+# AdmixTools
+f3:
+  panel:
+    24ind_trim5_Raghavan278ind_CastroTupGuaUnrel_Skoglund_Castro12NatAm:
+      # bed, vcf, bim
+      type:
+          "bed"
+      path: 
+        "24ind_trim5_Raghavan278ind_CastroTupGuaUnrel_Skoglund_Castro12NatAm.bed"
+  Outgroup:
+    "YRI"
+    # "Yorubas"
+  # This file should have a column with indId and
+  # one column with population ID
+  ind_pop: 
+    "24ind_trim5_Raghavan278ind_CastroTupGuaUnrel_Skoglund_Castro12NatAm.indpop"
+    # "ind_pop.txt"
+  # qp3pop
+  Source1:
+    "24ind_trim5_Raghavan278ind_CastroTupGuaUnrel_Skoglund_Castro12NatAm.source1"
+    # "Source1.txt"
+  Source2:
+    "24ind_trim5_Raghavan278ind_CastroTupGuaUnrel_Skoglund_Castro12NatAm.source2"
+    # "Source2.txt"
 
 # # qpDstat
 # H1: 
@@ -503,65 +486,83 @@ smcpp:
 #       Human_not_introgressed:
 #         "35Africans_Meyer2012"
 
-# #=============================================================================#
-# # Error rates in ANGSD
-# error_angsd:
-#   blockSize: 1e7
-#   ancError_threads: 1
-#   Outgroup_file:
-#     #Yoruba: "/users/dcruzdav/wally_americas/Panels/fromVictor/Modern/Yoruba.bam"
-#     chimp: "chimpHg19.fa"
-#   Perfect_file:
-#     Dinka: "/users/dcruzdav/wally_americas/Panels/TeamAB_fclement/SS6004480-dedup.rg.bam"
-#     # "/users/dcruzdav/americas/d/diana.bam"
-#     # "/users/dcruzdav/wally_americas/Panels/Perfect_sample/NA12778.fa"
-#   minQ_perfect: 30
-#   minMapQ_perfect: 30
-#   BaseQuality: 30
-#   MapQuality: 30
-#   bamlists:
-#     Papuan:
-#       Papuan: "modern_bams/Papuan.bam"
-#     # Papuans:
-#     #   Papuans: "papuans16/*bam"
-#     # Yoruba:
-#     #   Yoruba: "modern_bams/Yoruba*bam"
-#     # Mixe:
-#     #   Mixe: "modern_bams/Mixe*bam"
-#     # LagoaSanta:
-#     #   LagoaSanta: "ancient_bams/LagoaSta.bam"  
-#     # MN0008:
-#     #   MN0008: "ancient_bams/MN0008.hg19.bam"
-#     # MN0008_L3U:
-#     #   MN0008_L3U: "ancient_bams/MN0008_L3U.hg19.bam"
-#     # MN0008_L3U_trim5:
-#     #   MN0008_L3U_trim5: "trimmed_L3U/MN0008_L3U.hg19_trim5.bam"
-#     # MN0008_L3U_trim2:
-#     #   MN0008_L3U_trim2: "trimmed_L3U/MN0008_L3U.hg19_trim2.bam"
-#     # MN0008_trim5:    
-#     #   MN0008_trim5: "trimmed_bams/MN0008.hg19_trim5.bam"
-#     # 22Botocudos_trim5:
-#     #   22Botocudos_trim5: "trimmed_bams/MN*bam"
-#     # LagoaSanta_trim5:
-#     #   LagoaSanta_trim5: "trimmed_bams/LagoaSta_trim5.bam"
-#     # Karitiana:
-#     #   Karitiana: "modern_bams/Karitiana*bam"
-#     # Surui:
-#     #   Surui: "modern_bams/Surui*bam"
-#     # Huichol:
-#     #   Huichol: "modern_bams/Huichol.bam"
-#     # Aymara:
-#     #   Aymara: "modern_bams/Aymara.bam"
-#     # French:    
-#     #   French: "modern_bams/French.bam"
-#     # Han:
-#     #   Han: "modern_bams/Han.bam"
-#     # Australian:
-#     #   Australian: "modern_bams/WCD*bam"
-#     # Papuan:
-#     #   Papuan: "modern_bams/Papuan.bam"
-#     # Andaman_trim5:
-#     #   Andaman_trim5: "trimmed_bams/Andaman_trim5.bam"
+#=============================================================================#
+# Error rates in ANGSD
+bamlists:
+  May_09_2022:
+    paths:
+      Mixe: ""
+      MN0009_L3U_trim2: ""
+      LagoaSanta_trim5: ""
+      Karitiana: ""
+      Surui: ""
+      Huichol: ""
+      Aymara: ""
+      Han: ""
+      French: ""
+      Papuan: ""
+      Australian: ""
+      Andaman_trim5: ""
+      Yoruba: ""
+
+error_angsd:
+  blockSize: 1e7
+  ancError_threads: 1
+  Outgroup_file:
+    # "/users/dcruzdav/americas/fromVictor/Modern/Yoruba.bam"
+    chimp: "/users/dcruzdav/americas/Panels/ANGSD/chimpHg19.fa"
+  Perfect_file:
+    Dinka: "/users/dcruzdav/americas/Panels/TeamAB_fclement/SS6004480-dedup.rg.bam"
+  
+    # "/users/dcruzdav/americas/d/diana.bam"
+    # "/users/dcruzdav/wally_americas/Panels/Perfect_sample/NA12778.fa"
+  minQ_perfect: 30
+  minMapQ_perfect: 30
+  BaseQuality: 30
+  MapQuality: 30
+  bamlists:
+    Papuan:
+      Papuan: "modern_bams/Papuan.bam"
+    # Papuans:
+    #   Papuans: "papuans16/*bam"
+    # Yoruba:
+    #   Yoruba: "modern_bams/Yoruba*bam"
+    # Mixe:
+    #   Mixe: "modern_bams/Mixe*bam"
+    # LagoaSanta:
+    #   LagoaSanta: "ancient_bams/LagoaSta.bam"  
+    # MN0008:
+    #   MN0008: "ancient_bams/MN0008.hg19.bam"
+    # MN0008_L3U:
+    #   MN0008_L3U: "ancient_bams/MN0008_L3U.hg19.bam"
+    # MN0008_L3U_trim5:
+    #   MN0008_L3U_trim5: "trimmed_L3U/MN0008_L3U.hg19_trim5.bam"
+    # MN0008_L3U_trim2:
+    #   MN0008_L3U_trim2: "trimmed_L3U/MN0008_L3U.hg19_trim2.bam"
+    # MN0008_trim5:    
+    #   MN0008_trim5: "trimmed_bams/MN0008.hg19_trim5.bam"
+    # 22Botocudos_trim5:
+    #   22Botocudos_trim5: "trimmed_bams/MN*bam"
+    # LagoaSanta_trim5:
+    #   LagoaSanta_trim5: "trimmed_bams/LagoaSta_trim5.bam"
+    # Karitiana:
+    #   Karitiana: "modern_bams/Karitiana*bam"
+    # Surui:
+    #   Surui: "modern_bams/Surui*bam"
+    # Huichol:
+    #   Huichol: "modern_bams/Huichol.bam"
+    # Aymara:
+    #   Aymara: "modern_bams/Aymara.bam"
+    # French:    
+    #   French: "modern_bams/French.bam"
+    # Han:
+    #   Han: "modern_bams/Han.bam"
+    # Australian:
+    #   Australian: "modern_bams/WCD*bam"
+    # Papuan:
+    #   Papuan: "modern_bams/Papuan.bam"
+    # Andaman_trim5:
+    #   Andaman_trim5: "trimmed_bams/Andaman_trim5.bam"
 
 
 #     # BronzeAge_Greece:
@@ -1119,169 +1120,258 @@ smcpp:
 #           # vicModern: "~/americas/fromVictor/Modern/*bam"
 #           # Posth: "~/americas/Panels/Posth2018/final_bam/*bam"
 
-# merge_geno_like:
-#   likelihoods:
-#     #24ind: "Maanasa/24ind.beagle"
-#     #20down0.5x: "Maanasa/20down0.5x.beagle"
-#     #20HighCov: "Maanasa/20HighCov.beagle"
-#     24ind_trim5: "Maanasa/24ind_trim5.beagle"
-#   bed_files:
-#     Raghavan681ind: "../2021_04_16/Raghavan681ind.bed"
-#     Raghavan278ind_Castro12NatAm_Skoglund: "six_favorite/Raghavan_Castro12NatAm_Skoglund/Raghavan278ind_Castro12NatAm_Skoglund.bed"
-#     Raghavan681ind_Castro12NatAm_Skoglund: "six_favorite/Raghavan681ind_Castro12NatAm_Skoglund/Raghavan681ind_Castro12NatAm_Skoglund_merged.bed"
-#     #Maanasa: "/users/dcruzdav/wally_americas/Panels/Maanasa/Maanasa_mask1_flip.bed"
-# #==============================================================================#
-# # Impute with GLIMPSE
-# GLIMPSE:
-#   nThreads:
-#     8
-#   bamlists:
-#     1x:
-#       paths:
-#         Ayayema: '1/Ayayema_1x.bam'
-#         HGDP00456.flt.sort.rmdup.realign.md: '1/HGDP00456.flt.sort.rmdup.realign.md_1x.bam'
-#         HGDP00521.flt.sort.rmdup.realign.md: '1/HGDP00521.flt.sort.rmdup.realign.md_1x.bam'
-#         HGDP00542.flt.sort.rmdup.realign.md: '1/HGDP00542.flt.sort.rmdup.realign.md_1x.bam'
-#         HGDP00665.flt.sort.rmdup.realign.md: '1/HGDP00665.flt.sort.rmdup.realign.md_1x.bam'
-#         HGDP00778.flt.sort.rmdup.realign.md: '1/HGDP00778.flt.sort.rmdup.realign.md_1x.bam'
-#         HGDP00927.flt.sort.rmdup.realign.md: '1/HGDP00927.flt.sort.rmdup.realign.md_1x.bam'
-#         HGDP00998.flt.sort.rmdup.realign.md: '1/HGDP00998.flt.sort.rmdup.realign.md_1x.bam'
-#         HGDP01029.flt.sort.rmdup.realign.md: '1/HGDP01029.flt.sort.rmdup.realign.md_1x.bam'
-#         HGDP01284.flt.sort.rmdup.realign.md: '1/HGDP01284.flt.sort.rmdup.realign.md_1x.bam'
-#         HGDP01307.flt.sort.rmdup.realign.md: '1/HGDP01307.flt.sort.rmdup.realign.md_1x.bam'
-#         Lovelock2: '1/Lovelock2_1x.bam'
-#         Lovelock3: '1/Lovelock3_1x.bam'
-#         LS4: '1/LS4_1x.bam'
-#         LS6: '1/LS6_1x.bam'
-#         LS7: '1/LS7_1x.bam'
-#         LS8: '1/LS8_1x.bam'
-#         SS6004467-dedup.rg: '1/SS6004467-dedup.rg_1x.bam'
-#         SS6004468-dedup.rg: '1/SS6004468-dedup.rg_1x.bam'
-#         SS6004469-dedup.rg: '1/SS6004469-dedup.rg_1x.bam'
-#         SS6004470-dedup.rg: '1/SS6004470-dedup.rg_1x.bam'
-#         SS6004471-dedup.rg: '1/SS6004471-dedup.rg_1x.bam'
-#         SS6004472-dedup.rg: '1/SS6004472-dedup.rg_1x.bam'
-#         SS6004473-dedup.rg: '1/SS6004473-dedup.rg_1x.bam'
-#         SS6004474-dedup.rg: '1/SS6004474-dedup.rg_1x.bam'
-#         SS6004475-dedup.rg: '1/SS6004475-dedup.rg_1x.bam'
-#         SS6004476-dedup.rg: '1/SS6004476-dedup.rg_1x.bam'
-#         SS6004477-dedup.rg: '1/SS6004477-dedup.rg_1x.bam'
-#         SS6004478-dedup.rg: '1/SS6004478-dedup.rg_1x.bam'
-#         Taino: '1/Taino_1x.bam'
-#         USR2: '1/USR2_1x.bam'
-#         WCD01: '1/WCD01_1x.bam'
-#         WCD02: '1/WCD02_1x.bam'
-#         WCD03: '1/WCD03_1x.bam'
-#         WCD05: '1/WCD05_1x.bam'
-#         WCD08: '1/WCD08_1x.bam'
-#         WCD13: '1/WCD13_1x.bam'
-#         Karitiana: '1/Karitiana_1x.bam'
-#         KaritianaB: '1/KaritianaB_1x.bam'
-#         KaritianaBI16: '1/KaritianaBI16_1x.bam'
-#         KaritianaG: '1/KaritianaG_1x.bam'
-#         KaritianaH: '1/KaritianaH_1x.bam'
-#         LagoaSta: '1/LagoaSta_1x.bam'
-#         MayaG: '1/MayaG_1x.bam'
-#         MayaH: '1/MayaH_1x.bam'
-#         Mixe: '1/Mixe_1x.bam'
-#         MixeE: '1/MixeE_1x.bam'
-#         MixeF: '1/MixeF_1x.bam'
-#         PimaCEPH: '1/PimaCEPH_1x.bam'
-#         PimaE: '1/PimaE_1x.bam'
-#         PimaF: '1/PimaF_1x.bam'
-#         SuruiA: '1/SuruiA_1x.bam'
-#         SuruiB: '1/SuruiB_1x.bam'
-#         USR1: '1/USR1_1x.bam'
-#     LagoaSta_1x:
-#       paths:
-#         LagoaSanta_trim5_1x: '~/americas/Botocudos/Downsampled/2020_09_10/1/LagoaSta_trim5_1x.bam'
-#     # 0.5x_low_coverage:
-#     #   paths:
-#     #     MN00118: "bams/MN00118.hg19.bam"
-#     #     MN0009: "bams/MN0009.hg19.bam"
-#     #     MN00013: "bams/MN00013.hg19.bam"
-#     #     MN00056: "bams/MN00056.hg19.bam"
-#     # 0.5x_low_coverage_trimmed5bp:
-#     #   paths:
-#     #     MN00118: "bams/Trimmed/MN00118.hg19_trim5.bam"
-#     #     MN0009: "bams/Trimmed/MN0009.hg19_trim5.bam"
-#     #     MN00013: "bams/Trimmed/MN00013.hg19_trim5.bam"
-#     #     MN00056: "bams/Trimmed/MN00056.hg19_trim5.bam"
-#     # Taino:
-#       # paths:
-#         # Taino: "~/shared_ressources/reference_panels/dcruzdav/fromVictor/Ancient/Taino.bam"
-#     # MN0008:
-#     #   paths:
-#     #     MN0008: "bams/MN0008.hg19.bam"
-#     # MN0008_L3U:
-#     #   paths:
-#     #     MN0008_L3U: "bams/MN0008_L3U.hg19.bam"
-#     # MN0008_non_U:
-#     #   paths:
-#     #     MN0008_non_U: "bams/MN0008_non_U.hg19.bam"
-#     # MN0008_trim_2bp_L3U_5bp_non_U:
-#     #   paths:
-#     #     MN0008_trim_2bp_L3U_5bp_non_U: "bams/MN0008_trim_2bp_L3U_5bp_non_U.hg19.bam"
-#     # LagoaSta:
-#     #   paths:
-#     #     LagoaSta: "bams/original_fromVictor/LagoaSta.bam"
-#     # Karitiana: 
-#     #   paths:
-#     #     Karitiana: "bams/original_fromVictor/Karitiana.bam"
-#     # KaritianaB: 
-#     #   paths:
-#     #     KaritianaB: "bams/original_fromVictor/KaritianaB.bam"
-#     # KaritianaBI16: 
-#     #   paths:
-#     #     KaritianaBI16: "bams/original_fromVictor/KaritianaBI16.bam"
-#     # KaritianaG:
-#     #   paths:
-#     #     KaritianaG: "bams/original_fromVictor/KaritianaG.bam"
-#     # KaritianaH:
-#     #   paths:
-#     #     KaritianaH: "bams/original_fromVictor/KaritianaH.bam"
-#     # MayaG:
-#     #   paths:
-#     #     MayaG: "bams/original_fromVictor/MayaG.bam"
-#     # MayaH: 
-#     #   paths:
-#     #     MayaH: "bams/original_fromVictor/MayaH.bam"
-#     # Mixe:
-#     #   paths:
-#     #     Mixe: "bams/original_fromVictor/Mixe.bam"
-#     # MixeE:
-#     #   paths:
-#     #     MixeE: "bams/original_fromVictor/MixeE.bam"
-#     # MixeF: 
-#     #   paths:
-#     #     MixeF: "bams/original_fromVictor/MixeF.bam"
-#     # PimaCEPH: 
-#     #   paths:
-#     #     PimaCEPH: "bams/original_fromVictor/PimaCEPH.bam"
-#     # PimaE: 
-#     #   paths:
-#     #     PimaE: "bams/original_fromVictor/PimaE.bam"
-#     # PimaF: 
-#     #   paths:
-#     #     PimaF: "bams/original_fromVictor/PimaF.bam"
-#     # SuruiA: 
-#     #   paths:
-#     #     SuruiA: "bams/original_fromVictor/SuruiA.bam"
-#     # SuruiB: 
-#     #   paths:
-#     #     SuruiB: "bams/original_fromVictor/SuruiB.bam"
-#     # USR1: 
-#     #   paths:
-#     #     USR1: "bams/original_fromVictor/USR1.bam"
-#     # 1x_fromVictor:
-#     #   paths:
-#     #     1x: "bams/*1x.bam"
-#     # 0.5x_fromVictor:
-#     #   paths:
-#     #     0.5x: "bams/*0.5x.bam"
-#     # MN0008_trim_5bp_non_U:
-#     #   paths:
-#     #     MN0008_trim_5bp_non_U: '~/americas/Botocudos/BAM/Trimmed/2020_03_10/MN0008_non_U.hg19_trim5.bam'
+merge_geno_like:
+  likelihoods:
+    #24ind: "Maanasa/24ind.beagle"
+    #20down0.5x: "Maanasa/20down0.5x.beagle"
+    #20HighCov: "Maanasa/20HighCov.beagle"
+    24ind_trim5: "Maanasa/24ind_trim5.beagle"
+  bed_files:
+    Raghavan681ind: "../2021_04_16/Raghavan681ind.bed"
+    Raghavan278ind_Castro12NatAm_Skoglund: "six_favorite/Raghavan_Castro12NatAm_Skoglund/Raghavan278ind_Castro12NatAm_Skoglund.bed"
+    Raghavan681ind_Castro12NatAm_Skoglund: "six_favorite/Raghavan681ind_Castro12NatAm_Skoglund/Raghavan681ind_Castro12NatAm_Skoglund_merged.bed"
+    #Maanasa: "/users/dcruzdav/wally_americas/Panels/Maanasa/Maanasa_mask1_flip.bed"
+#==============================================================================#
+# Impute with GLIMPSE
+imputation_GLIMPSE:
+  GP_filter: [0.99]
+  nThreads:
+    8
+  path_map: "genetic_maps_b37/chr{chr}.b37.gmap.gz"
+  #path_panel: "/users/dcruzdav/shared_ressources/1000Genomes_umich/1000G_umich_genotypes/1000GP_nygc_umich_chr{chr}_snps_only_genotypes.vcf.gz"
+  path_panel: "/users/dcruzdav/shared_ressources/1000Genomes/ALL.chr{chr}.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz"
+  #bam_list: None
+#  2x_8x:
+  paths:
+    MayaG: /users/dcruzdav/popgen/Panels/fromVictor/Modern/MayaG.bam
+    MayaH: /users/dcruzdav/popgen/Panels/fromVictor/Modern/MayaH.bam
+    SuruiA: /users/dcruzdav/popgen/Panels/fromVictor/Modern/SuruiA.bam
+    SuruiB: /users/dcruzdav/popgen/Panels/fromVictor/Modern/SuruiB.bam
+    MN0008: /users/dcruzdav/popgen/Botocudos/BAM/Trimmed/2020_03_10/MN0008_L3U.hg19_trim2.bam
+    MN00056: /users/dcruzdav/popgen/Botocudos/BAM/Trimmed/2021_03_08/MN00056.hg19_trim5.bam
+    KaritianaA: /users/dcruzdav/popgen/Panels/TeamAB_fclement/HGDP00998.flt.sort.rmdup.realign.md.bam
+    KaritianaB: /users/dcruzdav/popgen/Panels/TeamAB_fclement/SS6004476-dedup.rg.bam
+#     and_NH_a_06: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_a_06.hg19_trim2.bam
+#     and_NH_c_01: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_c_01.hg19_trim2.bam
+#     and_SH_a_01: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_01.hg19_trim2.bam
+#     and_NH_a_04: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_a_04.hg19_trim2.bam
+#     and_SH_a_02: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_02.hg19_trim2.bam
+#     and_NH_d_02: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_d_02.hg19_trim2.bam
+#     and_SH_a_15: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_15.hg19_trim2.bam
+#     and_SH_a_07: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_07.hg19_trim2.bam
+#     and_CL_c_01: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_CL_c_01.hg19_trim2.bam
+#     and_SH_a_10: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_10.hg19_trim2.bam
+#     and_SH_a_22: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_22.hg19_trim2.bam
+#     and_NH_a_11: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_a_11.hg19_trim2.bam
+#     and_TI_b_01: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_TI_b_01.hg19_trim2.bam
+#     and_NH_a_09: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_a_09.hg19_trim2.bam
+#     and_CL_e_01: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_CL_e_01.hg19_trim2.bam
+#     and_NH_a_05: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_a_05.hg19_trim2.bam
+#     and_CL_h_01: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_CL_h_01.hg19_trim2.bam
+#     and_SH_a_17: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_17.hg19_trim2.bam
+#     and_NH_a_07: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_a_07.hg19_trim2.bam
+# #    1x_2x:
+#     and_SH_a_04: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_04.hg19_trim2.bam
+#     and_SH_a_06: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_06.hg19_trim2.bam
+#     and_SH_a_09: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_09.hg19_trim2.bam
+#     and_NH_a_08: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_a_08.hg19_trim2.bam
+#     and_SH_a_14: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_14.hg19_trim2.bam
+#     and_SH_a_03: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_03.hg19_trim2.bam
+#     and_NH_a_03: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_a_03.hg19_trim2.bam
+#     and_NH_c_03: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_c_03.hg19_trim2.bam
+#     and_SC_a_04: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SC_a_04.hg19_trim2.bam
+#     and_SH_a_05: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_05.hg19_trim2.bam
+#     and_SC_a_08: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SC_a_08.hg19_trim2.bam
+#     and_SC_a_02: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SC_a_02.hg19_trim2.bam
+#     and_SH_a_13: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_13.hg19_trim2.bam
+#     and_SC_a_06: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SC_a_06.hg19_trim2.bam
+#     and_SH_a_12: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_12.hg19_trim2.bam
+#     and_SH_a_08_cont8: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_08_cont8.hg19_trim2.bam
+#     and_SH_a_16: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_16.hg19_trim2.bam
+#     and_SC_a_01: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SC_a_01.hg19_trim2.bam
+#     and_SC_a_03: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SC_a_03.hg19_trim2.bam
+#     and_NH_a_10: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_a_10.hg19_trim2.bam
+#    0.5x_1x:
+      # either a file listing bam files or individual paths. 
+      # If "file" is specified, "paths" are ignored.
+      #file: "list_bams_0.5x_1x.txt" 
+    # and_NC_b_11: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NC_b_11.hg19_trim2.bam
+    # and_NC_a_02: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NC_a_02.hg19_trim2.bam
+    # and_TR_a_02: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_TR_a_02.hg19_trim2.bam
+    # and_NH_a_02: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_a_02.hg19_trim2.bam
+    # and_SH_a_11: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_11.hg19_trim2.bam
+    # and_TR_a_01: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_TR_a_01.hg19_trim2.bam
+    # and_SH_a_19: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_19.hg19_trim2.bam
+    # and_NH_a_01: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_a_01.hg19_trim2.bam
+    # and_SC_a_05: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SC_a_05.hg19_trim2.bam
+    # and_NC_b_08: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NC_b_08.hg19_trim2.bam
+    # and_NC_b_01: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NC_b_01.hg19_trim2.bam
+    # and_NC_b_06: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NC_b_06.hg19_trim2.bam
+    # and_SH_a_18: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_18.hg19_trim2.bam
+    # and_NC_a_01: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NC_a_01.hg19_trim2.bam
+    # and_NC_a_03: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NC_a_03.hg19_trim2.bam
+# <0.5x
+#     and_SH_a_20: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SH_a_20.hg19_trim2.bam
+#     and_CL_f_01: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_CL_f_01.hg19_trim2.bam
+#     and_NH_f_01: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_f_01.hg19_trim2.bam
+#     and_NH_d_01: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_d_01.hg19_trim2.bam
+#     and_NH_c_02: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_c_02.hg19_trim2.bam
+#     and_NC_b_09: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NC_b_09.hg19_trim2.bam
+#     and_NC_b_03_DAMAGE: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NC_b_03_DAMAGE.hg19_trim2.bam
+#     and_NH_i_01: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_i_01.hg19_trim2.bam
+#     and_NC_b_05_sw_DUPLICATED: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NC_b_05_sw_DUPLICATED.hg19_trim2.bam
+#     and_SC_a_07: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SC_a_07.hg19_trim2.bam
+#     and_NC_b_07_W: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NC_b_07_W.hg19_trim2.bam
+#     and_NC_b_10_newLib: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NC_b_10_newLib.hg19_trim2.bam
+#     and_SC_b_01_cont12: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_SC_b_01_cont12.hg19_trim2.bam
+#     and_NH_i_02: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NH_i_02.hg19_trim2.bam
+#     and_TR_b_02: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_TR_b_02.hg19_trim2.bam
+#     and_NC_b_05_newLib: /users/dcruzdav/popgen/bams_Eduardo_trimmed/and_NC_b_05_newLib.hg19_trim2.bam
+
+    #     Ayayema: '1/Ayayema_1x.bam'
+    #     HGDP00456.flt.sort.rmdup.realign.md: '1/HGDP00456.flt.sort.rmdup.realign.md_1x.bam'
+    #     HGDP00521.flt.sort.rmdup.realign.md: '1/HGDP00521.flt.sort.rmdup.realign.md_1x.bam'
+    #     HGDP00542.flt.sort.rmdup.realign.md: '1/HGDP00542.flt.sort.rmdup.realign.md_1x.bam'
+    #     HGDP00665.flt.sort.rmdup.realign.md: '1/HGDP00665.flt.sort.rmdup.realign.md_1x.bam'
+    #     HGDP00778.flt.sort.rmdup.realign.md: '1/HGDP00778.flt.sort.rmdup.realign.md_1x.bam'
+    #     HGDP00927.flt.sort.rmdup.realign.md: '1/HGDP00927.flt.sort.rmdup.realign.md_1x.bam'
+    #     HGDP00998.flt.sort.rmdup.realign.md: '1/HGDP00998.flt.sort.rmdup.realign.md_1x.bam'
+    #     HGDP01029.flt.sort.rmdup.realign.md: '1/HGDP01029.flt.sort.rmdup.realign.md_1x.bam'
+    #     HGDP01284.flt.sort.rmdup.realign.md: '1/HGDP01284.flt.sort.rmdup.realign.md_1x.bam'
+    #     HGDP01307.flt.sort.rmdup.realign.md: '1/HGDP01307.flt.sort.rmdup.realign.md_1x.bam'
+    #     Lovelock2: '1/Lovelock2_1x.bam'
+    #     Lovelock3: '1/Lovelock3_1x.bam'
+    #     LS4: '1/LS4_1x.bam'
+    #     LS6: '1/LS6_1x.bam'
+    #     LS7: '1/LS7_1x.bam'
+    #     LS8: '1/LS8_1x.bam'
+    #     SS6004467-dedup.rg: '1/SS6004467-dedup.rg_1x.bam'
+    #     SS6004468-dedup.rg: '1/SS6004468-dedup.rg_1x.bam'
+    #     SS6004469-dedup.rg: '1/SS6004469-dedup.rg_1x.bam'
+    #     SS6004470-dedup.rg: '1/SS6004470-dedup.rg_1x.bam'
+    #     SS6004471-dedup.rg: '1/SS6004471-dedup.rg_1x.bam'
+    #     SS6004472-dedup.rg: '1/SS6004472-dedup.rg_1x.bam'
+    #     SS6004473-dedup.rg: '1/SS6004473-dedup.rg_1x.bam'
+    #     SS6004474-dedup.rg: '1/SS6004474-dedup.rg_1x.bam'
+    #     SS6004475-dedup.rg: '1/SS6004475-dedup.rg_1x.bam'
+    #     SS6004476-dedup.rg: '1/SS6004476-dedup.rg_1x.bam'
+    #     SS6004477-dedup.rg: '1/SS6004477-dedup.rg_1x.bam'
+    #     SS6004478-dedup.rg: '1/SS6004478-dedup.rg_1x.bam'
+    #     Taino: '1/Taino_1x.bam'
+    #     USR2: '1/USR2_1x.bam'
+    #     WCD01: '1/WCD01_1x.bam'
+    #     WCD02: '1/WCD02_1x.bam'
+    #     WCD03: '1/WCD03_1x.bam'
+    #     WCD05: '1/WCD05_1x.bam'
+    #     WCD08: '1/WCD08_1x.bam'
+    #     WCD13: '1/WCD13_1x.bam'
+    #     Karitiana: '1/Karitiana_1x.bam'
+    #     KaritianaB: '1/KaritianaB_1x.bam'
+    #     KaritianaBI16: '1/KaritianaBI16_1x.bam'
+    #     KaritianaG: '1/KaritianaG_1x.bam'
+    #     KaritianaH: '1/KaritianaH_1x.bam'
+    #     LagoaSta: '1/LagoaSta_1x.bam'
+    #     MayaG: '1/MayaG_1x.bam'
+    #     MayaH: '1/MayaH_1x.bam'
+    #     Mixe: '1/Mixe_1x.bam'
+    #     MixeE: '1/MixeE_1x.bam'
+    #     MixeF: '1/MixeF_1x.bam'
+    #     PimaCEPH: '1/PimaCEPH_1x.bam'
+    #     PimaE: '1/PimaE_1x.bam'
+    #     PimaF: '1/PimaF_1x.bam'
+    #     SuruiA: '1/SuruiA_1x.bam'
+    #     SuruiB: '1/SuruiB_1x.bam'
+    #     USR1: '1/USR1_1x.bam'
+    # LagoaSta_1x:
+    #   paths:
+    #     LagoaSanta_trim5_1x: '~/americas/Botocudos/Downsampled/2020_09_10/1/LagoaSta_trim5_1x.bam'
+    # 0.5x_low_coverage:
+    #   paths:
+    #     MN00118: "bams/MN00118.hg19.bam"
+    #     MN0009: "bams/MN0009.hg19.bam"
+    #     MN00013: "bams/MN00013.hg19.bam"
+    #     MN00056: "bams/MN00056.hg19.bam"
+    # 0.5x_low_coverage_trimmed5bp:
+    #   paths:
+    #     MN00118: "bams/Trimmed/MN00118.hg19_trim5.bam"
+    #     MN0009: "bams/Trimmed/MN0009.hg19_trim5.bam"
+    #     MN00013: "bams/Trimmed/MN00013.hg19_trim5.bam"
+    #     MN00056: "bams/Trimmed/MN00056.hg19_trim5.bam"
+    # Taino:
+      # paths:
+        # Taino: "~/shared_ressources/reference_panels/dcruzdav/fromVictor/Ancient/Taino.bam"
+    # MN0008:
+    #   paths:
+    #     MN0008: "bams/MN0008.hg19.bam"
+    # MN0008_L3U:
+    #   paths:
+    #     MN0008_L3U: "bams/MN0008_L3U.hg19.bam"
+    # MN0008_non_U:
+    #   paths:
+    #     MN0008_non_U: "bams/MN0008_non_U.hg19.bam"
+    # MN0008_trim_2bp_L3U_5bp_non_U:
+    #   paths:
+    #     MN0008_trim_2bp_L3U_5bp_non_U: "bams/MN0008_trim_2bp_L3U_5bp_non_U.hg19.bam"
+    # LagoaSta:
+    #   paths:
+    #     LagoaSta: "bams/original_fromVictor/LagoaSta.bam"
+    # Karitiana: 
+    #   paths:
+    #     Karitiana: "bams/original_fromVictor/Karitiana.bam"
+    # KaritianaB: 
+    #   paths:
+    #     KaritianaB: "bams/original_fromVictor/KaritianaB.bam"
+    # KaritianaBI16: 
+    #   paths:
+    #     KaritianaBI16: "bams/original_fromVictor/KaritianaBI16.bam"
+    # KaritianaG:
+    #   paths:
+    #     KaritianaG: "bams/original_fromVictor/KaritianaG.bam"
+    # KaritianaH:
+    #   paths:
+    #     KaritianaH: "bams/original_fromVictor/KaritianaH.bam"
+    # MayaG:
+    #   paths:
+    #     MayaG: "bams/original_fromVictor/MayaG.bam"
+    # MayaH: 
+    #   paths:
+    #     MayaH: "bams/original_fromVictor/MayaH.bam"
+    # Mixe:
+    #   paths:
+    #     Mixe: "bams/original_fromVictor/Mixe.bam"
+    # MixeE:
+    #   paths:
+    #     MixeE: "bams/original_fromVictor/MixeE.bam"
+    # MixeF: 
+    #   paths:
+    #     MixeF: "bams/original_fromVictor/MixeF.bam"
+    # PimaCEPH: 
+    #   paths:
+    #     PimaCEPH: "bams/original_fromVictor/PimaCEPH.bam"
+    # PimaE: 
+    #   paths:
+    #     PimaE: "bams/original_fromVictor/PimaE.bam"
+    # PimaF: 
+    #   paths:
+    #     PimaF: "bams/original_fromVictor/PimaF.bam"
+    # SuruiA: 
+    #   paths:
+    #     SuruiA: "bams/original_fromVictor/SuruiA.bam"
+    # SuruiB: 
+    #   paths:
+    #     SuruiB: "bams/original_fromVictor/SuruiB.bam"
+    # USR1: 
+    #   paths:
+    #     USR1: "bams/original_fromVictor/USR1.bam"
+    # 1x_fromVictor:
+    #   paths:
+    #     1x: "bams/*1x.bam"
+    # 0.5x_fromVictor:
+    #   paths:
+    #     0.5x: "bams/*0.5x.bam"
+    # MN0008_trim_5bp_non_U:
+    #   paths:
+    #     MN0008_trim_5bp_non_U: '~/americas/Botocudos/BAM/Trimmed/2020_03_10/MN0008_non_U.hg19_trim5.bam'
 
 # #==============================================================================#
 # # ADMIXTURE
@@ -1348,162 +1438,66 @@ smcpp:
 #     #   max_K: 8
 #     #   replicates: 10
 
-#     # 20HighCov_Raghavan681ind:
-#     #   path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_18/Raghavan681ind/20HighCov_Raghavan681ind.beagle"
-#     #   min_K: 2
-#     #   max_K: 8
-#     #   replicates: 10
-#     # 20HighCov_Raghavan681ind_Castro12NatAm_Skoglund:
-#     #   path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_18/Raghavan681ind_Castro12NatAm_Skoglund/20HighCov_Raghavan681ind_Castro12NatAm_Skoglund.beagle"
-#     #   min_K: 2
-#     #   max_K: 8
-#     #   replicates: 10
-#     # 20HighCov_Raghavan278ind_Castro12NatAm_Skoglund:
-#     #   path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_18/Raghavan278ind_Castro12NatAm_Skoglund/20HighCov_Raghavan278ind_Castro12NatAm_Skoglund.beagle"
-#     #   min_K: 2
-#     #   max_K: 8
-#     #   replicates: 10
-#     # 9botocudos_0.3x_744ind_39k_mind0.9:
-#     #   path: "9botocudos_0.3x_744ind_39k_mind0.9.beagle"
-#     #   min_K: 2
-#     #   max_K: 17
-#     #   replicates: 10
-#     # 9botocudos_0.3x_trim_744ind_39k_mind0.9:
-#     #   path: "9botocudos_0.3x_trim_744ind_39k_mind0.9.beagle"
-#     #   min_K: 2
-#     #   max_K: 17
-# NGSAdmix_time: 4
-# NGSAdmix_mem: 4
-# ngs_admix:
-#   panels:
-#     selected_Raghavan_Castro12NatAm_Skoglund:
-#       path: "selected_Raghavan278ind_Castro12NatAm_Skoglund.beagle"
-#       min_K: 2
-#       max_K: 15
-#       replicates: 10
-#     # 24ind_Raghavan681ind_56k:
-#       # path: "24ind_Raghavan681ind_56k.beagle"
-#       # min_K: 12
-#       # max_K: 15
-#       # replicates: 10
-#     # 24ind_Raghavan278ind_Castro12NatAm_Skoglund:
-#     #   path: "24ind_Raghavan278ind_Castro12NatAm_Skoglund.beagle"
-#     #   min_K: 2
-#     #   max_K: 15
-#     #   replicates: 10
-#     # 24ind_Raghavan278ind:
-#     #   path: "to_ngsadmix/24ind_Raghavan278ind.beagle"
-#     #   min_K: 2
-#     #   max_K: 17
-#     #   replicates: 10
-#     # 24ind_Raghavan278ind_Castro12NatAm_Skoglund:
-#     #   path: "to_ngsadmix/24ind_Raghavan278ind_Castro12NatAm_Skoglund.beagle"
-#     #   min_K: 2
-#     #   max_K: 17
-#     #   replicates: 10
-#     # 24ind_Raghavan278ind_CastroTupGuaUnrelated:
-#     #   path: "to_ngsadmix/24ind_Raghavan278ind_CastroTupGuaUnrelated.beagle"
-#     #   min_K: 2
-#     #   max_K: 17
-#     #   replicates: 10
-#     # 24ind_YF_Skoglund_Castro12NatAm:
-#     #   path: "to_ngsadmix/24ind_YF_Skoglund_Castro12NatAm.beagle"
-#     #   min_K: 2
-#     #   max_K: 6
-#     #   replicates: 10
-#     # 24ind_YF_Skoglund_Castro12NatAm_CastroTupGuaUnrelated:
-#     #   path: "to_ngsadmix/24ind_YF_Skoglund_Castro12NatAm_CastroTupGuaUnrelated.beagle"
-#     #   min_K: 2
-#     #   max_K: 6
-#     #   replicates: 10
-
-
-#     # 9ind_Raghavan278ind:
-#     #   path: "to_ngsadmix/9ind_Raghavan278ind.beagle"
-#     #   min_K: 2
-#     #   max_K: 17
-#     #   replicates: 10
-#     # 9ind_Raghavan278ind_Castro12NatAm_Skoglund:
-#     #   path: "to_ngsadmix/9ind_Raghavan278ind_Castro12NatAm_Skoglund.beagle"
-#     #   min_K: 2
-#     #   max_K: 17
-#     #   replicates: 10
-#     # 9ind_Raghavan278ind_CastroTupGuaUnrelated:
-#     #   path: "to_ngsadmix/9ind_Raghavan278ind_CastroTupGuaUnrelated.beagle"
-#     #   min_K: 2
-#     #   max_K: 17
-#     #   replicates: 10
-#     # 9ind_YF_Skoglund_Castro12NatAm:
-#     #   path: "to_ngsadmix/9ind_YF_Skoglund_Castro12NatAm.beagle"
-#     #   min_K: 2
-#     #   max_K: 6
-#     #   replicates: 10
-#     # 9ind_YF_Skoglund_Castro12NatAm_CastroTupGuaUnrelated:
-#     #   path: "to_ngsadmix/9ind_YF_Skoglund_Castro12NatAm_CastroTupGuaUnrelated.beagle"
-#     #   min_K: 2
-#     #   max_K: 6
-#     #   replicates: 10
-
-#     # YF_Skoglund_Castro12NatAm_merged_24ind.beagle:
-#     #   path: "YF_Skoglund_Castro12NatAm_merged/YF_Skoglund_Castro12NatAm_merged_24ind.beagle"
-#     #   min_K: 2
-#     #   max_K: 6
-#     #   replicates: 10
-#     # Wollstein_mind0.95:
-#     #   path: "/users/dcruzdav/wally_americas/Panels/fromAnna/Jorde_Wollstein/Wollstein_mind0.95.beagle"
-#     #   min_K: 6
-#     #   max_K: 6
-#     #   replicates: 10
-#     # Wollstein_mind0.95_rmtrans:
-#     #   path: "/users/dcruzdav/wally_americas/Panels/fromAnna/Jorde_Wollstein/Wollstein_mind0.95_rmtrans.beagle"
-#     #   min_K: 6
-#     #   max_K: 6
-#     #   replicates: 10
-#     # reduced_9botocudos_0.3x_744ind_39k_mind0.9:
-#     #   path: "reduced_9botocudos_0.3x_744ind_39k_mind0.9.beagle"
-#     #   min_K: 2
-#     #   max_K: 20
-#     #   replicates: 10
-#     # reduced_9botocudos_0.3x_665ind_200k_mind0.9:
-#     #   path: "reduced_9botocudos_0.3x_665ind_200k_mind0.9.beagle"
-#     #   min_K: 2
-#     #   max_K: 20
-#     #   replicates: 10
-#     # 9botocudos_0.3x_744ind_39k_mind0.9:
-#     #   path: "9botocudos_0.3x_744ind_39k_mind0.9.beagle"
-#     #   min_K: 2
-#     #   max_K: 17
-#     #   replicates: 10
-#     # 9botocudos_0.3x_trim_744ind_39k_mind0.9:
-#     #   path: "9botocudos_0.3x_trim_744ind_39k_mind0.9.beagle"
-#     #   min_K: 2
-#     #   max_K: 17
-#     #   replicates: 10
-#     # 9botocudos_0.3x_665ind_200k_mind0.9:
-#     #   path: "9botocudos_0.3x_665ind_200k_mind0.9.beagle"
-#     #   min_K: 2
-#     #   max_K: 17
-#     #   replicates: 10
-#     # 9botocudos_0.3x_trim_665ind_200k_mind0.9:
-#     #   path: "9botocudos_0.3x_trim_665ind_200k_mind0.9.beagle"
-#     #   min_K: 2
-#     #   max_K: 17
-#     #   replicates: 10
-#     # Maanasa_Tupiniquim_Guarani_39k_mind0.10:
-#     #   path: "Maanasa_Tupiniquim_Guarani_39k_mind0.10.beagle"
-#     #   min_K: 2
-#     #   max_K: 17
-#     #   replicates: 100
-#     # 817ind_Maanasa_Tupiniquim_Guarani_mind0.90:
-#     #   path: "817ind_Maanasa_Tupiniquim_Guarani_mind0.90.beagle"
-#     #   min_K: 2
-#     #   max_K: 17
-#     #   replicates: 100
-#     # 722ind_Maanasa_mind0.90:
-#     #   path: "722ind_Maanasa_mind0.90.beagle"
-#     #   min_K: 2
-#     #   max_K: 17
-#     #   replicates: 100
+    # 20HighCov_Raghavan681ind:
+    #   path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_18/Raghavan681ind/20HighCov_Raghavan681ind.beagle"
+    #   min_K: 2
+    #   max_K: 8
+    #   replicates: 10
+    # 20HighCov_Raghavan681ind_Castro12NatAm_Skoglund:
+    #   path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_18/Raghavan681ind_Castro12NatAm_Skoglund/20HighCov_Raghavan681ind_Castro12NatAm_Skoglund.beagle"
+    #   min_K: 2
+    #   max_K: 8
+    #   replicates: 10
+    # 20HighCov_Raghavan278ind_Castro12NatAm_Skoglund:
+    #   path: "/users/dcruzdav/wally_americas/Botocudos/GenoLike/2021_06_18/Raghavan278ind_Castro12NatAm_Skoglund/20HighCov_Raghavan278ind_Castro12NatAm_Skoglund.beagle"
+    #   min_K: 2
+    #   max_K: 8
+    #   replicates: 10
+    # 9botocudos_0.3x_744ind_39k_mind0.9:
+    #   path: "9botocudos_0.3x_744ind_39k_mind0.9.beagle"
+    #   min_K: 2
+    #   max_K: 17
+    #   replicates: 10
+    # 9botocudos_0.3x_trim_744ind_39k_mind0.9:
+    #   path: "9botocudos_0.3x_trim_744ind_39k_mind0.9.beagle"
+    #   min_K: 2
+    #   max_K: 17
+    #   replicates: 10
+    24ind_Raghavan278ind_CastroTupGuaUnrel:
+      path: "/users/dcruzdav/popgen/Botocudos/GenoLike/2021_09_28/Raghavan278ind_CastroTupGuaUnrel/24ind_trim5_Raghavan278ind_CastroTupGuaUnrel.beagle"
+      min_K: 2
+      max_K: 17
+      replicates: 10
+    24ind_Raghavan278ind_CastroTupGuaUnrel_Skoglund_Castro12NatAm:
+      path: "/users/dcruzdav/popgen/Botocudos/GenoLike/2021_09_28/Raghavan278ind_CastroTupGuaUnrel_Skoglund_Castro12NatAm/24ind_trim5_Raghavan278ind_CastroTupGuaUnrel_Skoglund_Castro12NatAm.beagle"
+      min_K: 2
+      max_K: 15
+      replicates: 10
+    # 9botocudos_0.3x_665ind_200k_mind0.9:
+    #   path: "9botocudos_0.3x_665ind_200k_mind0.9.beagle"
+    #   min_K: 2
+    #   max_K: 17
+    #   replicates: 10
+    # 9botocudos_0.3x_trim_665ind_200k_mind0.9:
+    #   path: "9botocudos_0.3x_trim_665ind_200k_mind0.9.beagle"
+    #   min_K: 2
+    #   max_K: 17
+    #   replicates: 10
+    # Maanasa_Tupiniquim_Guarani_39k_mind0.10:
+    #   path: "Maanasa_Tupiniquim_Guarani_39k_mind0.10.beagle"
+    #   min_K: 2
+    #   max_K: 17
+    #   replicates: 100
+    # 817ind_Maanasa_Tupiniquim_Guarani_mind0.90:
+    #   path: "817ind_Maanasa_Tupiniquim_Guarani_mind0.90.beagle"
+    #   min_K: 2
+    #   max_K: 17
+    #   replicates: 100
+    # 722ind_Maanasa_mind0.90:
+    #   path: "722ind_Maanasa_mind0.90.beagle"
+    #   min_K: 2
+    #   max_K: 17
+    #   replicates: 100
 
 #     # Nov2019_Wollstein_mind0.95_rmtrans: 
 #     #   path: "Nov2019_Wollstein_mind0.95_rmtrans.beagle"
@@ -1872,24 +1866,13 @@ smcpp:
 # md5_mem: 2
 # md5_time: 24
 
-# #=============================================================================#
-# # smcpp
-# # smcpp_docker: False
-# # smcpp_header: "mn0008.header"
-# # smcpp:
-  MN0008:
-    prefix: "bcfs/MN0008_maskStrict_dp_GQ30_repeatsUCSC"
-    populations:
-      MN0008: ["MN0008"]
-  MN0008_L3U_trim2:
-    prefix: "bcfs/MN0008_L3U_trim2_maskStrict_dp_GQ30_repeatsUCSC"
-    populations:
-      MN0008_L3U_trim2: ["MN0008"]
-  MN0008_trim_2bp_L3U_5bp_non_U:
-    prefix: "bcfs/MN0008_trim_2bp_L3U_5bp_non_U_maskStrict_dp_GQ30_repeatsUCSC"
-    populations:
-      MN0008_trim_2bp_L3U_5bp_non_U: ["MN0008"]
-  Karitiana_HGDP_TeamAB:
-    prefix: "bcfs/Karitiana_HGDP_TeamAB_maskStrict_dp_GQ30_repeatsUCSC"
-    populations:
-      Karitiana_TeamAB: ["HGDP00998"]
+#=============================================================================#
+# Haploid call on all the genome
+haploid_call:
+  blockSize: 5e6
+  bamlists:
+    Botocudos: 
+      path: "24ind.txt"
+      ind: "24ind.ind"
+      minMinor: 0
+      maxMis: 23

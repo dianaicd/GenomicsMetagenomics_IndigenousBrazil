@@ -36,14 +36,21 @@ mapQ        = param_or_default(key = "MapQuality", default = 30)
 threads     = param_or_default(key = "abbababa_threads", default = 1)
 blockSize   = param_or_default(key = "BlockSize", default = 5e6)
 
+wildcard_constraints:
+    bamlist = "|".join([bamlist for bamlist in config["bamlists"].keys()])
+
 # You must have an error estimation per population
 # defined in your initial sets
-# Therefore, first run: "error_angsd.smk"
-localrules: all,merge_bamlists,files_size_name_ancErr_per_pop,merge_abbababa2
-rule all:
+#include: "error_angsd.smk"
+
+rule ALL:
     input:
-        errorCorr = f"{long_bamlist}/{long_bamlist}.ErrorCorr.txt",
-        D = f"{long_bamlist}/{long_bamlist}.D"
+        # ancError = set(["{group}/{group}_ancErr.ancError".format(bamlist = bamlist, group = group) 
+        #         for bamlist in list(config["bamlists"].keys())
+        #         for group in config["bamlists"][bamlist]["paths"]]),
+        abbabba = expand("{bamlist}.abbababa2", 
+                        bamlist = config["bamlists"].keys()),
+        errorCorr = expand("{bamlist}.ErrorCorr.txt", bamlist = config["bamlists"].keys())
         
 # You need a file with population size and population name
 # If everything went ok while runnning error_angsd.smk,
@@ -65,36 +72,35 @@ rule merge_bamlists:
         for group in {groups} ; do echo $group  ; done > {output.group_order}
         """
 
-rule files_size_name_ancErr_per_pop:
-    input:
-        bamlist = "{long_bamlist}.txt",
-        group_order = "{long_bamlist}.order",
+# rule files_size_name_ancErr_per_pop:
+#     input:
+#         bamlist = "{bamlist}.txt",
+#         bamlist_group = lambda wildcards: ["Bams_group/{group}.txt".format(group = group, bamlist = "{bamlist}") 
+#                             # for bamlist in list(config["bamlists"].keys()) 
+#                             for group in config["bamlists"][wildcards.bamlist]["paths"]],
+#         ancError_group = lambda wildcards: ["{group}/{group}_ancErr.ancError".format(group = group) for group in config["bamlists"][wildcards.bamlist]["paths"]]
 
-    output:
-        pop_size = "{long_bamlist}.popsize",
-        pop_name = "{long_bamlist}.popname",
-        anc_error = "{long_bamlist}.ancErr"
-    run:
-        with open(output.pop_size, 'w') as pop_size, open(output.pop_name, 'w') as pop_name, open(output.anc_error, 'w') as anc_error:
-            with open(input.group_order, "r") as group_list:
-                for line in group_list.readlines():
-                    group = line.replace("\n", "")
-                    group_name = group
-                    if group in config["abbababa2"]["correct_error"]:
-                        group_error = f"{group}/{group}_perfect.{perfect_name}_outgroup.{outgroup_err_name}_ancErr.ancError"
-                    else:
-                        group_error = "NA"
-
-                    with open(f"{group}/{group}.txt", 'r') as file:
-                        group_size = len(file.readlines())
-
-                    pop_size.write(str(group_size) + "\n")
-                    pop_name.write(group_name + "\n")
-                    anc_error.write(group_error + "\n")
-            # Don't forget to append the ancestral sample
-            pop_size.write("1")
-            pop_name.write(ancestral_name)
-            anc_error.write("NA")
+#     output:
+#         pop_size = "{bamlist}.popsize",
+#         pop_name = "{bamlist}.popname",
+#         anc_error = "{bamlist}.ancErr"
+#     run:
+#         bamlist = input.bamlist.split(".")[0]
+#         all_groups = list(config["bamlists"][bamlist]["paths"].keys())
+#         with open(output.pop_size, 'w') as pop_size, open(output.pop_name, 'w') as pop_name, open(output.anc_error, 'w') as anc_error:
+#         # This file has the actual order of the groups (populations)
+#             for group in input.bamlist_group:
+#                 group_name = group.split("/")[-1].split(".")[0]
+#                 with open(group, 'r') as file:
+#                     size = len(file.readlines())
+                    
+#                     pop_size.write(str(size) + "\n")
+#                     pop_name.write(group_name + "\n")
+#                     anc_error.write(group_name+"/"+group_name+"_ancErr.ancError\n")
+#             # Don't forget to append the ancestral sample
+#             pop_size.write("1")
+#             pop_name.write(ancestral_fasta)
+#             anc_error.write("NA")
 
 
 # Get chromosome size and break it in blocks
@@ -121,24 +127,23 @@ rule run_abbababa2:
     output:
         abbababa = temp("{bamlist}/{chr}/{start}_{end}.abbababa2")
     threads:
-        threads
-    resources:
-        runtime = 60,
-        mem = 2*1024
+        4
     params:
         mapQ = mapQ,
-        baseQ = baseQ,
-        prefix = "{bamlist}/{chr}/{start}_{end}"
+        baseQ = baseQ
+    resources:
+        runtime = 60 * 12,
+        mem = 1024 * 12
     shell:
         """
         angsd -doAbbababa2 1 -bam {input.bamlist} \
-        -sizeFile {input.pop_size} -doCounts 1 \
-        -out {params.prefix} \
-        -anc {input.ancestral} \
-        -r {wildcards.chr}:{wildcards.start}-{wildcards.end} \
-        -useLast 0 \
-        -checkBamHeaders 0 \
-        -minQ {params.baseQ} -minMapQ {params.mapQ} -p {threads}
+            -sizeFile {input.pop_size} -doCounts 1 \
+            -out {wildcards.chr}/{wildcards.chr}_{wildcards.start}_{wildcards.end}_{wildcards.bamlist} \
+            -anc {input.ancestral} \
+            -r {wildcards.chr}:{wildcards.start}-{wildcards.end} \
+            -useLast 0 \
+            -checkBamHeaders 0 \
+            -minQ {params.baseQ} -minMapQ {params.mapQ} -p {threads}
         """
 
 def expand_abbababa2(bamlist):

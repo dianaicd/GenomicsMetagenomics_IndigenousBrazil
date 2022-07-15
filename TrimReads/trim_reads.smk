@@ -16,9 +16,9 @@ bam_path = {path.split("/")[-1].replace(".bam", ""):path for bamlist in myDict.k
 print(bam_path)
 # key is path, value is bam name
 path_bam = {bam_path[key]:key for key in bam_path.keys()}
-print(path_bam)
+
 trim_bp = config["Trim"]["trim_bp"]
-# trim_bp = [i for i in range(5,6)]
+#trim_bp = [i for i in range(5,6)]
 
 rule all:
     input:
@@ -36,8 +36,8 @@ rule trim_reads:
     output:
         bam = "{sample}_trim{trim}.bam"
     resources:
-        mem = 2*1024,
-        runtime = 60*23
+        mem = 4 * 1024,
+        runtime = 12 * 60
     run:
         untrimmed_bam = pysam.AlignmentFile(input.bam, "rb")
         trimmed_bam = pysam.AlignmentFile(output.bam, "wb", template = untrimmed_bam)

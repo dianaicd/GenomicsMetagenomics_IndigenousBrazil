@@ -1,0 +1,26 @@
+// Priors and rules file
+// *********************
+[PARAMETERS]
+//#isInt? #name #dist.#min #max
+//all Ns are in number of haploid individuals
+1 NeKar             unif 200 1000 output
+1 NeSur             unif 200 1000 output
+1 NeBot             unif 10 1000 output
+1 NeMay             unif 10 1000000 output
+1 NeAym             unif 10 1000000 output
+1 NeKS              unif 10 100000 output
+1 NeBra             unif 10 100000 output
+1 NeAnc1            unif 10 100000 output
+1 NeAnc2            unif 10 100000 output
+1 split_Kar_Sur     unif 10 2000 output
+1 split_Bot_KarSur  unif 10 2000 output
+1 split_Aym         unif 10 2000 output
+1 split_May         unif 10 2000 output
+[COMPLEX PARAMETERS]
+// ratio = futureNe / pastNe
+0 rat_KS    = NeKS / NeKar
+0 rat_BotKS = NeBra / NeKS
+0 rat_Aym = NeAym / NeAnc1
+0 rat_May = NeMay / NeAnc2
+//1 TENDBOT = TBOT+50 hide 
+
