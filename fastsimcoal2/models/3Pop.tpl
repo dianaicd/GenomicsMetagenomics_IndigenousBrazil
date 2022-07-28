@@ -1,13 +1,13 @@
 //Number of population samples (demes)
 3
 //Population effective sizes (number of genes)
+NeBot
 NeKar
 NeSur
-NeBot
-//Samples sizes
-4
-4
-2
+//Samples sizes, ages and inbreeding
+2   7  FIS_Bot
+4   0   FIS_Kar
+4   0   FIS_Sur
 //Growth rates : negative growth implies population expansion
 0
 0
@@ -23,4 +23,4 @@ split_Bot_KarSur         2 1 1 rat_BotKS    0 0
 //Per chromosome: Number of linkage blocks
 1
 //per Block: data type, num loci, rec. rate and mut rate + optional parameters
-FREQ 1 0 2.5e-8
+FREQ 1 0 5.788249e-09 OUTEXP

@@ -1,0 +1,44 @@
+// Priors and rules file
+// *********************
+
+[PARAMETERS]
+//#isInt? #name   #dist.#min  #max
+//all N are in number of haploid individuals
+1 NAnc                unif        1000      100000         output
+1 NKarit              logunif     100       10000          output
+1 NSurui              logunif     100       10000          output
+1 NBotoc              logunif     100       10000          output
+
+0 FIS_Karit           unif        0         0.9            output
+0 FIS_Surui           unif        0         0.9            output
+0 FIS_Botoc           unif        0         0.9            output
+
+0 iBotAnc             logunif     0.001     1              output
+0 iBotKarit           logunif     0.001     1              output
+0 iBotSurui           logunif     0.001     1              output
+0 iBotBotoc           logunif     0.001     1              output
+
+//1 TBotKarit           unif       0          499            output //paramInRange
+//1 TBotSurui           unif       0          499            output //paramInRange
+//1 TBotBotoc           unif       7+10       499            output //paramInRange
+1 TBotAmr             unif       0       700            output //paramInRange
+
+1 TAdmBot             unif       5          50              output
+1 TAdmKar             unif       5          50              output
+1 TAdmSur             unif       5          50              output
+
+0 admAnc.Karit        unif        0         0.25           output
+0 admAnc.Surui        unif        0         0.25           output
+0 admAnc.Botoc        unif        0         0.25           output
+
+1 delta_T1            unif       0         100             output
+1 delta_T2            unif       0         100             output
+1 delta_T3            unif       0         100             output
+
+[COMPLEX PARAMETERS]
+1 TBotSurui = TAdmSur + delta_T1                            output
+1 TBotKarit = TAdmKar + delta_T2                            output
+1 TBotBotoc = TAdmBot + delta_T3                            output
+1 TDivKarit = TBotKarit+1                                  output
+1 TDivSurui = TBotSurui+1                                  output
+1 TDivBotoc = TBotBotoc+1                                  output
