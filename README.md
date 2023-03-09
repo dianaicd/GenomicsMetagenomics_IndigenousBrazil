@@ -1,32 +1,22 @@
-# Scripts related to Botocudos' project
+# Scripts used in the project
 
-This repository hosts the scripts and instructions to obtain the results from
-the Botocudos' project.
+This repository hosts the scripts and instructions to obtain the results presented in Cruz Dávalos et al. (2022) [https://doi.org/10.1101/2022.01.27.477466].
 
-The analysis were done in the (not necessary strict) following order:
-
-* Maps
-* Mapping
-* DataQuality
-* Sex_determination
-* Damage
-* Contamination
-* Isotopes
-* MDS
-* GenoLike
-* Admixture
-* Relatedness
-* Dstat
-* Plotting
-
-Other scripts that were useful to me are found under misc/
-
-The folder Quack/ contains scripts related to the analysis of the human DNA.
-
-We obtained the FASTQ files from the sequencing facility in
-Copenhagen. The files are stored under:
-
-/home/dcruzdva/archive/FASTQ/Botocudo
-
-and organized into directories depending on the day on which
-they were downloaded.
+Some of the analyses include:
+* Visualization of geographic regions
+* Mapping NGS reads (which was developed in parallel with the mapache repository)
+* Metagenomic screening
+* Phylogenetic analyses
+* Assess data quality
+* Determine genomic sex
+* Infer molecular damage
+* Estimate levels of contamination
+* Isotopic analyses (diet reconstruction and calibration of radiocarbon dates)
+* Dimension reduction (e.g., PCA, MDS)
+* Genotype likelihood calculation and genotype calling
+* Admixture analyses
+* Assessment of relatedness between individuals
+* Population genetics analyses with admixtools
+* Inference of runs of homozygosity
+* Demographic inference
+* Data visualization (in general)
