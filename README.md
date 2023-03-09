@@ -7,7 +7,7 @@ Some of the analyses include:
 * Mapping NGS reads (which was developed in parallel with the mapache repository)
 * Metagenomic screening
 * Phylogenetic analyses
-* Assess data quality
+* Assessment data quality
 * Determine genomic sex
 * Infer molecular damage
 * Estimate levels of contamination
@@ -20,3 +20,5 @@ Some of the analyses include:
 * Inference of runs of homozygosity
 * Demographic inference
 * Data visualization (in general)
+
+A new repository will be released soon with the compact version of the analyses.
