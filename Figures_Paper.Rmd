@@ -1,0 +1,2771 @@
+---
+title: "Figures_Botocudo_manuscript"
+author: "Diana Cruz"
+date: "2023-02-14"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, warning = F, message = F, fig.align = "center")
+```
+
+# Preface
+
+This RMarkdown was built to recreate the main and supplementary figures as well as the figures included in the supplementary datasets released along with the manuscript at https://doi.org/10.1101/2022.01.27.477466
+(Indigenous peoples in eastern Brazil: insights from 19th century genomes and metagenomes; Cruz Dávalos et al., 2022, bioRxiv).
+
+
+```{r set working paths}
+require(stringr)
+
+# Please change the prefix to indicate the directory that contains the
+# "final_inputs" folder.
+prefix_data <- "~/Projects/Botocudos/Files/backup"
+
+# Functions written to help with the plotting
+# Please change the prefix to indicate the directory that contains the
+# "scripts" folder.
+prefix_scripts <- "~/Projects/Botocudos/Files/backup/scripts"
+
+source(str_glue("{prefix_scripts}/utilities_ngsadmix.R"))
+source(str_glue("{prefix_scripts}/f3_utilities_plotting.R"))
+source(str_glue("{prefix_scripts}/plot_Dstats.R"))
+
+source(str_glue("{prefix_scripts}/plot_fsc2_functions.R"))
+```
+
+
+
+```{r install packages, eval = F}
+# Run/adapt this part if any of the packages are not installed
+for(
+  package in c(
+    "stringr", "scales", "ggplot2", "cowplot", "plyr", "mapdata", "colorspace",
+    "data.table", "gridBase", "grid", "tidyr", "gg.gap"
+  )
+){
+  if(!require(package)) install.packages(package)
+}
+
+
+if(!require("ComplexHeatmap")){
+  # The developers of ComplexHeatMap suggest the install_github function from devtools
+  # In my case, the install_github from the remotes package worked better
+  # https://jokergoo.github.io/ComplexHeatmap-reference/book/
+  if(!require("remotes")){
+    install.packages("remotes")
+    remotes::install_github("jokergoo/ComplexHeatmap")
+  }
+}
+
+```
+
+
+```{r load packages and functions}
+require(stringr)
+require(scales)
+require(ggplot2)
+require(cowplot)
+require(plyr)
+require(mapdata)
+require(colorspace)
+require(data.table)
+require(gridBase)
+require(grid)
+suppressPackageStartupMessages(library(ComplexHeatmap))
+require(tidyr)
+require(gg.gap)
+```
+
+
+# Main figures
+
+
+## Figure 1
+
+Figure 1 contains a map (1A) and the calibrated radiocarbon dates (1B) for 22 (out of 24) individuals sequenced in the project, as well as two individuals (Polynesian-"Botocudos") published in 2014 (Malaspinas et al.).
+
+### Fig. 1A Map
+
+The part of the map was made in two parts. The main part corresponds to the map of Brazil, with the second part being a small inlet of the Americas.
+These two maps were imported to Illustrator, and the labels, colors, and legend were adjusted there.
+
+
+```{r map Americas, fig.width=10, fig.height=10}
+# png("~/Projects/Botocudos/Plots/map_DBC.png",
+#     width = 20, height = 15, res = 300, units = "in")
+
+# pdf("~/Projects/Botocudos/Plots/map_DBC.pdf", width = 20, height = 15)
+
+# layout(my_mat, widths = c(1,1), heights = c(2,2))
+
+myColors <- c(sea = "#b8b8ff", land = "white", border = "gray90")
+# pdf("~/Projects/Botocudos/Plots/Map/pre_Fig1_Americas.pdf",
+#     width = 10, height = 10)
+map(database = "world", interior = T, boundary = F,
+    xlim = c(-180, -20),
+    ylim = c(-90, 90),
+    bg = as.character(myColors["sea"]),
+    fill = T, 
+    col = as.character(myColors["land"]),
+    border = as.character(myColors["border"])
+    )
+
+coords_brazil <- c(x1 = -80, x2 = -30,
+                   y1 = -40, y2 = 10)
+
+rect(xleft = coords_brazil["x1"],
+     xright = coords_brazil["x2"],
+     ybottom = coords_brazil["y1"],
+     ytop = coords_brazil["y2"],
+     border = "white",
+     col = "NA")
+# dev.off()
+```
+
+
+```{r map Brazil, fig.width=10, fig.width=10}
+# pdf("~/Projects/Botocudos/Plots/Map/pre_Fig1_Brazil.pdf",
+#     width = 10, height = 10)
+coordinates_pops <- read.table(str_glue("{prefix_data}/final_inputs/Fig_1/map_brazil_pops.coordinates"))
+colnames(coordinates_pops) <- c("population", "y", "x", "type")
+
+map(database = "world", interior = T, boundary = T,
+    xlim = coords_brazil[c("x1", "x2")],
+    ylim = coords_brazil[c("y1", "y2")],
+    mar = c(0,0,0,0),
+    col = as.character(myColors["land"]),
+    bg = as.character(myColors["sea"]),
+    fill = T,
+    border = "gray50"
+    )
+
+points(
+  x = coordinates_pops$x,
+  y = coordinates_pops$y,
+  pch = 1,
+  cex = 2
+)
+text(
+  x = coordinates_pops$x + 1 ,
+  y = coordinates_pops$y + 1 ,
+  labels = coordinates_pops$population
+)
+# dev.off()
+
+
+```
+
+
+### Fig. 1B Calibrated dates
+
+To reproduce the calibration curves, you need to use OxCal , then 1
+- open a new project
+- import new plot
+- copy paste "plot" code from input_oxcal_sorted.txt
+- adjust settings as wished
+- save
+
+```{sh, eval = F}
+ # content of final_inputs/Fig_1/input_oxcal_sorted.txt
+ 
+ Plot()
+ {
+  Curve("ShCal13","ShCal13.14c");
+  R_Date("MN00016", 327, 24);
+  R_Date("MN00045", 249, 29);
+  R_Date("MN00064", 199, 41);
+  R_Date("MN0009", 185, 29);
+  R_Date("MN00067", 170, 21);
+  R_Date("MN00056", 169, 25);
+  R_Date("MN0003", 160, 26);
+  R_Date("MN00013", 150, 40);
+  R_Date("MN00022", 145, 30);
+  R_Date("MN0008", 149, 23);
+  R_Date("MN00023", 137, 25);
+  R_Date("MN00068", 121, 33);
+  R_Date("MN00039", 106, 30);
+  R_Date("MN00010", 84, 22);
+  R_Date("MN00069", 79, 39);
+  R_Date("MN00346", 76, 30);
+  R_Date("MN00021", 66, 50);
+  R_Date("MN00118", 48, 33);
+  R_Date("MN00316", 40, 30);
+  R_Date("MN00119", 23, 22);
+  
+  R_Date("MN1943", 1080, 25);
+  R_Date("Bot15", 417, 25);
+
+  Curve("Marine13","Marine13.14c");
+  Delta_R("LocalMarine",33,24);
+  Mix_Curve("Mixed","ShCal13","LocalMarine",50,0);
+  R_Date("MN01701", 2035, 27);
+  R_Date("Bot17", 487, 25);
+ };
+
+
+```
+
+
+## Figure 2 MDS + fastNGSadmix
+
+```{r  function to plot MDS}
+
+mds_plot <- function(points, dim1, dim2, index, pop_color, myLegend, xlab, ylab, 
+                     xlim, text_coords, 
+                     do_plot = T, do_legend = T, main = "MDS with worldwide groups",
+                     cex = 4,
+                     eig = NULL, cex_text = 1){
+  # to use alpha()
+  
+  if(do_plot){
+    # modify x and y axes
+    xlab <- paste0(
+      "Dimension ", data_to_plot$dim1, ": ", 
+      percent(eig[dim1]/sum(abs(eig)), accuracy = 0.01)
+    )
+    ylab <- paste0(
+      "Dimension ", data_to_plot$dim2, ": ", 
+      percent(eig[dim2]/sum(abs(eig)), accuracy = 0.01)
+    )
+    # plot axes 
+    plot(points[,dim1], points[,dim2],
+         xlab = xlab, ylab = ylab,
+         bty = "n", main = main,
+         type = "n",
+         xlim = xlim,
+         cex.axis = cex_text,
+         cex.lab = cex_text*1.1)
+    title()
+    grid()
+    # add other points
+    
+    points(points[ -index , dim1 ], points[ -index, dim2 ], 
+           col = as.character(points$color[ -index ]),
+           bg =  alpha(as.character(points$bg[ -index ]), 0.9),
+           pch = points$pch[ -index ], 
+           cex = cex)
+    # points of interest
+    points(points[index, dim1], points[index, dim2],
+           col = as.character(points$color[index]),
+           bg = alpha(as.character(points$bg[index]), 0.8),
+           pch = points$pch[index],
+           cex = cex)
+  }
+  
+  # Add text
+  text("Remote Oceania", 
+       x = 0.15, y = -0.1, 
+       col = pop_color["RemoteOceania"], font = 1, adj = 0)
+  text("Americas", 
+       x = 0.09, y = 0.1, 
+       col = pop_color["Americas"], font = 1, adj = 0)
+  text("New 'Botocudo' individuals", x = 0.15, y = 0, 
+       col = pop_color["Botocudos"], font = 1, adj = 0)
+  text("Africa", x = -0.25, y = -0.05, 
+       col = pop_color["Africa"], font = 1, adj = 0)
+  text("Europe and West Asia", x = 0.05, y = 0.17, 
+       col = pop_color["Europe"], font = 1, adj = 0)
+  text("East and Southeast Asia", x = 0.15, y = -0.05, 
+       col = pop_color["EastAsia"], font = 1, adj = 0)
+  text("Central and South Asia", x = -0.1, y = 0.05, 
+       col = pop_color["CentralSouthAsia"], font = 1, adj = 0)
+  text("Near Oceania", x = -0.05, y = -0.08, 
+       col = pop_color["NearOceania"], font = 1, adj = 0)
+  text("'Botocudo' individuals (Malaspinas et al., 2014)", x = -0.15, y = -0.11, 
+       col = "black", font = 1, adj = 0)
+  
+  # Add legend
+  if(do_legend){
+    
+    plot(1:10, 1:10, axes = F, ylab = NA, xlab = NA, type = "n" )
+    legend(1,10, legend = myLegend$legend, 
+           cex = 0.9,
+           pt.cex = 1.5,
+           col = as.character(myLegend$color),
+           pt.bg = as.character(myLegend$bg),
+           pch = myLegend$pch, bty = "n",
+           ncol = 1)
+  }
+}
+
+```
+
+```{r make figure 2}
+#pdf_path <- "~/Projects/Botocudos/Plots/dummy_figures/MDS_fastNGSadmix_Wollstein_rmTrans.pdf"
+#png_path <- "~/Projects/Botocudos/Plots/ngsadmix/ISBA9/MDS_fastNGSadmix_Wollstein_rmTrans.png"
+mds_save_path <- str_glue("{prefix_data}/final_inputs/Fig_2/MDS_rmTrans_data_to_plot.Rda")
+ngsadmix_save_path <- str_glue("{prefix_data}/final_inputs/Fig_2/NGSadmix_rmTrans_data_to_plot.Rda")
+
+load(mds_save_path)
+load(ngsadmix_save_path)
+
+#------------------------------------------------------------------------------#
+  # MDS and fastNGSadmix results
+  #pdf(pdf_path, width = 7, height = 3.5, useDingbats = F)
+  #png(png_path, width = round(35 / 2.54), height = round(20 / 2.54), units = "in", res = 300)
+  
+  
+  # Matrix to indicate the position of the eight plots 
+  # (one MDS, and the admixture plot is done in several parts)
+  mat <- matrix(
+    c(
+      1,2,
+      1,3,
+      1,4,
+      1,5,
+      1,6,
+      1,7
+    ),
+    byrow = T, nrow = 6)
+  #print(mat)
+  layout(mat, widths = c(5,3), heights = c(0.8,0.3,0.3,.3*6,.4,5))
+  
+
+  #-----------------------------------------------------------
+  #  MDS
+  par(mar = c(bottom=4, left=4, top=2, right=0))
+  do.call( mds_plot,  data_to_plot )
+
+  # empty plot
+  par(mar = c(0,0,0,0))
+  plot(1,1,type="n", axes =F)
+  #-----------------------------------------------------------
+  # barplot/admixture
+  mar_bars  = c(bottom=.5, left=0, top=.1,right=8)
+  
+  # This plot is done in several sections to help with readabilitymanage the space
+  # One individual (Sambaqui, this study)
+  object_to_plot$nInds_per_block <- 1
+  object_to_plot$pop_breaks <- c("Sambaqui", "Sambaqui")
+  object_to_plot$plot(do_layout = F, add_text = F, horiz = T, mar_bars = mar_bars, srt = 0, adj = 0)
+  
+  # One individual (Mummified individual from Minas Gerais, this study)
+  object_to_plot$nInds_per_block <- 1
+  object_to_plot$pop_breaks <- c("MinasGerais", "MinasGerais")
+  object_to_plot$plot(do_layout = F, add_text = F, horiz = T, mar_bars = mar_bars, srt = 0, adj = 0)
+  
+  # Block with 24 individuals labeled as "Botocudos"
+  object_to_plot$pop_breaks <- c("Botocudos", "Botocudos")
+  object_to_plot$nInds_per_block <- 24
+  object_to_plot$plot(do_layout = F, add_text = F, horiz = T,  mar_bars = mar_bars, srt = 0, adj = 0)
+  
+  # The two individuals from Malaspinas et al., 2014
+  object_to_plot$nInds_per_block <- 2
+  object_to_plot$pop_breaks <- c("Botocudos2014", "Botocudos2014")
+  object_to_plot$plot(do_layout = F, add_text = F, horiz = T,  mar_bars = mar_bars, srt = 0, adj = 0)
+  
+  object_to_plot$qopt <- object_to_plot$qopt[
+    -which(object_to_plot$new_panel$population == "Botocudos2014"),
+  ]
+  object_to_plot$new_panel <- 
+    object_to_plot$new_panel[
+      -which(object_to_plot$new_panel$population == "Botocudos2014"),
+    ]
+  object_to_plot$myAes <- object_to_plot$myAes[
+    -which(object_to_plot$myAes$population == "Botocudos2014"),
+  ]
+  
+  object_to_plot$pop_breaks <- c("YRI", "Totonac")
+  
+  object_to_plot$plot(do_layout = F, add_text = F, horiz = T,  mar_bars = mar_bars, srt = 0, adj = 0)
+  
+```
+
+In this part of the code, there were two R objects that were important to load, one stored in `MDS_rmTrans_data_to_plot.Rda` and another one in `NGSadmix_rmTrans_data_to_plot.Rda`.
+
+After loading `MDS_rmTrans_data_to_plot.Rda`, an object called `data_to_plot` will appear in the environment.
+
+`data_to_plot` is a list, and one of the items in the list is a dataframe called `points`.
+The rows in `points` correspond to the individuals, and the first 606 columns correspond to each dimension of the MDS.
+The last columns have the metadata of the individuals, which is useful to make queries and to make the plot.
+
+```{r}
+dim(data_to_plot$points)
+head(data_to_plot$points[,608:617])
+```
+
+
+Once `NGSadmix_rmTrans_data_to_plot.Rda` is loaded, an object called `object_to_plot` will be found in the environment.
+This is an object I defined to help me plotting and modifying admixture plots as needed. However, it might not be easy to use.
+If anyone needs to play with this object, I recommend using its `plot()` function right after loading it, as this will initialize many useful variables.
+It will also print a default admixture plot with all the data.
+
+The admixture proportions are stored in its `qopt` dataframe. This dataframe has an extra column (`width`) which helps to indicate the desired width for the genome of an individual in a plot.
+
+The metadata (individuals' IDs, populations, etc.) is stored in the `new_panel` dataframe.
+The color of each component can be adjusted by modifying the vector `colors`.
+
+
+```{r}
+load(ngsadmix_save_path)
+# object_to_plot$plot()
+head(object_to_plot$qopt)
+head(object_to_plot$new_panel)
+object_to_plot$colors
+
+```
+
+
+## Figure 3: F3 
+This is a large figure, containing an F3 plot, and NGSadmix plot, and two qpGraph plots.
+
+### Fig. 3A F3
+
+```{r F3 main figure, fig.width=12, fig.height=3.2}
+
+boto_f3 <- read.csv( str_glue("{prefix_data}/final_inputs/Fig_3/f3_metadata_plot.csv"))
+boto_f3$Source_2 <- factor(boto_f3$Source_2, levels = boto_f3$Source_2, ordered = T)
+
+boto_f3$disp_blocks <- cut_number(boto_f3$f_3, n = 5)
+boto_f3$disp_blocks <- factor(
+  boto_f3$disp_blocks, 
+  levels = rev(levels(boto_f3$disp_blocks)), 
+  ordered = T
+  )
+
+
+
+#pdf("~/Projects/Botocudos/Plots/F3/2021_06/ggplot_F3.pdf", width = 8.6, height = 3.2)
+ggplot(boto_f3, aes(x = f_3, y = Source_2, color = Source_2, 
+                    xmin = f_3 - 3*std.err,
+                    xmax = f_3 + 3*std.err)) +
+  geom_point(size = 0.8) +
+  geom_errorbar(size = 0.34, width = 0) +
+  scale_color_manual(values = boto_f3$color) +
+  facet_wrap(~disp_blocks, nrow = 1, scales = "free_y", as.table = T) +
+  theme_light() +
+  theme(legend.position = "none",
+        axis.text = element_text(size = 5),
+        strip.text.x = element_blank()) +
+  labs(x = "F3", y = NULL, title = NULL)
+
+```
+
+The dataframe `boto_f3` stores the output of admixtools. A few extra columns were added, such as the geographic coordinates for the plot, whether the population is ancient, and the color of the dots.
+
+
+```{r}
+head(boto_f3)
+```
+
+
+### Fig. 3B NGSAdmix (Americas' panels)
+
+
+```{r NGSadmix Figure 3, fig.width=14, fig.height=11}
+
+load(str_glue("{prefix_data}/final_inputs/Fig_3/object_to_plot_ngsadmix.Rda"))
+object_to_plot$plot(do_layout = T, add_text = T)
+
+
+
+#str(object_to_plot)
+```
+
+
+As noted for Figure 2, we are loading an object called `object_to_plot`. 
+The dataframe `qopt` contains the estimated admixture proportions, and the data for each individual (ID, population, etc.) can be found in the `new_panel` dataframe.
+
+With this object, you can also check which population has the highest average admixture proportions for each of the components.
+
+```{r}
+# load(str_glue("{prefix_data}/final_inputs/Fig_3/object_to_plot_ngsadmix.Rda"))
+
+# object_to_plot$plot()
+
+head(object_to_plot$qopt)
+head(object_to_plot$new_panel)
+head(object_to_plot$colors)
+
+# populations with the highest average component
+print(object_to_plot$max_anc_pop)
+
+```
+
+
+### Fig. 3C and 3D qpGraph
+
+
+
+
+
+## Figure 4 Conditional heterozygosity, PSMC, ROH
+
+```{r,  fig.width = 12, fig.height = 8}
+#------------------
+# Conditional heterozygosity
+pop_color <- c(
+  "#5c2c45",
+  "#ffb852",
+  "#ffa6d9",
+  "#e81900",
+  "#65A98F",
+  "#29bdad",  
+  "#b319ab",
+  "#9C52F2",
+  "black"
+)
+
+names(pop_color) <- c("Africa",
+                      "Europe",
+                      "CentralSouthAsia",
+                      "EastAsia",
+                      "NearOceania",
+                      "RemoteOceania",
+                      "Americas",
+                      "Ancient_Americas",
+                      "Botocudos")
+
+main_size <- 12
+legend_size <- 8
+
+selected_pi <- read.csv(
+  str_glue("{prefix_data}/final_inputs/Fig_4/conditional_het_plot.csv"), 
+  stringsAsFactors = F
+  )
+
+
+selected_pi$Region <- factor(
+  selected_pi$Region, 
+  levels = c(
+    "Africa", "WestEurasia", "EastAsia", "Oceania", "Americas_Ancient", 
+    "Americas", "Botocudos"
+    ), 
+  ordered = T
+  )
+
+selected_pi <- selected_pi[order(selected_pi$Region, selected_pi$estimate), ]
+selected_pi$Population.ID <- factor(selected_pi$Population.ID, levels = rev(selected_pi$Population.ID), ordered = T)
+
+condHet_plot <- ggplot(selected_pi, aes(x = Population.ID, y = estimate, ymin = confint1, 
+               ymax = confint2, color = Region, interaction = Region)) +
+  geom_point(size = 1.2) +
+  geom_errorbar(lwd = .6, width = 0.5) +
+  theme_minimal() +
+  guides(color=guide_legend(nrow=2)) +
+  theme(axis.text.x = element_text(angle = 90, size = 9, hjust = 1, vjust = 0.5),
+        legend.position = "none", 
+        legend.text = element_text(size = legend_size),
+        title = element_text(size = main_size),
+        strip.text = element_text(size=7, margin = margin(.1, 0, .1, 0, "cm"))
+        ) + 
+  labs(title = "Conditional heterozygosity", 
+       x = NULL, y = "Estimate") +
+  scale_color_manual(
+    values = as.character(
+      pop_color[rev(c("Botocudos", "Ancient_Americas", 
+                  "Americas",
+                  "NearOceania", "EastAsia", "Europe",
+                                          "Africa"))])
+    ) +
+  coord_trans(y = "log") +
+  facet_grid(.~Region, scales = "free", space = "free")
+
+
+#-----------------
+# ROH
+pop_color <- c(
+  "#5c2c45",
+  "#ffb852",
+  "#e81900",
+  "#65A98F",
+  "#b319ab",
+  "#9C52F2",
+  "black"
+)
+
+names(pop_color) <- c("Africa",
+                      "Europe",
+                      "EastAsia",
+                      "Oceania",
+                      "Americas",
+                      "Americas_Ancient",
+                      "Botocudos")
+
+lengths_all <- read.csv(str_glue("{prefix_data}/final_inputs/Fig_4/roh_plot_main_fig.csv"))
+
+lengths_all <- lengths_all[lengths_all$length>0,]
+
+lengths_all$sample <- factor(lengths_all$sample, levels = unique(lengths_all$sample), ordered = T)
+region_levels <- unique(lengths_all$region)
+lengths_all$region <- factor(lengths_all$region, levels = region_levels, ordered = T)
+
+
+breaks_mb <- c(0, 0.5, seq(1, 32))
+breaks_labels <- c("", 0.5,  seq(5, 32, 5))
+xlim <-  c(0, 65)
+ylim <- c(0, 850)
+
+main <-  "ROH distribution"
+xlab <-  "ROH length category (Mb)"
+ylab <- "Sum (Mb)"
+
+x <- "category" ; y <- "length"
+
+
+roh_plot <- ggplot(lengths_all, aes( x = as.factor(lengths_all[, x]), y = lengths_all[, y] , 
+                         fill = region)) +
+  geom_bar(stat = "identity", position = position_dodge(), color = "white") +
+  labs(x = xlab, y = ylab, title = main) +
+  coord_cartesian(xlim = c(0, sum(breaks_mb <= xlim[2])),
+                  ylim = c(1, 1000)) + 
+  scale_x_discrete(breaks = breaks_mb[ breaks_mb <= xlim[2]], 
+                   labels = sapply(breaks_mb, function(x) ifelse(x %in% breaks_labels, x, "")),)  +
+  scale_y_log10() +
+  facet_wrap(sample~., ncol = 2
+             ) +
+  theme_minimal() +
+  theme(legend.position = "none", 
+        axis.text.x = element_text(size = 8, angle = 90, hjust = 1, vjust = 0)
+        ) +
+  scale_fill_manual(values = (pop_color[region_levels]))
+
+#roh_plot 
+#-----------------
+# PSMC
+
+psmc <- read.csv(str_glue("{prefix_data}/final_inputs/Fig_4/psmc_plot.csv"))
+
+psmc_plot <- ggplot(psmc, aes(x = time+1, y = popsize*10e4, color = sample)) +
+  geom_step(stat="identity", size = 1.) +
+  coord_cartesian(xlim = c(9000, 10e5)) +
+  scale_x_log10(labels = scales::comma,
+                minor_breaks = as.numeric(sapply(seq(3, 7), function(i) seq(1,10)*10**i))) +
+  scale_y_log10(labels = scales::comma,
+                minor_breaks = as.numeric(sapply(seq(3, 6), function(i) seq(1,10)*10**i))) +
+  theme_minimal() +
+  scale_color_manual(
+    name = "Genome",
+    values = alpha(c("black","#FF616B", "#A7374B", "#b319ab","#99B333", "#29BDAD"), 0.8),
+    breaks = c( "MN0008_L3U_trim2",
+               "SuruiA",
+               "Karitiana_HGDP_TeamAB",
+               "MayaG",
+               "A_Dai",
+               "A_Yoruba"),
+    labels = c("MN0008 (Botocudo)",
+               "A_Surui (Americas)",
+               "A_Karitiana (Americas)",
+               "A_Maya (Americas)",
+               "A_Dai (East Asia)",
+               "A_Yoruba (Africa)")) +
+  guides(color=guide_legend(nrow=2)) +
+  theme(legend.position = "top", #c(0.1, 0.7),
+        legend.text = element_text(size = legend_size),
+        title = element_text(size = main_size)) +
+  labs(title = "Effective population size",
+       x = "Years ago",
+       y = expression(N[e]))
+
+#psmc_plot
+
+col1_x <- 0
+col2_x <- 0.6
+row1_y <- 0.6
+row2_y <- 0
+
+#pdf("~/Projects/Botocudos/Plots/dummy_figures/Fig4_condHet_ROH_PSMC.pdf",
+#    width = 12, height = 8)
+ggdraw() +
+  draw_plot(condHet_plot, x = col1_x, y = row1_y, width = col2_x , height = 1 - row1_y) +
+  draw_plot(roh_plot, col2_x, row2_y, 1 - col2_x, 1 - row2_y) +
+  draw_plot(psmc_plot, col1_x, row2_y, col2_x, row1_y - 0.05) +
+  draw_plot_label(c("A", "B", "C"), c(col1_x, col2_x, col1_x), c(1, 1, row1_y - 0.05), size = 15)
+
+#dev.off()
+
+
+```
+
+```{r}
+head(selected_pi)
+
+head(lengths_all)
+
+head(psmc)
+
+```
+
+## Figure 5 Demography
+
+This figure was modified on Adobe Illustrator.
+
+```{r, fig.width=14, fig.height=9}
+plot_name <- "twelve_models"
+
+#png(str_glue(png_path), width = 28, height = 18, res =300, units = "in")
+
+par(mar = c(8, 6, 2, 6))
+
+pop_names_colors <- c("yellow", "gray", "gray", "gray", "gray", "blue", "blue", "red")
+names(pop_names_colors) <- c(
+  "Yoruba",  "ANC",  "Out of Africa", "Americas",
+  "South America", "Karitiana", "Surui", "Botocudos"  
+)
+
+load(
+  str_glue("{prefix_data}/final_inputs/Fig_5/model_values.Rda")
+)
+
+make_demography_plot(
+  pop_names_colors = pop_names_colors, do_log = T, max_width = 0.8,
+  pop_new_order = c(
+    "Yoruba",  "ANC",  "Out of Africa", "Americas",
+    "South America", "Karitiana", "Surui", "Botocudos"  
+  ),
+  pop_old_order = c("Botocudos", "Karitiana", "Surui", "Americas", 
+                    "Out of Africa", "ANC", "Yoruba",  "South America"),
+  bottleneck_height = 0.01,
+  alpha = 1, main = "",
+  ... = model_values
+)
+
+#dev.off()
+```
+
+
+## Figure 6 Dstats
+
+```{r, read files and set variables}
+
+abba <- read.table(
+  str_glue("{prefix_data}/final_inputs/Fig_6/July_09_trim5.ErrorCorr.TransRem.txt"),
+  header = T, stringsAsFactors = F
+  )
+
+pops_in_title <- c(
+  "Mixe",
+  "Surui",
+  "Karitiana",
+  "MN0008",
+  "MN0008_trim5",
+  "MN0008_L3U",
+  "MN0008_trim5",
+  "MN0008_L3U_trim2",
+  "MN0008_L3U_trim5",
+  "22Botocudos_trim5",
+  "LagoaSanta",
+  "LagoaSanta_trim5",
+  "Huichol",
+  "Aymara"
+)
+
+pops_in_y <-  c(
+  "Mixe",
+  "Huichol",
+  "Aymara",
+  "Surui",
+  "Karitiana",
+  "MN0008_L3U_trim2",
+  "22Botocudos_trim5",
+  "LagoaSanta",
+  "LagoaSanta_trim5"
+                   )
+pops_in_h3 <- c(
+  "French", 
+  "Han",
+  "Andaman_trim5",
+  "Papuan",
+  "Australian"
+  )
+
+pop_colors <- c("deepskyblue1", "darkgoldenrod1", 
+                "pink",  "brown3", "blueviolet",
+                "black")
+```
+
+```{r try to get a main figure, fig.width = 9.5, fig.height = 7.5}
+
+pops_in_title = c("Mixe")
+pops_in_h3 <- c(
+  "French", 
+  "Han",
+  "Andaman_trim5",
+  "Papuan",
+  "Australian"
+  )
+pops_in_h3_labels <-  c("French\n(n = 1)",
+                                 "Han\n(n = 1)",
+                                 "Andaman\n(n = 1)",
+                                 "Papuan\n(n = 1)",
+                                 "Australian\n(n = 7)")
+
+pop_colors <- c("deepskyblue1", "darkgoldenrod1", 
+                "pink",  "brown3", "blueviolet",
+                "black")
+pop_colors <- c("#0057BA", "#96BFE6", "#CC85D1", "#DE4500", "#9E194D", "black")
+pop_colors <- c("gray60", "gray80", "#CC85D1", "#96BFE6", "#0057BA", "black")
+
+pops_in_y <-  c(
+  "Surui",
+  "LagoaSanta",
+  "LagoaSanta_trim5",
+  "LagoaSanta",
+  "MN0008_L3U_trim2",
+  "Karitiana",
+  "Aymara",
+  "Huichol"
+  )
+
+new_labels = list(
+  MN0008_L3U_trim2 = "MN0008\n(n = 1)",
+  Surui = "Surui\n(n = 2)",
+  LagoaSanta_trim5 = "LagoaSanta\n(n = 1)",
+  Karitiana = "Karitiana\n(n = 4)",
+  Aymara = "Aymara\n(n = 1)",
+  Huichol = "Huichol\n(n = 1)"
+)
+
+pop <- "Mixe"
+outgroup <- "Yoruba"
+Dstat <- abba[(abba$H1 %in% pops_in_title |abba$H2 %in% pops_in_title) &
+                (abba$H3 %in% pops_in_h3),]
+df_y <- as.data.frame(pops_in_y)
+df_y$y_axis <- rownames(df_y)
+plot_list <- list()
+
+  Dstat <- abba[(abba$H1 == pop |abba$H2 == pop) &
+                  (abba$H3 %in% pops_in_h3),]
+  Dstat <- switch_h2_h1(Dstat, pop)
+  Dstat <- Dstat[!(Dstat$H1 %in% pops_in_h3),]
+  
+  
+  Dstat <- Dstat[Dstat$H1 %in% pops_in_y,]
+  
+  for(label in names(new_labels)){
+    Dstat[Dstat$H1 == label,]$H1 <- new_labels[[label]]
+  }
+  
+  
+  Dstat$H1 <- factor(Dstat$H1, 
+                     levels = rev(unique(new_labels))
+                     )
+  Dstat$H3 <- factor(Dstat$H3, 
+                     levels = c(pops_in_h3),
+                     ordered = T)
+  
+  
+  
+  x_label <- expression(
+    atop(
+      "Z",
+      paste("(", H[1], ", ", H[3], ") < --- > (Mixe, ", H[3], ")"),
+      paste("(Mixe, Yoruba)",  " < --- > (", H[1], ", Yoruba)")
+    )
+    )
+  
+  
+  
+    
+  p <- ggplot(Dstat, aes(x = Z, y = H1, 
+                         fill = H3)) +
+    
+    coord_cartesian(xlim = c(-4,3.5)) +
+    scale_fill_manual(values = alpha(pop_colors, .8),
+                       breaks = pops_in_h3,
+                      labels = pops_in_h3_labels,
+                      name = expression(paste(H[3], ":"))) +
+    geom_vline(xintercept = c(-3.3,3.3), lty = "dashed", col = "brown", lwd = 1)+
+    geom_vline(xintercept = c(-4,-3,-2,-1,0,1,2,3), lty = "solid", col = "gray", lwd = 0.2) +
+    geom_vline(xintercept = c(-3.5,-2.5,-1.5,-0.5,0.5,1.5,2.5,3.5), lty = "dashed", col = "gray", lwd = 0.2) +
+    
+    geom_point(shape = 23, size = 7, stroke= 1) +
+    labs(
+      x = x_label,
+      y = expression(H[1]),
+      title = expression(bold(paste("Z-scores for D(", H[1], ", ", H[2]," = Mixe; ", H[3], ", Yoruba)" )))) +
+    theme_cowplot() +
+    theme(legend.position = "top", 
+          axis.text.x = element_text(size = 16),
+          axis.text.y = element_text(size = 16)
+          ) 
+  
+#pdf("~/Projects/Botocudos/Plots/dummy_figures/Dstat.pdf", width = 9.5, height = 7.5)
+  p
+#dev.off()
+
+
+```
+
+## Figure 7 Virome
+Done
+
+```{r paths and variables}
+
+
+prot_names <- c(
+  "11-kDa", "11 kDa protein",
+  "7.5-kDa", "7.5 kDa protein",
+  "hypothetical 11kDa protein", "hypothetical protein", 
+  "ns", "NS",
+  "ns1", "NS1",
+  "vp1", "VP1", 
+  "VP1/2", "vp2", 
+  "VP2", "VP3",
+  "protein X",
+  "X", "X-9 kDa protein"
+)
+
+prot_colors <- c(
+  rep("orange", 2),    # 11 kDa
+  rep("plum" , 2),     # 7.5 kDa
+  rep("#172713",  2),  # hypot 11 kDa
+  rep("#172713", 4),   # NS1
+  rep("#ff616b", 2),   # VP1
+  "#de4500" ,        # Vp1/2
+  rep("#328e13", 2),   # VP2
+  "plum4",             # VP3
+  rep("seagreen", 3)   # X
+)
+
+names(prot_colors) <- prot_names
+
+
+```
+
+```{r functions to plot}
+
+
+plot_bamdamage <- function(five_prime, three_prime, titlecolor = "black", cex = 1, 
+                           cexmain = 2, txt_reads = F,
+                           y2 = 0.55, plot.title, plot.title2 = "", myColor = c(),
+                           legend_only = F, ncol_legend = 3, legend_cex = 1){
+  
+  if (length(myColor) == 0) {
+    myColor <- c("royalblue", "firebrick3", "lightblue3", "indianred1",
+                 "orange","orange3", "plum", "plum4", "paleturquoise3", 
+                 "paleturquoise4", "rosybrown2", "rosybrown3")
+    
+    names(myColor) <- c("C..T", "G..A", "T..C", "A..G", "C..A", "C..G",
+                        "T..A", "T..G", "A..C", "A..T", "G..C", "G..T")
+  }
+  
+  if (legend_only) {
+    myIndex <- round(seq(1, 13, length.out = ncol_legend + 1))
+    for (i in 1:(length(myIndex) - 1)) {
+      plot(1:10, 1:10, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+      
+      if (i == 1) {
+        legend(1, 10, legend = sub("\\.\\.", " to ",
+                                   names(myColor)[myIndex[i]:(myIndex[i + 1] - 1)]),
+               col = myColor[myIndex[i]:(myIndex[i + 1] - 1)],
+               lty = 1, bty = "n", cex = legend_cex, lwd = 1.6,
+               title = "Substitution type")
+      }else{
+        legend(1, 10, legend = sub("\\.\\.", " to ", names(myColor)[myIndex[i]:(myIndex[i + 1] - 1)]),
+               col = myColor[myIndex[i]:(myIndex[i + 1] - 1)],
+               lty = 1, bty = "n", cex = legend_cex, lwd = 1.6
+        )
+      }
+    }
+    return()
+  }
+  
+  plot_lines <- function(damage, left = T){
+    plot(damage$C..T[1:25], type = "n",
+         bty = "n", 
+        ylab = "Frequency", xlab = NA,
+         cex = cex, axes = F, ylim = c(0, y2))
+    
+    if (left) {
+      title(main = plot.title, xlab = "5'-position", cex.main = cexmain)
+      axis(side = 1, at = seq(0, 25, 5))
+      axis(side = 2)
+    }else{
+      axis(side = 1, at = seq(1, 25, 5), labels = seq(25, 1, -5))
+      axis(side = 4)
+      title(main = plot.title2, xlab = "3'-position", cex.main = cexmain, 
+            col.main = titlecolor)
+      nb_reads_legend <- paste0("Number of reads: ", txt_reads)
+      text(x = 12, y = 0.51, labels = nb_reads_legend, cex = 1.15)
+    }
+    
+    for (type in names(myColor)) {
+      lines(damage[1:25, type, with = F],
+            col = alpha(myColor[type], 0.8), 
+            lwd = 1.8, 
+            cex = cex)
+    }
+  }
+  
+  par(mar = c(4, 4, 3, 1))
+  plot_lines(damage = five_prime)
+  
+  par(mar = c(4, 1, 3, 3))
+  plot_lines(damage = three_prime[25:1, ], left = F)
+
+}
+
+blank_plot <- function(){
+  par(mar = c(0,0,0,0))
+  plot(i, i, type = "n", bty = "n", axes = F, xlab = "", ylab = "", main = "")
+}
+
+
+draw_coverage <- function(coverage, plot.title, myColor,
+                          limy){
+      barplot(height = coverage, 
+            main = plot.title, 
+            ylab = "Number of reads",
+            col = myColor,
+            border = NA,
+            axes = T,
+            ylim = c(0, limy), 
+            space = 0,
+            cex.main = 1.5)
+    # x axis
+    xtick <- round(seq(1, 5000, length.out = 6))
+    axis(side = 1, at = xtick, labels = FALSE, tck = -0.01)
+    text(x = xtick,  par("usr")[3], labels = paste0(xtick, "bp"), pos = 1, xpd = TRUE, 
+         cex = 1)
+}
+
+draw_protein_boxes <- function(prots_coords, boxColors, limy, boxes_only = F){
+  #browser()
+  # Rectangles part
+  max_coverage = limy
+  
+  if(boxes_only){
+    limy = -max_coverage*5
+    barplot(height = limy,
+            axes = F,
+            col = NA,
+            border = NA, 
+            ylim = c(0,max_coverage),
+            xlim = c(1,5017)
+    )
+  }
+  space_btwn_box <- -limy/20
+  box_width <- -limy/20
+  box_top <- box_width
+  
+  for (i in c(1:length(prots_coords$start))) {
+    if (prots_coords[i, Name] %in% c("ns", "NS", "ns1", "NS1", "vp1", "VP1", "VP1/2")) {
+      box_top <- box_width
+    } else if (prots_coords[i, Name] %in% c("VP2", "vp2")) {
+      box_top <- box_top + space_btwn_box 
+    } else {
+      box_top <- 2 * box_top + space_btwn_box
+    }
+    
+    rect(xleft = prots_coords[i, start],
+         xright = prots_coords[i, end],
+         ytop = box_top,
+         ybottom = box_top + box_width,
+         col = boxColors[prots_coords[i, Name]],
+         border = NA)
+    
+    box_top <- box_width
+  }
+}
+
+
+
+plot_cov <- function(coverage, plot.title, myColor, boxColors, prots_coords, limy = limy,
+                     print_coverage = T, print_boxes = T, boxes_only = F){
+  par(xpd = T)
+  
+  if(print_coverage){
+    draw_coverage(coverage, plot.title, myColor, limy)
+  }
+  
+  if(print_boxes){
+    draw_protein_boxes(prots_coords, boxColors, limy, boxes_only = boxes_only)
+  }
+  
+  
+}
+
+
+
+```
+
+```{r coverage_mn00346, fig.width=14, fig.height=10}
+
+
+for(type in c("Cov", "Len", "Dam")){
+  load(file = str_glue("{prefix_data}/final_inputs/Fig_7/my{type}.Rda"))
+  
+}
+
+my_mat <- matrix(c(15,15,1,2,
+                   15,15,1,3,
+                   15,15,1,4,
+                   15,15,1,5,
+                   15,15,1,6,
+                   11,12,7,8,
+                   13,13,14,14,
+                   9,10,14,14)
+                  , 8, 4, byrow = T)
+print(my_mat)
+
+
+# pdf("~/Projects/Botocudos/Plots/Viruses/partial_fig_8.pdf", width = 5*4, height = 12)
+nf <- layout(my_mat, widths = c(1.5,1.5,2,1.5), heights = c(rep(3, 5), 1.5, 9, 9))
+
+# layout.show(nf)
+#-----------------------------------------------------------------------------#
+# Coverage plots
+  
+botocudos <-  c("MN00346", "MN00067", "MN00021", "MN00013", "MN00119", "MN00039")
+for(boto in botocudos){
+  if(boto != "MN00346"){
+    par(mar = c(1.5,4,1.5,1), cex = 1.)
+  }else{
+    par(mar = c(1.5,4,4,2), cex = 1)
+  }
+  plot_cov(coverage = myCov[[boto]]$coverage$reads, boxColors = prot_colors, 
+           prots_coords = myCov[[boto]]$prots, plot.title = boto, 
+           myColor = "#9e194d",
+           limy = max( myCov[[boto]]$coverage$reads), print_boxes = F)
+}
+
+par(mar = c(0,4,0,3))
+for(i in c(1,2)){
+  plot_cov(coverage = "", boxColors = prot_colors, 
+           prots_coords = myCov[[boto]]$prots, plot.title = NA, 
+           myColor = "#9e194d",
+           print_coverage = F,
+           print_boxes = T, boxes_only = T, limy = 50)
+}
+
+
+ #-----------------------------------------------------------------------------#
+# Damage
+boto <- "MN00346"
+y2 <- 0.45
+nreads <- scan(str_glue("{prefix_data}/final_inputs/Fig_7/MN00346.AY083234_1_final_reads.txt"))
+
+plot.title <- boto
+plot.title2 <- ""
+
+five_prime <- myDam[[boto]][["five_prime"]]
+three_prime <- myDam[[boto]][["three_prime"]]
+plot_bamdamage(five_prime = five_prime, three_prime = three_prime,
+               cex = 1, cexmain = 1.65, titlecolor = "black",
+               txt_reads = nreads, y2 = y2, plot.title = plot.title, 
+               plot.title2 = plot.title2, myColor = c())
+
+#-----------------------------------------------------------------------------#
+# 
+blank_plot()
+blank_plot()
+
+#-----------------------------------------------------------------------------#
+# read length
+par(mar = c(5,4,1,0))
+barplot(myLen$MN00346$counts,
+        border = F,
+        main = "Reads mapped to HPV B19 (MN00346)",
+        col = "#ff616b",
+        xlab = "Length (bp)",
+        ylab = "Counts",
+        xlim = c(10, 78))
+axis(1, at = seq(10, 60, 10)*1.2+.5, labels = seq(30, 80, 10))
+
+plot_bamdamage(legend_only = T, ncol_legend = 1)
+
+# Heatmap
+
+plot.new()             
+vps <- baseViewports()
+pushViewport(vps$figure) 
+
+#------------------------------------------------------------------------------#
+# heatmap
+
+boc_wide <- read.csv(
+  str_glue("{prefix_data}/final_inputs/Fig_7/breadth_coverage_for_plot.csv"), 
+  row.names = 1
+  )
+
+samples_groups <- sapply(rownames(boc_wide), function(ind) ifelse(ind %in% c("MN1943", "MN01701"), "Pre-Contact", "Post-Contact") )
+samples_groups <- factor(samples_groups, levels = c("Pre-Contact", "Post-Contact"), ordered = T)
+
+index <- sort(unique(unlist(sapply(boc_wide, function(i) unique(round(i*100))))))
+
+colors100  = sequential_hcl(max(index), palette = "SunsetDark")
+
+colors = unlist(sapply(index, function(i)  colors100[i]))
+colors = rev(colors)
+colors[1] <- "white"
+
+ht = Heatmap(t(as.matrix(boc_wide)), 
+        name = "Fraction of the genome covered", #title of legend
+        col = colors,
+        show_row_dend = F,
+        show_column_dend = F,
+        column_title_side =  "bottom", 
+        column_split = samples_groups,
+        column_gap = unit(5, "mm"),
+        rect_gp = gpar(col = "gray", lty = "dotted"),
+        border = "black",
+        row_names_gp = gpar(fontsize = 12), # Text size for row names
+        row_names_side = c("right"),
+        heatmap_legend_param = list(title = "Fraction of the genome covered",
+                                    direction = "horizontal"),
+        bottom_annotation = HeatmapAnnotation(
+          df = data.frame("Period" = samples_groups),
+          col = list("Period" = c("Pre-Contact" = "#0057ba",
+                                "Post-Contact" = "#d60036"))
+          ),
+        width  = unit(10, "cm"),
+        height = unit(6, "cm")
+        )
+
+vp1 <-plotViewport(c(1.8,1,0,1)) ## create new vp with margins, you play with this values 
+par(mar = c(5,5,5,5))
+p <- draw(ht, column_title = "Fraction of the genome covered at least once (viruses on the top 10%)",
+     heatmap_legend_side = "bottom", annotation_legend_side = "bottom", 
+     merge_legend = T, newpage = F
+         )
+
+#print(p, vp = vp1)
+
+
+#dev.off()
+
+```
+
+
+In this part, several objects were loaded (`myCov`, `myLen`, `myDam`).
+
+`myCov` is a list, with each element corresponding to an individual.
+For each individual, you will find a dataframe indicating the number of reads observed at each position of the parvovirus genome.
+There is also a dataframe with the coordinates of the proteins.
+
+In `myLen`, each item of the list corresponds to an individual. 
+For each individual, there is a vector corresponding to read lengths, and another vector counting the occurrences.
+
+The `myDam` object includes, per individual, a dataframe indicating the average frequency of substitutions along the reads, counted from the 5' or 3' end.
+
+
+```{r}
+
+#str(myCov)
+
+head(myCov[["MN00346"]]$coverage)
+head(myCov[["MN00346"]]$prots)
+
+#str(myLen)
+head(myLen$MN00346$length)
+head(myLen$MN00346$counts)
+
+#str(myDam)
+head(myDam$MN00346$five_prime)
+```
+
+
+
+
+
+# Supplement
+
+
+## Fig. S1 Damage per sample
+
+```{r plot_bamdamage function}
+plot_bamdamage <- function(five_prime, three_prime, titlecolor = "black", cex = 1, 
+                           cexmain = 2, txt_reads = F,
+                           y2 = 0.55, plot.title, plot.title2 = "", myColor = c(),
+                           legend_only = F, ncol_legend = 3, legend_cex = 1){
+  
+  if (length(myColor) == 0) {
+    myColor <- c("royalblue", "firebrick3", "lightblue3", "indianred1",
+                 "orange","orange3", "plum", "plum4", "paleturquoise3", 
+                 "paleturquoise4", "rosybrown2", "rosybrown3")
+    
+    names(myColor) <- c("C..T", "G..A", "T..C", "A..G", "C..A", "C..G",
+                        "T..A", "T..G", "A..C", "A..T", "G..C", "G..T")
+  }
+  
+  if (legend_only) {
+    myIndex <- round(seq(1, 13, length.out = ncol_legend + 1))
+    for (i in 1:(length(myIndex) - 1)) {
+      plot(1:10, 1:10, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+      
+      if (i == 1) {
+        legend(1, 10, legend = sub("\\.\\.", " to ",
+                                   names(myColor)[myIndex[i]:(myIndex[i + 1] - 1)]),
+               col = myColor[myIndex[i]:(myIndex[i + 1] - 1)],
+               lty = 1, bty = "n", cex = legend_cex, lwd = 1.6,
+               title = "Substitution type")
+      }else{
+        legend(1, 10, legend = sub("\\.\\.", " to ", names(myColor)[myIndex[i]:(myIndex[i + 1] - 1)]),
+               col = myColor[myIndex[i]:(myIndex[i + 1] - 1)],
+               lty = 1, bty = "n", cex = legend_cex, lwd = 1.6
+        )
+      }
+    }
+    return()
+  }
+  
+  plot_lines <- function(damage, left = T){
+    plot(damage$C..T[1:25], type = "n",
+         bty = "n", 
+        ylab = "Frequency", xlab = NA,
+         cex = cex, axes = F, ylim = c(0, y2))
+    
+    if (left) {
+      title(main = plot.title, xlab = "5'-position", cex.main = cexmain)
+      axis(side = 1, at = seq(0, 25, 5))
+      axis(side = 2)
+    }else{
+      axis(side = 1, at = seq(1, 25, 5), labels = seq(25, 1, -5))
+      axis(side = 4)
+      title(main = plot.title2, xlab = "3'-position", cex.main = cexmain, 
+            col.main = titlecolor)
+      nb_reads_legend <- paste0("Number of reads: ", txt_reads)
+      text(x = 12, y = 0.51, labels = nb_reads_legend, cex = 1.15)
+    }
+    
+    for (type in names(myColor)) {
+      lines(damage[1:25, type], # with = F],
+            col = alpha(myColor[type], 0.8), 
+            lwd = 1.8, 
+            cex = cex)
+    }
+  }
+  
+  par(mar = c(4, 4, 3, 1))
+  plot_lines(damage = five_prime)
+  
+  par(mar = c(4, 1, 3, 3))
+  plot_lines(damage = three_prime[25:1, ], left = F)
+
+}
+
+```
+
+```{r plot damage per sample, eval=T, fig.width=16, fig.height=16}
+nCol <- 8
+nRow <- 7
+cex <- 1.2
+
+blank_plot <- function(){
+  plot(1:10,1:10, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+}
+
+# pdf(paste("~/Projects/Botocudos/Plots/Sequencing/Damage_", data_type, ".pdf", sep = ""),
+#     width = 14, height = 12)
+
+load(str_glue("{prefix_data}/final_inputs/Supplement/Damage/damage_samples.Rda"))
+
+samples <- names(myDam)
+
+layout(matrix(seq(nCol*nRow), ncol = nCol, byrow = T))
+for(s in samples){
+    y2 <- 0.35
+    plot.title <- s
+    five_prime <- myDam[[s]][["five_prime"]]
+    three_prime <- myDam[[s]][["three_prime"]]
+    plot_bamdamage(five_prime = five_prime, three_prime = three_prime, 
+                  cex = 1, 
+                  y2 = y2, plot.title = plot.title,
+                  myColor = c())
+}
+plot_bamdamage(legend_only = T,
+                  myColor = c(),
+               legend_cex = 1, ncol_legend = 3)
+
+# dev.off()
+```
+
+
+## Dataset S3 Damage per library
+
+The plots below were included as a dataset (a PDF file with multiple pages).
+
+```{r plot damage per library, eval=T, fig.width=12, fig.height=12}
+load(str_glue("{prefix_data}/final_inputs/Supplement/Damage/damage_libraries.Rda"))
+
+lib_stats <- read.csv(str_glue("{prefix_data}/final_inputs/Supplement/Length/library_stats.hg19.csv"))
+
+samples <- names(myDam)
+samples <- samples[! samples %in% c("MN0008_non_U", "MN0008_L3U")]
+
+nCol <- max(sapply(myDam, length))
+samples_per_page <- 5
+cex <- 1.2
+
+blank_plot <- function(){
+  plot(1:10,1:10, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+}
+
+# pdf(paste("~/Projects/Botocudos/Plots/Sequencing/Damage_lib_", data_type, ".pdf", sep = ""),
+#     width = 12, height = 12)
+layout(matrix(seq(samples_per_page*nCol*2), nrow = samples_per_page, byrow = T))
+
+for(s in samples){
+  myLibs <- lib_stats$LB[lib_stats$SM == s]
+  myRow <- which(samples == s)
+  
+  if(!myRow %% samples_per_page){
+    # plot.new()
+    layout(matrix(seq(samples_per_page*nCol*2), nrow = samples_per_page, byrow = T))  
+  }
+  
+  
+  for(l in myLibs){
+    y2 <- 0.35
+     plot.title <- paste(s, l)
+    
+    five_prime <- myDam[[s]][[l]][["five_prime"]]
+    three_prime <- myDam[[s]][[l]][["three_prime"]]
+    plot_bamdamage(five_prime = five_prime, three_prime = three_prime, 
+                  cex = 1, 
+                  y2 = y2, plot.title = plot.title,
+                  myColor = c())
+    
+  
+  }
+  plots_left <- nCol*2 - length(myLibs)*2
+  while(plots_left > 0){
+    blank_plot()
+    plots_left <- plots_left - 1
+  }
+
+}
+
+plot_bamdamage(legend_only = T,
+                  myColor = c(),
+               legend_cex = 1, ncol_legend = 3)
+
+
+# dev.off()
+```
+
+
+## Fig. S2 Read length per sample
+```{r, fig.width=12, fig.height=12}
+
+
+myColor <- "royalblue"
+nCol <- 6
+cex <- 1.1
+
+blank_plot <- function(){
+  plot(1,1, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+}
+
+# pdf(paste("~/Projects/Botocudos/Plots/Sequencing/Length_dist_",
+#           data_type,".pdf", sep = ""),
+    # width = 12, height = 12)
+load(str_glue("{prefix_data}/final_inputs/Supplement/Length/samples_length.Rda"))
+samples <- names(myLength)
+samples_per_row <- ceiling(length(samples)/nCol)
+layout(matrix(seq(1, nCol*samples_per_row), ncol = nCol, byrow = T))
+
+for(s in samples){
+    le <- myLength[[s]]
+    plot.title <- s
+    myMean <- round(sum(le$length*le$counts)/sum(le$counts), 1)
+    barplot(le$counts/sum(le$counts), space = 0,
+         col = myColor, bty = "n", 
+         xlab = "Length", ylab = "Frequency", border = NA,
+         main = plot.title, lwd = 0.2)
+    axis(1, at= seq(0.5, nrow(le), 5), 
+         labels = seq(min(le$length), max(le$length), 5))
+    text(20, 0.9*max(le$counts/sum(le$counts)), 
+         labels = paste("Mean: ", myMean, " bp", sep = ""),
+        cex = 0.8)
+    abline(v = myMean-20, lty = "dashed")
+}
+```
+
+## Dataset S4 Read length per library
+```{r plots per library, eval = T, fig.width=9, fig.height=12}
+myColor <- "royalblue"
+
+lib_stats <- read.csv(str_glue("{prefix_data}/final_inputs/Supplement/Length/library_stats.hg19.csv"))
+
+load(str_glue("{prefix_data}/final_inputs/Supplement/Length/libraries_length.Rda"))
+
+samples <- names(myLength)
+samples <- samples[! samples %in% c("MN0008_L3U", "MN0008_non_U")]
+
+nCol <- max(sapply(myLength, length))
+samples_per_page <- 5
+cex <- 1.2
+
+blank_plot <- function(){
+  plot(1,1, type = "n", bty = "n", axes = F, xlab = NA, ylab = NA)
+}
+
+# pdf(paste("~/Projects/Botocudos/Plots/Sequencing/Length_dist_libs_",data_type,".pdf",sep = ""),
+#     width = 9, height = 12)
+
+layout(matrix(seq(samples_per_page*nCol), nrow = samples_per_page, byrow = T))
+
+for(s in samples){
+  myLibs <- lib_stats$LB[lib_stats$SM == s]
+  myRow <- which(samples == s)
+  
+  if(!myRow %% samples_per_page){
+    # plot.new()
+    layout(matrix(seq(samples_per_page*nCol), nrow = samples_per_page, byrow = T))  
+  }
+  
+  for(l in myLibs){
+    le <- myLength[[s]][[l]]
+    # le <- le[le$counts >0,]
+    
+    plot.title <- paste(s, l)
+    barplot(le$counts/sum(le$counts), space = 0,
+         col = myColor, bty = "n", 
+         xlab = "Length", ylab = "Frequency", #border = "white",
+         main = plot.title, lwd = 0.2)
+    axis(1, at= seq(0.5, nrow(le)-0.5, 5), 
+         labels = seq(min(le$length), max(le$length), 5))
+  }
+  plots_left <- nCol - length(myLibs)
+  while(plots_left > 0){
+    blank_plot()
+    plots_left <- plots_left - 1
+  }
+}
+
+# dev.off()
+# 
+
+
+```
+
+## Figs. S3 - S5 Error rates
+
+```{r}
+# Fig S3
+load(str_glue("{prefix_data}/final_inputs/Supplement/Error_rates/avg_errors.Rda"))
+# pdf("~/Projects/Botocudos/Plots/Sequencing/2020_02_25/avg_error_whole.pdf",
+#     width = 6, height = 5)
+avg_errors %>% subset(Type == "untrimmed") %>%
+  ggplot(aes(x = Sample, y = error )) +
+  geom_bar(stat = "identity", position = position_dodge(), fill = "salmon") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, size = 10, hjust = 1, vjust = 0.5)) +
+  scale_fill_discrete() +
+  labs(y = "Error rate", x = NULL, title = "Average error rates") +
+  scale_y_continuous(labels = percent)
+# dev.off()
+```
+
+
+```{r}
+# Fig S4
+# pdf("~/Projects/Botocudos/Plots/Sequencing/2020_02_25/error_type_whole.pdf",
+#     width = 12, height = 10)
+load(str_glue("{prefix_data}/final_inputs/Supplement/Error_rates/error_rates_types.Rda"))
+dat %>% subset(Type == "untrimmed") %>%
+  gather(name, value, -Sample, -Type) %>%
+  mutate(name = sub("\\....", " to ", name)) %>%
+  ggplot(aes(x = Sample, y = value)) +
+  geom_bar(stat = "identity", position = position_dodge(), fill = "salmon") +
+  facet_wrap(.~name, ncol = 3) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, size = 9, hjust = 1)) +
+  scale_fill_discrete() +
+  labs(y = "Error rate", x = NULL, title = "Type-specific error rates") +
+  scale_y_continuous(labels = percent)
+
+# dev.off()
+```
+
+
+```{r}
+# Fig S5
+# pdf("~/Projects/Botocudos/Plots/Sequencing/2020_02_25/avg_error_MN8_trim.pdf",
+#     width = 6, height = 5)
+load(str_glue("{prefix_data}/final_inputs/Supplement/Error_rates/trimmed_avg.Rda"))
+trimmed_avg %>% 
+  gather(name, value, -Sample, -Type, -percent, -error) %>%
+  mutate(
+         bp_trimmed = ifelse(Type == "trimmed", sub("\\.bam", "", sub(".*trim", "", Sample)), 0),
+         Sample = sub("\\..*", "", Sample)
+         ) %>%
+  ggplot(aes(x = Sample, y = error, fill = bp_trimmed )) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, size = 10, hjust = 1)) +
+  scale_fill_discrete() +
+  labs(y = "Error rate", x = NULL, title = "Average error rates") +
+  scale_y_continuous(labels = percent)
+#dev.off()
+```
+
+
+
+
+## Fig. S6 MDS - Dimensions 2 and 3
+```{r supplementary dimensions, fig.width=5, fig.height=4.5}
+#------------------------------------------------------------------------------#
+# Set some paths and variables
+mds_data_path <- str_glue("{prefix_data}/final_inputs/Fig_2/MDS_rmTrans_data_to_plot.Rda")
+#pdf_path <- "~/Projects/Botocudos/Plots/dummy_figures/Supplement_MDS_two_three.pdf"
+
+#------------------------------------------------------------------------------#
+#pdf(pdf_path, width = 10, height = 4.5, useDingbats = F)
+#------------------------------------------------------------------------------#
+# MDS and fastNGSadmix results
+# load data and do last modifications for the MDS
+load(mds_data_path)
+
+#-----------------------------------------------------------
+# first mds
+par(mar = c(bottom=4, left=4, top=2, right=0))
+#-----------------------------------------------------------
+# second mds
+data_to_plot$dim1 <- 3
+data_to_plot$dim2 <- 2
+
+data_to_plot$xlab <- paste0(
+  "Dim", data_to_plot$dim1, ": ",
+  percent(data_to_plot$eig[data_to_plot$dim1]/sum(abs(data_to_plot$eig)))
+)
+
+par(mar = c(bottom=4, left=4, top=2, right=2))#, yaxt = "n")
+do.call( mds_plot,  data_to_plot )
+
+# dev.off()
+
+```
+
+## Datasets S5 and S6 MDS per individual
+
+```{r, fig.width=16, fig.height=18}
+
+
+path_mds <- str_glue("{prefix_data}/final_inputs/Fig_2/Multiple_MDS_data_to_plot.Rda")
+
+rmTrans <- F
+
+dim1 <- 1
+dim2 <- 2
+xlim <- c(-0.15, 0.3)
+ylim <- c(-0.2, 0.2)
+
+#pdf_path <- "~/Projects/Botocudos/Plots/MDS/2020_05/MDS_Wollstein_AllSamples_rmTrans.pdf"
+
+label_x <- -.1
+label_y <- -.1
+
+dim1 <- 1
+dim2 <- 2
+for(rmTrans in c(F, T)){
+  
+  if(!rmTrans){
+    cat("All SNPs")
+    #pdf_path <- sub("_rmTrans", "", pdf_path)
+    path_mds <- sub("_rmTrans", "", path_mds)
+    xlim = c(-.25, .6)
+    ylim = c(-.5, .5)
+    label_x <- -.13
+    label_y <- -.2
+  }else{
+    cat("Transitions removed")
+  }
+  
+  load(path_mds)
+  
+  samples <- names(MDS)
+  samples <- samples[-length(samples)]
+  
+  # pdf(pdf_path,
+  #     width = 16, height = 18)
+  
+  layout(mat = matrix(seq(1,16), nrow = 4, byrow = T))
+  
+  for( sample in samples){
+    
+    points <- MDS[[sample]]$points
+    xlab <- MDS[[sample]]$xlab
+    ylab <- MDS[[sample]]$ylab
+    subtitle <- MDS[[sample]]$subtitle
+    
+    index <- which(points$indID == paste(sample, ".hg19", sep = ""))
+    
+    plot(points[,dim1], points[,dim2],
+         xlab = xlab, ylab = ylab,
+         xlim = xlim,
+         ylim = ylim,
+         bty = "n", main = sample,
+         sub = subtitle,
+         type = "n")
+    grid()
+    points(points[ -index , dim1 ], points[ -index, dim2 ],
+           col = alpha(as.character(points$color[ -index ]), 0.5),
+           bg = as.character(points$bg[ -index ]),
+           pch = points$pch[ -index ],
+           cex = 2.2)
+    points(points[index, dim1], points[index, dim2],
+           col = as.character(points$color[index]),
+           bg = as.character(points$bg[index]),
+           pch = points$pch[index],
+           cex = 2.2)
+    # Add text
+    text("Polynesia",
+         x = -0.2, y = 0.3,
+         col = "#29bdad", font = 2, adj = 0)
+    text("Americas",
+         x = 0, y = 0,
+         col = "#b319ab", font = 2, adj = 0)
+    
+    text(
+      label = sample, x =  label_x, y = label_y,
+      font = 1, adj = c(0.5, 0.5)
+    )
+    
+    arrows(
+      x0 = label_x + 0.01, y0 = label_y + 0.01, 
+      x1 = points[index, dim1], y1 = points[index, dim2] - 0.005,
+      length = 0.1, angle = 15, col = "gray"
+    )
+  }
+  
+  myLegend <- MDS[["legend"]]
+  
+  plot(1:10, 1:10, axes = F, ylab = NA, xlab = NA, type = "n" )
+  legend(1, 10, 
+         legend = myLegend$legend, 
+         cex = 1,
+         pt.cex = 1.8, 
+         pt.lwd = 1.2,
+         col = as.character(myLegend$color),
+         pt.bg = as.character(myLegend$bg),
+         pch = myLegend$pch, bty = "n")
+}
+
+```
+
+
+
+## Fig. S7 fastNGSadmix
+
+```{r plot ancestry of 100 bootstraps, fig.width = 8, fig.height = 14}
+
+
+myColors <- c(
+  "#5c2c45",
+  "#ffb852",
+  "#e81900",
+  "#b3d9a3",
+  "#29bdad",  
+  "#b319ab",
+  "black"
+)
+
+ancestry_to_plot <- read.csv(str_glue("{prefix_data}/final_inputs/Supplement/fastNGSadmix/Ancestry_fastNGSadmix_Wollstein_plot.csv"))
+
+change_labels <- function(old_labels){
+  # browser()
+  if("rmTrans" %in% colnames(old_labels)){
+    new_labels <- lapply(old_labels, function(x) ifelse(x, "Transitions removed", "All SNPs"))
+  }else if("k_pop" %in% colnames(old_labels)){
+    lapply(old_labels, function(x) x)
+  }
+
+}
+
+plot_title <- "Admixture proportions with fastNGSadmix and Wollstein_Xing panel (100 bootstraps)"
+
+
+ancestry_to_plot$x_axis <- paste0(ancestry_to_plot$Sample, ", #SNPs: ",
+                                  prettyNum(ancestry_to_plot$SNPs, big.mark = ","))
+
+p1 <- ggplot(ancestry_to_plot,
+       aes(x = Sample, y = avg_ancestry, color = k_pop,
+           ymin = avg_ancestry - 1*sd_ancestry,
+           ymax = avg_ancestry + 1*sd_ancestry)) +
+  facet_grid(k_pop ~rmTrans, labeller = change_labels, drop = T) +
+  geom_point(position = position_dodge(.9)
+             ) +
+  geom_errorbar(position = position_dodge(.9)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), #element_blank(),
+        legend.position = "none") +
+  labs(x = NULL, y = "Average percentage of ancestry +- 1 SD",
+       title = plot_title) +
+  scale_x_discrete(drop = T) +
+  scale_y_continuous(labels = percent) +
+  scale_color_manual(values = myColors) 
+
+
+empty_labels <- function(old_labels){
+  
+  if("rmTrans" %in% colnames(old_labels)){
+    new_labels <- lapply(old_labels, function(x) ifelse(x, "", ""))
+  }
+}
+
+my_annotation <- unique(ancestry_to_plot[,c("Sample", "DoC_endogenous", "SNPs", "rmTrans")])
+
+p2 <- ggplot(my_annotation,
+             aes(x = prettyNum(factor(SNPs), big.mark  =","), y = 1)) +
+  facet_wrap(. ~ rmTrans, labeller = empty_labels, scale = "free_x") +
+  coord_cartesian(ylim = c(0,1)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        axis.text.y = element_text(angle = 90),
+        legend.position = "none",
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.margin = margin(5,22,15,35)) +
+  labs(x = NULL, y = NULL) +
+  scale_y_continuous(breaks = c(0.,0.01), labels = c("", "SNPs")) 
+
+p3 <- ggplot(my_annotation,
+             aes(x = factor(signif(DoC_endogenous,3)), y = 1)) +
+  facet_wrap(. ~ rmTrans, labeller = empty_labels, scale = "free_x") +
+  coord_cartesian(ylim = c(0,1)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        axis.text.y = element_text(angle = 90),
+        legend.position = "none",
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.margin = margin(5,22,15,35)) +
+  labs(x = NULL, y = NULL) +
+  scale_y_continuous(breaks = c(0.,0.01), labels = c("", "DoC")) 
+
+# pdf("~/Projects/Botocudos/Plots/dummy_figures/fastNGSadmix_100boot_Wollstein.pdf", width = 8, height = 14)
+#pdf("~/Desktop/test.pdf", width = 10, height = 16)
+plot_grid(p1, p2, p3, ncol = 1, rel_heights = c(6, 0.2, 0.2))
+#dev.off()
+
+```
+
+## Figs. S8 - S12 F3
+
+
+```{r}
+
+
+colorspace::sequential_hcl(n = 50, h = c(286, -128), c = c(121, 61, 28), l = c(38, 90), power = c(0, 1.3), rev = F, register = "Custom-Palette")
+
+
+```
+
+```{r, fig.width=18, fig.height=9}
+load(str_glue("{prefix_data}/final_inputs/Supplement/F3/f3_values.Rda"))
+
+for(group in f3_values){
+  
+  boto_f3 <- group$boto_f3
+  
+  ancient <- which(boto_f3$type == "Ancient")
+  boto_f3$Source_2[ancient] <- paste("+", boto_f3$Source_2[ancient])
+  
+
+  #------------------------------------------------------------------------------#
+  # Map
+  
+  
+  if(group[["map"]] == "Brazil"){
+    cex_main_f3 <- 1.5
+    # pdf(paste0("~/Projects/Botocudos/Plots/F3/2021_02/", group[["plot_basename"]], ".pdf"),
+    #     width = group[["width"]] + 8, height = group[["height"]], useDingbats = F)
+    
+    par(mar = c(5,4,4,2), cex.main = 1.5)
+
+    # layout(mat = matrix(1:2, nrow = 1), widths = c(1,6))
+    layout(matrix(c(rep(1,21),2,3), nrow = 1, ncol = 23, byrow = TRUE),
+           widths = c(rep(6/21, 21,), 1.5, 6))
+
+
+    draw_map(
+      xlim = c(-70, -30),
+      ylim = c(-30, 10),
+      land_color = "white",
+      sea_color = "whitesmoke",
+      border_color = "gray50",
+      title_text =  paste("\n\n\n",  group[["main"]])
+    )
+    
+    text(
+      x = boto_f3$long + 2,
+      y = boto_f3$lat + 2,
+      labels = boto_f3$population,
+      cex = 2
+    )
+  points(x = boto_f3$long,
+         y = boto_f3$lat,
+         pch = 16,
+         col = ggplot2::alpha(boto_f3$color, 0.9),
+         lwd = 2,
+         cex = 5.5)
+  }else{next}
+  par(mar=c(5,3,6,6))
+  draw_colorscale(boto_f3 = boto_f3, palette = "Custom-Palette",
+                  palette_function = sequential_hcl, rev = T)
+
+  #------------------------------------------------------------------------------#
+  # F3
+  par(bg="white", cex.main = cex_main_f3, cex.axis = 2)
+  plot_F3(unique(boto_f3[,c("f_3", "Source_2","std.err","color")]),
+        x = "f_3", y = "Source_2", 
+        stdErr = "std.err", 
+        lwd_1stdErr = 4, lwd_3stdErr = 1, 
+        xlab = "", cex.axis = 1.5,
+        y_mar = 20,
+        cex_point = 2.2,
+        main = group[["main"]],  
+        x1 = group[["x1"]], x2 = group[["x2"]]
+        )
+  
+  
+  
+  # dev.off()
+  
+}
+```
+
+
+```{r, fig.width=25, fig.height=25}
+load(str_glue("{prefix_data}/final_inputs/Supplement/F3/f3_values.Rda"))
+
+for(group in f3_values){
+  
+  boto_f3 <- group$boto_f3
+  
+  ancient <- which(boto_f3$type == "Ancient")
+  boto_f3$Source_2[ancient] <- paste("+", boto_f3$Source_2[ancient])
+  
+
+  #------------------------------------------------------------------------------#
+  # Map
+  
+  
+  if(group[["map"]] == "Brazil"){
+    next
+  }else if(group[["map"]] == "Americas"){
+    cex_main_f3 <- 2
+    # pdf(paste0("~/Projects/Botocudos/Plots/F3/2021_02/", group[["plot_basename"]], ".pdf"),
+    #     width = group[["width"]] + 14, height = group[["height"]], useDingbats = F)
+
+    layout(matrix(c(rep(1,21),2,3), 
+                  nrow = 1, ncol = 23, byrow = TRUE),
+           widths = c(rep(12/21, 21), 1, 6))
+    par(cex.main = 2)
+
+    draw_map(xlim = c(-178, -13),
+             ylim = c(-60, 90),
+             land_color = "white",
+             sea_color = "whitesmoke",
+             border_color = "gray50",
+             title_text = paste("\n\n\n", group[["main"]])
+             )
+      
+    legend("bottomleft", pch = "+", col = "black", legend = "Ancient individual",
+           bty = "n", cex = 2.5, bg = "white")
+    
+    points(x = boto_f3$long,
+           y = boto_f3$lat,
+           pch = 16,
+           col = ggplot2::alpha(boto_f3$color, 0.9),
+           lwd = 2,
+           cex = 5.5)
+    
+    points(x = boto_f3$long[ancient],
+           y = boto_f3$lat[ancient],
+           pch = "+",
+           col = "black",
+           lwd = 2,
+           cex = 5.5)
+  }
+  par(mar=c(5,3,6,6))
+  draw_colorscale(boto_f3 = boto_f3, palette = "Custom-Palette",
+                  palette_function = sequential_hcl, rev = T)
+
+  #------------------------------------------------------------------------------#
+  # F3
+  par(bg="white", cex.main = cex_main_f3, cex.axis = 2)
+  plot_F3(unique(boto_f3[,c("f_3", "Source_2","std.err","color")]),
+        x = "f_3", y = "Source_2", 
+        stdErr = "std.err", 
+        lwd_1stdErr = 4, lwd_3stdErr = 1, 
+        xlab = "", cex.axis = 1.5,
+        y_mar = 20,
+        cex_point = 2.2,
+        main = group[["main"]],  
+        x1 = group[["x1"]], x2 = group[["x2"]]
+        )
+  
+  
+  
+  # dev.off()
+  
+}
+```
+
+## Datasets S8 - S14 NGSAdmix
+
+```{r, fig.width=12, fig.height=10}
+
+groups_to_plot <- c(
+  "Raghavan278ind_Castro12NatAm_Skoglund", "Raghavan278ind_CastroTupGuaUnrel",
+  "Raghavan278ind_CastroTupGuaUnrel_Skoglund_Castro12NatAm", "YF_Skoglund_Castro12NatAm",
+  "YF_Skoglund_Castro12NatAm_CastroTupGuaUnrelated"
+  )
+
+for(group in groups_to_plot){
+  load( str_glue("{prefix_data}/final_inputs/Supplement/NGSadmix/{group}.Rda") )
+  for(plot_object in ngsadmix_object){
+    plot_object$plot(do_layout = T, add_text = T)
+  }
+}
+
+
+
+```
+
+
+## Fig. S14 Conditional heterozygosity
+
+```{r,  fig.width = 12, fig.height = 6}
+boto_pi <- read.csv(
+  str_glue("{prefix_data}/final_inputs/Supplement/Heterozygosity/heterozygosity_coverage_botocudos_plot.csv")
+  )
+
+all_pairs <- ggplot(boto_pi,
+                    aes(
+                      x = Population.ID, 
+                      y = estimate, 
+                      ymin = confint1, 
+                      ymax = confint2, 
+                      color = Region, 
+                      interaction = Region
+                    )
+) +
+  geom_violin() +
+  geom_jitter() +
+  labs(title = "All pairs", x = NULL) +
+  theme(legend.position = "none", title = element_text(size = 8)) +
+  coord_cartesian(ylim = c(0.05, 0.20))
+
+
+
+below_above <- ggplot(boto_pi[boto_pi$ind1 %in% c("MN0008", "MN00056", "MN00013") 
+                              | boto_pi$ind2 %in% c("MN0008", "MN00056", "MN00013"), ],
+                      aes(
+                        x = Population.ID, 
+                        y = estimate, 
+                        ymin = confint1, 
+                        ymax = confint2, 
+                        color = Region, 
+                        interaction = Region
+                      )
+) +
+  geom_violin() +
+  geom_jitter() +
+  labs(title = "One individual with DoC > 2x \nand one with DoC < 2x", x = NULL) +
+  theme(legend.position = "none", title = element_text(size = 8)) +
+  coord_cartesian(ylim = c(0.05, 0.20))
+
+below <- ggplot(boto_pi[! (boto_pi$ind1 %in% c("MN0008", "MN00056", "MN00013") 
+                           & boto_pi$ind2 %in% c("MN0008", "MN00056", "MN00013")), ],
+                aes(
+                  x = Population.ID, 
+                  y = estimate, 
+                  ymin = confint1, 
+                  ymax = confint2, 
+                  color = Region, 
+                  interaction = Region
+                )
+) +
+  geom_violin() +
+  geom_jitter() +
+  labs(title = "Both individuals with DoC < 2x", x = NULL) +
+  theme(legend.position = "none", title = element_text(size = 8)) +
+  coord_cartesian(ylim = c(0.05, 0.20))
+
+above <- ggplot(boto_pi[boto_pi$ind1 %in% c("MN0008", "MN00056", "MN00013") 
+                        & boto_pi$ind2 %in% c("MN0008", "MN00056", "MN00013"), ],
+                aes(
+                  x = Population.ID, 
+                  y = estimate, 
+                  ymin = confint1, 
+                  ymax = confint2, 
+                  color = Region, 
+                  interaction = Region
+                )
+) +
+  geom_violin() +
+  geom_jitter() +
+  labs(title = "Both individuals with DoC > 2x", x = NULL) +
+  theme(legend.position = "none", title = element_text(size = 8)) +
+  coord_cartesian(ylim = c(0.05, 0.20))
+
+#pdf("~/Projects/Botocudos/Plots/Het/2021_01_13/condhet_by_coverage_Botocudos.pdf",
+#    width = 12, height = 6)
+plot_grid(all_pairs, below, below_above, above, nrow = 1)
+
+#dev.off()
+```
+
+## Fig. S14 Marginal SFS
+```{r Marginal SFS, fig.width=10, fig.height=3}
+model <- "model2_estAfr_1moredeme"
+#prefix <- str_glue("~/Projects/Botocudos/Files/fastsimcoal2/2022_12/summary_{model}/{model}")
+
+# png(
+#   "~/Projects/Botocudos/Plots/fastsimcoal2/sfs_fit_model2_estAfr_1moredeme.png",
+#   width = 10, height = 3, res = 300, units = "in"
+#      )
+# pdf(
+#   "~/Projects/Botocudos/Plots/fastsimcoal2/sfs_fit_model2_estAfr_1moredeme.pdf",
+#   width = 10, height = 3
+#      )
+
+par(mfrow = c(1,4))
+
+for(pop in c("Botocudos", "Karitiana", "Surui", "Yoruba")){
+    get_marginal_SFS(
+      miny = 0, maxy = 60000,
+      bestrun_bestlhoods_path = str_glue("{prefix_data}/final_inputs/Fig_5/{model}.bestlhoods"),
+      model = model,
+      sfsFile.obs = str_glue("{prefix_data}/final_inputs/Fig_5/Botoc_Karit_Surui_Yoruba.multisfs"), #"~/Projects/Botocudos/Files/fastsimcoal2/2022_11/Botoc_Karit_Surui_Yoruba.multisfs",
+      sfsFile.exp = str_glue("{prefix_data}/final_inputs/Fig_5/{model}_DSFS.txt"), #paste0(prefix, "_DSFS.txt"),
+      new.pop.Labels = c('"Botocudos"', "Yjxa", "Paiter", "Yoruba"), 
+      pop.Labels = c("Botocudos", "Karitiana", "Surui", "Yoruba"), 
+      add_lines =  F,
+      colors = c("red", "black"), population = pop,
+      xlab = "Frequency (derived allele)",
+      ylab = "Number of sites"
+    )
+
+}
+
+legend(
+  1, 55000,
+  col = c("black", "red"),
+  pch = 16,
+  lwd = 1,
+  bty = "n",
+  cex = 1.2,
+  legend = c("Observed", "Expected")
+)
+
+# dev.off()
+
+```
+
+## Fig. S15 Worse SFS entries
+```{r worse SFS entries, fig.height=3, fig.width=9}
+#par(mfrow = c(4, 6))
+# pdf("~/Projects/Botocudos/Plots/fastsimcoal2/worse_entries_Jan2023.pdf",
+#     width = 9, height = 3)
+
+# png("~/Projects/Botocudos/Plots/fastsimcoal2/worse_entries_Jan2023.png",
+#     width = 9, height = 3, units = "in", res = 300)
+  par(mar =  c(4, 6, 2, 1), mfrow = c(1,2), cex = 0.7)
+
+  plot_worst_entries(
+    
+    sfsFile.obs = str_glue("{prefix_data}/final_inputs/Fig_5/Botoc_Karit_Surui_Yoruba.multisfs"), 
+    sfsFile.exp = str_glue("{prefix_data}/final_inputs/Fig_5/{model}_DSFS.txt"),
+    color = "#c9303e", numBadEntriesToPLot = 20,
+    ylab1 = "Difference in likelihood per entry",
+    ylab2 = "Number of sites",
+    main1 = "Likelihood difference", #str_glue("{model} \n diff in lhoods"),
+    main2 = "Difference in number of sites" #str_glue("{model} \n diff in # of SFS entries"),
+    
+  )
+  
+# dev.off()
+
+```
+
+## Fig. S16 Bootstrapped parameters
+```{r read parameters}
+my_levels <- c(
+  "Ne_Botocudos", "Ne_Karitiana", "Ne_Surui", "Ne_SAm", "Ne_Je", "Ne_Tupi",
+  "Ne_Americas", "Ne_OutOfAfr", "Ne_Yoruba", "Ne_Anc",
+  
+  "FIS_Botocudos", "FIS_Karitiana", "FIS_Surui",
+  
+  "ADMBot", "ADMKar", "ADMSur", "ADMPR1", "ADMPR2",
+  
+  "TADM_Botocudos", "TADM_Karitiana", "TADM_Surui", "TADM_Yor1", "TADM_Yor2",
+  
+  "bn_Bot", "bn_Kar", "bn_Sur", "bn_Yor",
+  
+  "TBN_Botocudos", "TBN_Karitiana", "TBN_Surui", "TBN_Yoruba",
+  
+  "TDIV_Botocudos", "TDIV_Karitiana", "TDIV_Surui", "TDIV_SouthAm", "TDIV_Americas", 
+  "TDIV_OutOfAfr", "TDIV_Yoruba"
+)
+
+params_long <- read.table(str_glue("{prefix_data}/final_inputs/Fig_5/params_long.txt"), header = T)
+params_long$variable <- factor(params_long$variable, levels = my_levels, ordered = T)
+```
+
+
+```{r store plots}
+#------------------------------------------------------------------------------
+quantiles_95 <- function(x){
+  r <- quantile(x, probs=c(0.025, 0.25, 0.5, 0.75, 0.975))
+  names(r) <- c("ymin", "lower", "middle", "upper", "ymax")
+  r
+}
+
+#------------------------------------------------------------------------------
+
+options(scipen=10000)
+gen_time <- 25
+my_alpha <- 0.2
+bg_color <- "gray90"
+yoruba_color = "#ffff00"
+font_size_x <- 9
+font_size_y <- 8
+size_y_label <- 10
+strip_size <- 9
+title_size  <- 10
+title_face <- "bold"
+
+pop_colors =  c(
+  #"Botocudos" = 
+    "#d50c42",   
+  #"Karitiana" = 
+    "#0057ba", 
+  #"Surui" = 
+    "#0057ba",
+  #"South America" = 
+    "gray", 
+  #"Americas" = 
+    "gray", 
+  #"Out of Africa" = 
+    "gray", 
+  # Yoruba
+    "yellow",
+  #"Ancestral" = 
+    "gray"
+                )
+dot_col <- "red" ; dot_fill <- "black"; dot_shape = 21
+
+#------------------------------------------------------------------------------
+
+# Effective population sizes
+# NBOTO,NSURU,NKARI,NDINK,NAMER,NBRAZ,NTUPI,NJE,NANC,
+
+plot_Ne <-  
+ggplot(
+  params_long[
+    params_long$variable %in% c(
+      "Ne_Anc",
+      "Ne_Yoruba",
+      "Ne_OutOfAfr", 
+      "Ne_Americas", 
+      "Ne_SAm",
+      "Ne_Botocudos", "Ne_Karitiana", "Ne_Surui"
+    ), 
+  ], aes(
+    x = variable, y = value / 2, color = variable
+  )
+) +
+  geom_jitter(alpha = my_alpha) +
+  stat_summary(fun.data = quantiles_95, geom = "boxplot", fill = NA, color = "black") +
+  scale_y_log10() +
+  theme_minimal_hgrid() +
+  scale_x_discrete(labels = c(
+    "Ne_Anc" = "Ancestral",
+    "Ne_OutOfAfr" = "Out of Africa", 
+    "Ne_Americas" = "Americas", 
+    "Ne_SAm" = "South America",
+    "Ne_Yoruba" = "Yoruba",
+    "Ne_Botocudos" = '"Botocudos"', "Ne_Karitiana" = "Yjxa", "Ne_Surui" = "Paiter")) +
+  scale_color_manual(values = pop_colors) +
+  labs(title = "Effective population size", x = NULL, y = expression(paste(N[e]))) +
+  theme(
+    legend.position = "none", 
+    axis.text.x = element_text(angle = 45, hjust = 1, size = font_size_x),
+    axis.text.y = element_text(size = font_size_y),
+    strip.background =element_rect(fill = bg_color),
+    strip.text = element_text(size = strip_size),
+    plot.title = element_text(face = title_face, size = title_size), 
+    axis.title.y = element_text(size = size_y_label)
+    ) +
+  geom_point(
+    data = data.frame(
+      value = model_values$Nes / 2, 
+      variable = c("Ne_Botocudos", "Ne_Karitiana", "Ne_Surui", "Ne_Americas", "Ne_OutOfAfr", "Ne_Anc", "Ne_Yoruba", "Ne_SAm")
+    ),
+    color = dot_col, fill = dot_fill, pch = dot_shape
+  ) 
+
+#------------------------------------------------------------------------------
+# Split times
+popnames <- list(
+  model2_estAfr_1moredeme = c("Botocudos", "Karitiana",
+                              "Surui", "Americas", "Out of Africa", "ANC", "Yoruba","South America")
+)
+
+
+is_split <- model_values$migrants == 1
+sources <- popnames$model2_estAfr_1moredeme[ model_values$sources[is_split] + 1 ]
+sinks <- popnames$model2_estAfr_1moredeme[ model_values$sinks[is_split] + 1 ]
+splits_ml <- data.frame(
+  variable = paste0("TDIV_", sub("Out of Africa", "OutOfAfr", sub("South America", "SouthAm", sources))), 
+  value = model_values$times[is_split] 
+  )
+
+plot_tdiv <- 
+ggplot(
+  params_long[params_long$variable %in% c(
+    "TDIV_OutOfAfr", 
+    "TDIV_Yoruba",
+    "TDIV_Americas", 
+    "TDIV_SouthAm",
+    "TDIV_Botocudos", "TDIV_Karitiana", "TDIV_Surui"
+    
+  ), ], aes(
+    x = variable, y = value * gen_time, color = variable
+  )
+) +
+  geom_jitter(alpha = my_alpha) +
+  stat_summary(fun.data = quantiles_95, geom="boxplot", fill = NA, color = "black") +
+  scale_y_log10() +
+  theme_minimal_hgrid() +
+  scale_x_discrete(labels = c(
+    "TDIV_OutOfAfr" = "Out of Africa", 
+    "TDIV_Americas" = "Americas", 
+    "TDIV_Yoruba" = "Yoruba",
+    "TDIV_SouthAm" = "South America",
+    "TDIV_Botocudos" = '"Botocudos"', "TDIV_Karitiana" = "Yjxa", "TDIV_Surui" = "Paiter")
+    ) +
+  scale_color_manual(values = pop_colors) +
+  theme(
+    legend.position = "none", 
+    axis.text.x = element_text(angle = 45, hjust = 1, size = font_size_x),
+    axis.text.y = element_text(size = font_size_y),
+        strip.background = element_rect(fill = bg_color),
+    strip.text = element_text(size = strip_size),
+    plot.title = element_text(face = title_face, size = title_size), 
+    axis.title.y = element_text(size = size_y_label)
+    ) +
+  labs(title = "Split from ancestral population", x = NULL, y = "Years")  +
+  geom_point(
+    data = splits_ml,
+    color = dot_col, fill = dot_fill, pch = dot_shape
+  ) 
+
+#------------------------------------------------------------------------------
+
+# ggplot(params_wide, aes(x = Ne_Surui, y = TDIV_Surui, color = core_model, shape = type_model)) +
+#   geom_point() +
+#   facet_wrap(type_model ~ core_model)
+
+
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Inbreeding coefficients
+# FIS_Botoc,FIS_Karit,FIS_Surui,FIS_Dinka,
+# params_long$variable[params_long$variable == "FIS_Botoc"] <- "FIS_Botocudos"
+# params_long$variable[params_long$variable == "FIS_Karit"] <- "FIS_Karitiana"
+
+plot_fis <- 
+  ggplot(
+  params_long[params_long$variable %in% 
+                c("FIS_Botocudos","FIS_Karitiana","FIS_Surui"), ], aes(
+                  x = variable, y = value, color = variable
+                )
+) +
+  geom_jitter(alpha = my_alpha) +
+  stat_summary(fun.data = quantiles_95, geom="boxplot", fill = NA, color = "black") +
+  theme_minimal_hgrid() +
+  scale_x_discrete(labels = c(
+    "FIS_Botocudos" = '"Botocudos"', "FIS_Karitiana" = "Yjxa", "FIS_Surui" = "Paiter"
+  )
+  ) +
+  theme(legend.position = "none",  axis.text.x = element_text(angle = 45, hjust = 1, size = font_size_x),
+        axis.text.y = element_text(size = font_size_y),
+        strip.background =element_rect(fill=bg_color),
+    strip.text = element_text(size = strip_size),
+    plot.title = element_text(face = title_face, size = title_size), 
+    axis.title.y = element_text(size = size_y_label)
+    ) +
+  scale_color_manual(values = pop_colors[1:3]) +
+  labs(title = "Inbreeding coefficient", x = NULL, y = expression(F[IS])) +
+  geom_point(
+    data = data.frame(
+      value = model_values$inbreeding_coef[1:3], 
+      variable = c("FIS_Botocudos", "FIS_Karitiana", "FIS_Surui")
+    ),
+    color = dot_col, fill = dot_fill, pch = dot_shape
+  ) 
+
+
+
+#------------------------------------------------------------------------------
+# admixture proportions
+# adm_bot, adm_kar,adm_sur,adm_din,
+is_gene_flow <- model_values$migrants < 1 & model_values$migrants > 0
+sources <- popnames$model2_estAfr_1moredeme[ model_values$sources[is_gene_flow] + 1 ]
+geneflow <- data.frame(
+  value = model_values$migrants[is_gene_flow],
+  variable = c("ADMBot", "ADMKar", "ADMSur", "ADMPR1", "ADMPR2")
+)
+
+plot_adm <-  
+  ggplot(
+  params_long[params_long$variable %in% 
+                c("ADMBot", 
+                  "ADMKar",
+                  "ADMSur",
+                  "ADMPR1", "ADMPR2"), ], aes(
+                    x = variable, y = value, color = variable
+                  )
+) +
+  geom_jitter(alpha = my_alpha) +
+  stat_summary(fun.data = quantiles_95, geom="boxplot", fill = NA, color = "black") +
+  theme_minimal_hgrid() +
+  scale_x_discrete(labels = c(
+    "ADMBot" = '"Botocudos"', "ADMKar" = "Yjxa", "ADMSur" = "Paiter", "ADMPR1" = "Yoruba (1)", "ADMPR2" = "Yoruba (2)")
+  ) +
+  scale_y_continuous(labels = percent) +
+  scale_color_manual(values = c(pop_colors[1:3], yoruba_color, yoruba_color)) +
+  theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1, size = font_size_x),
+        axis.text.y = element_text(size = font_size_y),
+        strip.background =element_rect(fill=bg_color),
+    strip.text = element_text(size = strip_size),
+    plot.title = element_text(face = title_face, size = title_size), 
+    axis.title.y = element_text(size = size_y_label)
+    ) +
+  labs(title = "Gene flow (%)", x = NULL, y = "Gene flow received")  +
+  geom_point(
+    data = geneflow,
+    color = dot_col, fill = dot_fill, pch = dot_shape
+  ) 
+
+
+#------------------------------------------------------------------------------
+# Bottleneck intensities
+# bn_bot,bn_kar,bn_sur,bn_din,
+bnecks <- params_long[params_long$variable %in% 
+                        c("bn_Bot","bn_Kar","bn_Sur", "bn_Yor"),]
+bnecks$population <- sub("bn_", "", bnecks$variable)
+bnecks$intensity <- bnecks$value
+bnecks$variable <- NULL
+bnecks$value <- NULL
+bnecks$Ne_bn <- 1 / bnecks$intensity  
+
+sources <- popnames$model2_estAfr_1moredeme[ model_values$sources[model_values$instbot] +1  ]
+bneck_ml <- data.frame(
+  Ne_bn = 1 / model_values$new_sizes[model_values$instbot] / 2,
+  population = c("Bot", "Kar", "Sur", "Yor")
+)
+
+plot_bn <- 
+  ggplot(
+  bnecks, aes(
+    x = population, y = Ne_bn / 2, color = population
+  )
+) +
+  geom_jitter(alpha = my_alpha) +
+  stat_summary(fun.data = quantiles_95, geom = "boxplot", fill = NA, color = "black") +
+  scale_color_manual(values = c(c(pop_colors[1:3]), yoruba_color)) +
+  theme_minimal_hgrid() +
+  scale_x_discrete(
+    labels = c(
+    "Bot" = '"Botocudos"', "Kar" = "Yjxa", "Sur" = "Paiter", "Yor" = "Yoruba"
+    )
+  ) +
+  theme(
+    legend.position = "none",  
+    axis.text.x = element_text(angle = 45, hjust = 1, size = font_size_x),
+    axis.text.y = element_text(size = font_size_y),
+        strip.background = element_rect(fill=bg_color),
+    strip.text = element_text(size = strip_size),
+    plot.title = element_text(face = title_face, size = title_size), 
+    axis.title.y = element_text(size = size_y_label)
+    ) +
+  labs(title = "Effective population size (at bottleneck)", x = NULL, y = expression(paste( N[e])))  +
+  geom_point(
+    data = bneck_ml,
+    color = dot_col, fill = dot_fill, pch = dot_shape
+  ) 
+
+
+
+  
+  # TBN_BOTOC,TBN_SURUI,TBN_KARIT,TBN_DINKA,
+# TDIV_TUPI,TDIV_JE,TDIV_BRAZ,TDIV_AMER,
+# TDIV_BOTOC,TDIV_KARIT,TDIV_SURUI,TDIV_DINKA
+# TADM_BOTOC,TADM_SURUI,TADM_KARIT,TADM_DINKA,
+#gen_time = 25
+  
+geneflow <- data.frame(
+  value = model_values$times[is_gene_flow],
+  variable = c("TADM_Botocudos", "TADM_Karitiana", "TADM_Surui", "TADM_Yor1", "TADM_Yor2")
+)
+
+plot_tadm <- 
+  ggplot(
+  params_long[params_long$variable %in% 
+                c("TADM_Botocudos","TADM_Surui","TADM_Karitiana",
+                  "TADM_Yor1", "TADM_Yor2"
+                ), ], aes(
+                  x = variable, y = value * gen_time, color = variable
+                )
+) +
+  geom_jitter(alpha = my_alpha) +
+  scale_y_log10() +
+  stat_summary(fun.data = quantiles_95, geom="boxplot", fill = NA, color = "black") +
+  theme_minimal_hgrid() +
+  scale_x_discrete(labels = c(
+    "TADM_Botocudos" = '"Botocudos"', "TADM_Karitiana" = "Yjxa", 
+    "TADM_Surui" = "Paiter", "TADM_Yor1" = "Yoruba (1)", "TADM_Yor2" = "Yoruba (2)"
+  )
+  ) +
+  theme(
+    legend.position = "none", 
+    axis.text.x = element_text(angle = 45, hjust = 1, size = font_size_x),
+    axis.text.y = element_text(size = font_size_y),
+    strip.background = element_rect(fill=bg_color),
+    strip.text = element_text(size = strip_size),
+    plot.title = element_text(face = title_face, size = title_size), 
+    axis.title.y = element_text(size = size_y_label)
+  ) +
+  scale_color_manual(values = c(c(pop_colors[1:3]), yoruba_color, yoruba_color)) +
+  labs(title = "Time to gene flow", y = "Years", x = NULL)  +
+  geom_point(
+    data = geneflow,
+    color = dot_col, fill = dot_fill, pch = dot_shape
+  ) 
+
+```
+
+
+```{r, fig.width=9, fig.height=5}
+
+#png("~/Projects/Botocudos/Plots/fastsimcoal2/estimated_params_95CI.png", width = 9, height = 5, res = 600, units = "in")
+plot_grid(
+  plot_tdiv, plot_fis, plot_tadm,
+  plot_Ne, plot_bn, plot_adm, 
+  ncol = 3, 
+  rel_widths = c(12,8,7)
+  )
+#dev.off()
+
+```
+
+
+## Fig. S17 Dstats
+
+```{r supplementary figure,  fig.width = 9.5, fig.height = 7.5}
+# 22 Botocudos
+
+file <- "July_09_trim5"
+abba <- read.table(
+  str_glue("{prefix_data}/final_inputs/Supplement/Dstat/July_09_trim5.ErrorCorr.TransRem.txt"),
+                   header = T, stringsAsFactors = F)
+
+
+
+pops_in_title = c("Mixe")
+pops_in_h3 <- c(
+  "French", 
+  "Han",
+  "Andaman_trim5",
+  "Papuan",
+  "Australian"
+  )
+pops_in_h3_labels <-  c("French\n(n = 1)",
+                                 "Han\n(n = 1)",
+                                 "Andaman\n(n = 1)",
+                                 "Papuan\n(n = 1)",
+                                 "Australian\n(n = 7)")
+
+
+pop_colors <- c("gray60", "gray80", "#CC85D1", "#96BFE6", "#0057BA", "black")
+
+pops_in_y <-  c(
+  "Surui",
+  "LagoaSanta",
+  "LagoaSanta_trim5",
+  "LagoaSanta",
+  "MN0008",
+  # "MN0008_L3U_trim5",
+  "MN0008_L3U_trim2",
+  "Karitiana",
+  "Aymara",
+  "22Botocudos_trim5",
+  "Huichol"
+                   )
+
+new_labels = list(
+  "MN0008_L3U_trim2" = "MN0008_L3U_trim2\n(n = 1)",
+  "22Botocudos_trim5" = "Botocudos_trim5\n(n = 22)",
+  "Surui" = "Surui\n(n = 2)",
+  "LagoaSanta_trim5" = "Lagoa Santa\n(n = 1)",
+  # "MN0008_L3U_trim5" = "MN0008_L3U_trim5\n(n = 1)",
+  # "MN0008" = "MN0008\n(n = 1)",
+  "Karitiana" = "Karitiana\n(n = 4)",
+  "Aymara" = "Aymara\n(n = 1)",
+  "Huichol" = "Huichol\n(n = 1)"
+)
+
+pop <- "Mixe"
+outgroup <- "Yoruba"
+
+Dstat <- abba[(abba$H1 %in% pops_in_title |abba$H2 %in% pops_in_title) &
+                (abba$H3 %in% pops_in_h3),]
+df_y <- as.data.frame(pops_in_y)
+df_y$y_axis <- rownames(df_y)
+plot_list <- list()
+
+Dstat <- abba[(abba$H1 == pop |abba$H2 == pop) &
+                (abba$H3 %in% pops_in_h3),]
+Dstat <- switch_h2_h1(Dstat, pop)
+Dstat <- Dstat[!(Dstat$H1 %in% pops_in_h3),]
+
+
+Dstat <- Dstat[Dstat$H1 %in% pops_in_y,]
+
+for(label in names(new_labels)){
+  print(label)
+  Dstat[Dstat$H1 == label,]$H1 <- new_labels[[label]]
+}
+
+
+Dstat$H1 <- factor(Dstat$H1, 
+                   levels = rev(unique(new_labels))
+)
+Dstat$H3 <- factor(Dstat$H3, 
+                   levels = c(pops_in_h3),
+                   ordered = T)
+
+x_label <- expression(
+  atop(
+    "Z",
+    paste("(", H[1], ", ", H[3], ") < --- > (Mixe, ", H[3], ")"),
+    paste("(Mixe, Yoruba)",  " < --- > (", H[1], ", Yoruba)")
+  )
+)
+
+p <- ggplot(Dstat, aes(x = Z, y = H1, 
+                       fill = H3)) +
+  
+  coord_cartesian(xlim = c(-4,3.5)) +
+  scale_fill_manual(values = alpha(pop_colors, .8),
+                    breaks = pops_in_h3,
+                    labels = pops_in_h3_labels,
+                    name = expression(paste(H[3], ":"))) +
+  geom_vline(xintercept = c(-3.3,3.3), lty = "dashed", col = "brown", lwd = 1)+
+  geom_vline(xintercept = c(-4,-3,-2,-1,0,1,2,3), lty = "solid", col = "gray", lwd = 0.2) +
+  geom_vline(xintercept = c(-3.5,-2.5,-1.5,-0.5,0.5,1.5,2.5,3.5), lty = "dashed", col = "gray", lwd = 0.2) +
+  
+  geom_point(shape = 23, size = 7, stroke= 1) +
+  labs(
+    x = x_label,
+    y = expression(H[1]),
+    title = expression(bold(paste("Z-scores for D(", H[1], ", ", H[2]," = Mixe; ", H[3], ", Yoruba)" )))) +
+  theme_cowplot() +
+  theme(legend.position = "top", 
+        axis.text.x = element_text(size = 16),
+        axis.text.y = element_text(size = 16)
+  ) 
+
+
+#pdf("~/Projects/Botocudos/Plots/dummy_figures/Dstat_SI.pdf", width = 9.5, height = 7.5)
+p
+#dev.off()
+
+```
+
+## Fig. S18 Diet comparison (Isotopes)
+Done
+
+```{r}
+
+isotopes <- read.csv(
+  str_glue("{prefix_data}/final_inputs/Supplement/Isotopes/comparisons_August2021.csv"),
+                    stringsAsFactors = F)
+
+boto <- subset(isotopes, Name == '"Botocudos"')
+isotopes <- subset(isotopes, Include_in_analysis == "Yes")
+#isotopes <- subset(isotopes, Include_in_analysis == "Yes"|Name == 'Polynesian-"Botocudos"')
+# prepare and order factors for the plot, according to what is written in the manuscript
+
+names_groups <- list(
+  '"Botocudos"'                              = '"Botocudos" (this study)',
+  "Sambaqui"                                 = "Sambaqui (this study)",
+  #'Polynesian-"Botocudos"'                   = 'Polynesian-"Botocudos" (2014)',
+  "Lagoa Santa"                              = "(i) Early Holocene Hunter-gatherers",
+  "Riverine sambaqui"                        = "(ii) Mid-Holocene riverin sambaquis",
+  "Coastal sambaqui"                         = "(iii) 3K-1K yo Coastal sambaquis",
+  "Present day, Rio de Janeiro and Brasilia" = "(iv) Present day, Rio de Janeiro and Brasilia"
+)
+
+for(label in names(names_groups)){
+  index <- which(isotopes$Name == label)
+  isotopes$Name[index] = names_groups[[label]]
+}
+
+isotopes$Name <- factor(
+  isotopes$Name,
+  levels = sapply(1:length(names_groups), function(i) unlist(names_groups)[[i]]),
+  ordered = T
+)
+
+
+
+ggplot(isotopes, aes(d13C, d15N, fill = Name)) +
+  geom_point(size = 5, alpha = 0.8, stroke = 1, shape = 21, color = "black") +
+  theme_minimal() +
+  labs(
+    x = expression(
+      paste(delta^13, "C")
+    ),
+    y = expression(
+      paste(delta^15, "N")
+    ),
+    title = "Isotopic values, bones and permanent second and third molars"
+  ) +
+  scale_fill_discrete() +
+  theme(legend.position = c(0.3,0.8))
+
+
+# ggsave("~/Projects/Botocudos/Plots/Isotopes/isotopes_SI_2023.pdf", width = 7, height = 7)
+
+```
+
+```{r}
+
+require(car)
+#------------------------------------------------------------------------------#
+# checking equal variances
+# p-values > 0.05, then equal variances can be assumed
+Boto_Rio <- subset(isotopes, Name %in% c('"Botocudos" (this study)', "(iv) Present day, Rio de Janeiro and Brasilia"))
+Boto_Lagoa <- subset(isotopes, Name %in% c('"Botocudos" (this study)', "(i) Early Holocene Hunter-gatherers"))
+
+leveneTest(d15N ~ Name, Boto_Rio)
+leveneTest(d13C ~ Name, Boto_Rio)
+
+leveneTest(d15N ~ Name, Boto_Lagoa)
+leveneTest(d13C ~ Name, Boto_Lagoa)
+
+# (we can assume equal variances in the four comparisons)
+#------------------------------------------------------------------------------#
+# 
+TukeyHSD(aov(d15N ~ Name, Boto_Rio))
+summary(aov(d15N ~ Name, Boto_Rio))
+
+TukeyHSD(aov(d15N ~ Name, Boto_Lagoa))
+summary(aov(d15N ~ Name, Boto_Lagoa))
+
+
+```
+
+
+
+
+# Session info
+
+```{r}
+sessionInfo()
+```
+
