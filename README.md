@@ -21,4 +21,4 @@ Some of the analyses include:
 * Demographic inference
 * Data visualization (in general)
 
-A new repository will be released soon with the compact version of the analyses.
+Please see [Figures_Paper.html](https://github.com/dianaicd/GenomicsMetagenomics_IndigenousBrazil/blob/master/Figures_Paper.html) and [Fgures_Paper.Rmd](https://github.com/dianaicd/GenomicsMetagenomics_IndigenousBrazil/blob/master/Figures_Paper.Rmd) for the code to make the figures that made it to the final manuscript.
