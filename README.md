@@ -4,7 +4,7 @@ This repository hosts the scripts and instructions to obtain the results present
 
 Some of the analyses include:
 * Visualization of geographic regions
-* Mapping NGS reads (which was developed in parallel with the mapache repository)
+* Mapping NGS reads (which was developed in parallel with the [mapache](https://github.com/sneuensc/mapache/) repository)
 * Metagenomic screening
 * Phylogenetic analyses
 * Assessment data quality
